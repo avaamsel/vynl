@@ -13,7 +13,16 @@ Vynl allows users to quickly assemble vibe-consistent platform-neutral playlists
 * _Stretch:_ adding friends and seeing their build playlists
 
 ## repository layout
-
+```
+vynl/
+├── .bundle/            
+├── __tests__/   
+├── android/                 
+│   └── gradle/wrapper/      
+└── ios/       
+    ├── vynl.xcodeproj      
+    └── vynl
+```
 
 ## important links:
 [vynl's living document](https://docs.google.com/document/d/1faT3a1d0nOTIH54GvlgVz1ZsnCDJu_9Clpa1UxbFFoE/edit?usp=sharing)
