@@ -18,3 +18,19 @@ Vynl allows users to quickly assemble vibe-consistent platform-neutral playlists
 ## important links:
 [vynl's living document](https://docs.google.com/document/d/1faT3a1d0nOTIH54GvlgVz1ZsnCDJu_9Clpa1UxbFFoE/edit?usp=sharing)
 
+## Running from the repo root
+
+The actual Expo app lives in the `vynl/` folder. This repo provides convenience so you can run from the repo root:
+
+- A small root `package.json` provides proxy scripts (e.g. `npm run start`) that forward to `vynl/`.
+- A `node_modules` symlink at the repo root points to `vynl/node_modules` so Metro/Expo can find dependencies when running from the repo root.
+
+From the repo root you can run:
+
+```bash
+npm run install
+npm run start
+```
+
+Or `cd vynl` and run commands directly there if you prefer.
+

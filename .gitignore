@@ -1,0 +1,4 @@
+# node
+node_modules/
+# ignore root node_modules symlink target in vynl if necessary
+vynl/node_modules/
