@@ -4,7 +4,7 @@ client/node_modules/
 server/node_modules/
 
 # Expo
-.expo
+.expo/
 
 # Ignore cache and dependency files
 .pnp/
@@ -27,7 +27,7 @@ data/
 
 # Editor directories and files
 .idea/
-.vscode/*
+*.vscode/*
 !.vscode/extensions.json
 !.vscode/launch.json
 !.vscode/settings.json
@@ -66,3 +66,42 @@ desktop.ini
 # Specific to this project
 .temp/
 .tmp/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+app-example
+
+# generated native folders
+/ios
+/android
