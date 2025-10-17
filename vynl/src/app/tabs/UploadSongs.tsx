@@ -1,5 +1,5 @@
 import React from 'react';
-import AppButton from '../../components/AppButton';
+import AppButton from '../../../components/AppButton';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 
 const UploadSongs: React.FC = () => {
