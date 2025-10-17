@@ -2,9 +2,6 @@
   "private": true,
   "name": "vynl-monorepo-root",
   "version": "1.0.0",
-  "workspaces": [
-    "vynl"
-  ],
   "scripts": {
     "start": "npm --prefix ./vynl run start",
     "android": "npm --prefix ./vynl run android",
