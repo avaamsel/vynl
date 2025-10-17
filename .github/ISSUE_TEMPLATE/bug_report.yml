@@ -1,6 +1,6 @@
 name: "🐞 Bug report"
 description: "File a reproducible problem with the software."
-title: "[Bug]: <short summary>"
+title: "[Bug]: <summary>"
 labels: ["bug", "triage"]
 assignees:
   - ""
@@ -14,31 +14,109 @@ body:
           required: true
         - label: I have read the contributing guidelines
           required: true
-  - type: textarea
-    id: description
+  - type: input
+    id: summary
     attributes:
-      label: Describe the bug
-      description: A clear and concise description of what the bug is.
-      placeholder: "When I ..., I expected ..., but ..."
+      label: Summary
+      description: How would you describe the bug in less than 60 characters? It should quickly and uniquely identify a bug report as well as explain the problem, not your suggested solution.
+      placeholder: "Canceling a File Copy dialog crashes File Manager"
     validations:
       required: true
-  - type: textarea
-    id: reproduction
+  - type: dropdown
+    id: component
     attributes:
-      label: Steps to reproduce
-      description: Provide a minimal, complete, and verifiable reproduction.
+      label: Component
+      description: In which sub-part of the software does it exist? This field is a requirement to submit any bug report.
+      options:
+        - General
+        - UI/UX
+        - Backend/API
+        - Database
+        - Authentication
+        - File Management
+        - Performance
+        - Mobile
+        - Web
+        - Other (specify below)
+    validations:
+      required: true
+  - type: input
+    id: component_other
+    attributes:
+      label: Other component details
+      description: Specify the component if not listed above
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Select the earliest Version with what the problem can be reproduced. Avoid "Trunk" - use precise version information.
+      placeholder: "v1.2.3"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      description: On which operating system (OS) did you find it? If the bug happens on more than one type, choose "All".
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - iOS
+        - Android
+        - All
+        - Other (specify below)
+    validations:
+      required: true
+  - type: input
+    id: os_other
+    attributes:
+      label: Other OS details
+      description: Specify the operating system if not listed above
+  - type: textarea
+    id: overview
+    attributes:
+      label: Description - Overview
+      description: This is a larger detailed restatement of the summary. Provide a clear and comprehensive description of the problem.
+      placeholder: "Drag-selecting any page crashes Mac builds in the NSGetFactory function"
+    validations:
+      required: true
+  - type: input
+    id: build_id
+    attributes:
+      label: Description - Build ID
+      description: To find this, go to the application's about/support page or check build information. Should look like: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.10; rv:38.0) Gecko/20100101 Firefox/38.0 ID:20150330004006 CSet: 9e57e9776571"
+      placeholder: "Application/Version (Platform; OS details; rv:version) Build/ID:timestamp"
+  - type: textarea
+    id: additional_builds
+    attributes:
+      label: Description - Additional Builds and Platforms
+      description: Whether or not the bug takes place on other platforms. Include build information for platforms where it doesn't occur.
+      placeholder: "Doesn't Occur On: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Gecko/20100101 Firefox/38.0 ID:20150330004006"
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Minimized, easy-to-follow steps that will trigger the bug. Include any special setup steps if necessary.
       placeholder: |
-        1. Go to '...'
-        2. Click on '....'
-        3. Scroll down to '....'
-        4. See error
+        1) View any web page. (I used the default sample page, https://www.google.com/).
+        2) Drag-select the page. Specifically, while holding down the mouse button, drag the mouse pointer downwards from any point in the browser's content region to the bottom of the browser's content region.
     validations:
       required: true
   - type: textarea
-    id: expected
+    id: actual_results
     attributes:
-      label: Expected behavior
-      description: What did you expect to happen?
+      label: Actual Results
+      description: What the application did after performing the above steps.
+      placeholder: "The application crashed."
+    validations:
+      required: true
+  - type: textarea
+    id: expected_results
+    attributes:
+      label: Expected Results
+      description: What the application should have done, were the bug not present.
+      placeholder: "The window should scroll downwards. Scrolled content should be selected. Or, at least, the application should not crash."
     validations:
       required: true
   - type: textarea
@@ -47,26 +125,6 @@ body:
       label: Relevant log output / screenshots
       description: Please paste logs or drag-and-drop screenshots. Remove any sensitive data!
       render: shell
-  - type: input
-    id: version
-    attributes:
-      label: Software version
-      placeholder: "v1.2.3"
-    validations:
-      required: true
-  - type: dropdown
-    id: platform
-    attributes:
-      label: Environment
-      options:
-        - Windows
-        - macOS
-        - Linux
-        - Other (specify below)
-  - type: input
-    id: platform_other
-    attributes:
-      label: Other environment details
   - type: markdown
     attributes:
       value: "Thank you for helping us improve! 🙏"
