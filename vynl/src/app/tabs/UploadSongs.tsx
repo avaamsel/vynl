@@ -8,7 +8,7 @@ const UploadSongs: React.FC = () => {
       <View style={styles.topcontainer}>
         {/* Upload Image */}
         <Image 
-          source={require('../../assets/images/upload.png')}
+          source={require('../../../assets/images/upload.png')}
           style={styles.image}
         />
 
