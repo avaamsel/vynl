@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, useColorScheme } from "react-native";
+import { Colors } from '../../constants/theme';
 import { Link } from 'expo-router';
 import AppButton from "../../components/AppButton";
 import InputField from '../../components/InputField';
@@ -36,10 +37,38 @@ const LoginPage: React.FC = () => {
     console.log("Login Data:", formData);
   };
 
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+
+  const dynamicStyles = StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: 26,
+      justifyContent: "center",
+      backgroundColor: colors.background,
+    },
+    title: {
+      fontSize: 26,
+      color: colors.text,
+    },
+    inputcontainer: {
+      marginVertical: 90,
+      marginBottom: 230,
+    },
+    signupText: {
+      textAlign: 'center',
+      marginTop: 12,
+      color: colors.text,
+    },
+    signupLink: {
+      color: '#007AFF',
+    },
+  });
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Log In</Text>
-      <View style={styles.inputcontainer}>
+    <View style={dynamicStyles.container}>
+      <Text style={dynamicStyles.title}>Log In</Text>
+      <View style={dynamicStyles.inputcontainer}>
         <InputField
           label="Email"
           value={formData.email}
@@ -59,10 +88,10 @@ const LoginPage: React.FC = () => {
           error={errors.password}
         />
       </View>
-      <AppButton title="Log In" onPress={handleSubmit} />
-      <Text style={styles.signupText}>
+      <AppButton title="Log In" onPress={handleSubmit} backgroundColor= {colors.primary} />
+      <Text style={dynamicStyles.signupText}>
         Don't have an account?{' '}
-        <Link href="../SignupPage" style={styles.signupLink}>
+        <Link href="../SignupPage" style={dynamicStyles.signupLink}>
           Sign up
         </Link>
       </Text>
@@ -72,26 +101,4 @@ const LoginPage: React.FC = () => {
 
 export default LoginPage;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 26,
-    justifyContent: "center",
-    backgroundColor: "#ffff",
-  },
-  title: {
-    fontSize: 26,
-  },
-  inputcontainer: {
-    marginVertical:90,
-    marginBottom: 230,
-  },
-  signupText: {
-    textAlign: 'center',
-    marginTop: 12,
-    color: '#333',
-  },
-  signupLink: {
-    color: '#007AFF',
-  },
-});
+// ...removed static styles, now using dynamicStyles

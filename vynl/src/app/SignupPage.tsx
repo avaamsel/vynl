@@ -1,8 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, Alert } from "react-native";
+import { View, Text, StyleSheet, useColorScheme } from "react-native";
+import { Colors } from '../../constants/theme';
 import { Link } from 'expo-router';
 import AppButton from "../../components/AppButton"; // make sure path is correct
 import InputField from '../../components/InputField';
+import { validatePassword } from "@/scripts/validatePassword";
+import { passwordErrorMessages } from "@/scripts/validatePassword";
 
 interface FormData {
   email: string;
@@ -35,48 +38,89 @@ const SignupPage: React.FC = () => {
       return;
     }
 
+    // Check if password fullfils requirements
+    const error = validatePassword(formData.password);
+    if (validatePassword(formData.password) != 0) {
+      setErrors((prev) => ({ ...prev, password: passwordErrorMessages[error] }));
+      return;
+    }
+
     // Clear errors and proceed
     setErrors({});
     console.log("Form Data:", formData);
     // Later: call API from services/api.ts
   };
 
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+
+  const dynamicStyles = StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: 26,
+      justifyContent: "center",
+      backgroundColor: colors.background,
+    },
+    title: {
+      fontSize: 26,
+      color: colors.text,
+    },
+    label: {
+      fontSize: 16,
+      marginBottom: 4,
+      fontWeight: "bold",
+      color: colors.text,
+    },
+    inputcontainer: {
+      marginVertical: 80,
+      marginBottom: 180,
+    },
+    loginText: {
+      textAlign: 'center',
+      marginTop: 12,
+      color: colors.text,
+    },
+    loginLink: {
+      color: '#007AFF',
+    },
+  });
+
   return (
-    <View style={styles.container}>
-      <Text style= {styles.title}>Sign Up</Text>
-      <View style = {styles.inputcontainer}>
+    <View style={dynamicStyles.container}>
+      <Text style={dynamicStyles.title}>Sign Up</Text>
+      <View style={dynamicStyles.inputcontainer}>
         <InputField
-            label="Email"
-            value={formData.email}
-            onChangeText={(text) => handleChange("email", text)}
-            keyboardType="email-address"
-            placeholder="Enter your email"
-            height={55}
-      error={errors.email}
+          label="Email"
+          value={formData.email}
+          onChangeText={(text) => handleChange("email", text)}
+          keyboardType="email-address"
+          placeholder="Enter your email"
+          height={55}
+          error={errors.email}
         />
         <InputField
-            label="Password"
-            value={formData.password}
-            onChangeText={(text) => handleChange("password", text)}
-            secureTextEntry={true}
-            placeholder="Enter your password"
-            height={55}
-      error={errors.password}
+          label="Password"
+          value={formData.password}
+          onChangeText={(text) => handleChange("password", text)}
+          secureTextEntry={true}
+          placeholder="Enter your password"
+          height={55}
+          error={errors.password}
         />
         <InputField
-            label="Confirm password"
-            value={formData.confirmPassword}
-            onChangeText={(text) => handleChange("confirmPassword", text)}
-            secureTextEntry={true}
-            placeholder="Confirm your password"
-            height={55}
-      error={errors.confirmPassword}
-    />
+          label="Confirm password"
+          value={formData.confirmPassword}
+          onChangeText={(text) => handleChange("confirmPassword", text)}
+          secureTextEntry={true}
+          placeholder="Confirm your password"
+          height={55}
+          error={errors.confirmPassword}
+        />
       </View>
-      <AppButton title="Sign Up" onPress={handleSubmit} />
-      <Text style={styles.loginText}>
+      <AppButton title="Sign Up" onPress={handleSubmit} backgroundColor= {colors.primary} />
+      <Text style={dynamicStyles.loginText}>
         Already have an account?{' '}
-        <Link href="../LoginPage" style={styles.loginLink}>
+        <Link href="../LoginPage" style={dynamicStyles.loginLink}>
           Log in
         </Link>
       </Text>
@@ -86,38 +130,4 @@ const SignupPage: React.FC = () => {
 
 export default SignupPage;
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 26,
-    justifyContent: "center",
-    backgroundColor: "#ffff",
-  },
-  title: {
-    fontSize: 26,
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: 4,
-    fontWeight: "bold",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  inputcontainer: {
-    marginVertical:80,
-    marginBottom: 180,
-  },
-  loginText: {
-    textAlign: 'center',
-    marginTop: 12,
-    color: '#333',
-  },
-  loginLink: {
-    color: '#007AFF',
-  },
-});
+// ...removed static styles, now using dynamicStyles

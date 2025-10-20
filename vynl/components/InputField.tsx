@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, TextInput, StyleSheet, TextInputProps } from "react-native";
+import { View, Text, TextInput, StyleSheet, TextInputProps, useColorScheme } from "react-native";
+import { Colors } from "../constants/theme";
 
 interface InputFieldProps extends TextInputProps {
   label: string;
@@ -22,29 +23,66 @@ const InputField: React.FC<InputFieldProps> = ({
   height,
   ...props
 }) => {
+  const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
+  
+  const dynamicStyles = StyleSheet.create({
+    inputWrapper: {
+      position: "relative",
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 14,
+      paddingTop: 4,
+      paddingHorizontal: 12,
+      height: 50,
+    },
+    inputWrapperError: {
+      borderColor: colors.error,
+    },
+    label: {
+      position: "absolute",
+      top: -8,
+      left: 12,
+      backgroundColor: colors.background,
+      paddingHorizontal: 6,
+      fontSize: 12,
+      color: colors.placeholder,
+    },
+    input: {
+      fontSize: 16,
+      height: "100%",
+      color: colors.text,
+    },
+    errorText: {
+      color: colors.error,
+      fontSize: 12,
+      marginTop: 4,
+    },
+  });
+  
   return (
     <View style={styles.container}>
       <View
         style={[
-          styles.inputWrapper,
-          error && styles.inputWrapperError,
+          dynamicStyles.inputWrapper,
+          error && dynamicStyles.inputWrapperError,
           { width: width as any, height: height as any },
         ]}
       >
-        <Text style={styles.label}>{label}</Text>
+        <Text style={dynamicStyles.label}>{label}</Text>
         <TextInput
-          style={[styles.input, { height: height as any }]}
+          style={[dynamicStyles.input, { height: height as any }]}
           value={value}
           onChangeText={onChangeText}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           placeholder={placeholder}
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.placeholder}
           autoCapitalize="none"
           {...props}
         />
       </View>
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {error ? <Text style={dynamicStyles.errorText}>{error}</Text> : null}
     </View>
   );
 };
@@ -54,36 +92,5 @@ export default InputField;
 const styles = StyleSheet.create({
   container: {
     marginBottom: 16,
-  },
-  inputWrapper: {
-    position: "relative",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 14,
-    paddingTop: 4,
-    paddingHorizontal: 12,
-    height: 50,
-  },
-  inputWrapperError: {
-    borderColor: "red",
-  },
-  label: {
-    position: "absolute",
-    top: -8,
-    left: 12,
-    backgroundColor: "#fff",
-    paddingHorizontal: 6,
-    fontSize: 12,
-    color: "#666",
-  },
-  input: {
-    fontSize: 16,
-    height: "100%",
-    color: "#000",
-  },
-  errorText: {
-    color: "red",
-    fontSize: 12,
-    marginTop: 4,
   },
 });
