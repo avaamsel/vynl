@@ -1,13 +1,15 @@
 import { Image } from 'expo-image';
 import { Platform, StyleSheet } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { supabase } from '@/src/utils/supabase';
+import { HelloWave } from '@/src/components/hello-wave';
+import ParallaxScrollView from '@/src/components/parallax-scroll-view';
+import { ThemedText } from '@/src/components/themed-text';
+import { ThemedView } from '@/src/components/themed-view';
 import { Link } from 'expo-router';
 
 export default function HomeScreen() {
+  signInWithEmail();
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -76,6 +78,28 @@ export default function HomeScreen() {
       </ThemedView>
     </ParallaxScrollView>
   );
+}
+
+async function signUpNewUser() {
+  console.log('HERE');
+  const { data, error } = await supabase.auth.signUp({
+    email: 'zcrouse@uw.edu',
+    password: 'example-password',
+    options: {
+      emailRedirectTo: 'https://example.com/welcome',
+    },
+  })
+  console.log(data);
+  console.log(error);
+}
+
+async function signInWithEmail() {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: 'zcrouse@uw.edu',
+    password: 'example-password',
+  })
+  console.log(data);
+  console.log(error);
 }
 
 const styles = StyleSheet.create({
