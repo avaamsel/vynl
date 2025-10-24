@@ -101,7 +101,7 @@ const SignupPage: React.FC = () => {
       color: colors.text,
     },
     loginLink: {
-      color: '#007AFF',
+      color:'#F28695',
     },
   });
 

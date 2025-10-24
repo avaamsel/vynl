@@ -8,8 +8,8 @@ import { ThemedView } from '@/src/components/themed-view';
 import { Link, Redirect } from 'expo-router';
 
 export default function HomeScreen() {
-  return <Redirect href={"../LoginPage"} />;
-  
+  return <Redirect href={"../UserChoice"} />;
+
   /*
   return (
     <ParallaxScrollView

@@ -10,7 +10,7 @@ const primaryLight = '#F1CCA6';
 const secondaryLight = '#F28695';
 
 //TODO Dark theme colors
-const primaryDark = '#F1CCA6';
+const primaryDark = '#F28695';
 const secondaryDark = '#F28695';
 
 // Status colors
@@ -24,13 +24,13 @@ export const Colors = {
     // Base colors
     text: '#000000',
     background: '#FFFFFF',
-    
+
     primary: primaryLight,
     secondary: secondaryLight,
-    
+
     // Accent colors
-    accent: '#FF4081', // Pink accent
-    
+    accent: '#F28695', // Pink accent
+
     // Status
     success: success,
     warning: warning,
@@ -43,7 +43,7 @@ export const Colors = {
     icon: '#687076',
     disabled: '#BDBDBD',
     placeholder: '#9E9E9E',
-    
+
     // Tab navigation
     tabIconDefault: '#687076',
     tabIconSelected: primaryLight,
@@ -53,24 +53,24 @@ export const Colors = {
     // Base colors
     text: '#ECEDEE',
     background: '#000000',
-    
+
     // Primary colors
     primary: primaryDark,
     secondary: secondaryDark,
-    
+
     // Status
     success: success,
     warning: warning,
     error: error,
     info: info,
-    
+
     // UI elements
     border: '#ffffffff',
     divider: '#333333',
     icon: '#9BA1A6',
     disabled: '#666666',
     placeholder: '#757575',
-    
+
     // Tab navigation
     tabIconDefault: '#9BA1A6',
     tabIconSelected: primaryDark,
