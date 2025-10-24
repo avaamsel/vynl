@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, useColorScheme } from "react-native";
-import { Colors } from '../../constants/theme';
+import { Colors } from '../constants/theme';
 import { Link } from 'expo-router';
-import AppButton from "../../components/AppButton"; // make sure path is correct
-import InputField from '../../components/InputField';
+import AppButton from "../components/AppButton"; // make sure path is correct
+import InputField from '../components/InputField';
 import { validatePassword } from "@/scripts/validatePassword";
 import { passwordErrorMessages } from "@/scripts/validatePassword";
+import { supabase } from '@/src/utils/supabase';
 
 interface FormData {
   email: string;
@@ -23,7 +24,7 @@ const SignupPage: React.FC = () => {
     setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validate email format
     const email = formData.email.trim();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -39,9 +40,9 @@ const SignupPage: React.FC = () => {
     }
 
     // Check if password fullfils requirements
-    const error = validatePassword(formData.password);
-    if (validatePassword(formData.password) != 0) {
-      setErrors((prev) => ({ ...prev, password: passwordErrorMessages[error] }));
+    const passError = validatePassword(formData.password);
+    if (passError !== 0) {
+      setErrors((prev) => ({ ...prev, password: passwordErrorMessages[passError] }));
       return;
     }
 
@@ -49,6 +50,25 @@ const SignupPage: React.FC = () => {
     setErrors({});
     console.log("Form Data:", formData);
     // Later: call API from services/api.ts
+    console.log('HERE');
+    try {
+      const { data, error: signupError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          emailRedirectTo: 'https://example.com/welcome',
+        },
+      });
+      if (signupError) {
+        console.error('Sign up error:', signupError);
+        setErrors((prev) => ({ ...prev, email: 'Sign up failed. Please try again.' }));
+        return;
+      }
+      console.log('Sign up data:', data);
+    } catch (err) {
+      console.error('Unexpected sign up error:', err);
+      setErrors((prev) => ({ ...prev, email: 'Unexpected error. Please try again.' }));
+    }
   };
 
   const colorScheme = useColorScheme();

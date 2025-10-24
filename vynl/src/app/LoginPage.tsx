@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, useColorScheme } from "react-native";
-import { Colors } from '../../constants/theme';
+import { Colors } from '../constants/theme';
 import { Link } from 'expo-router';
-import AppButton from "../../components/AppButton";
-import InputField from '../../components/InputField';
+import AppButton from "../components/AppButton";
+import InputField from '../components/InputField';
+import { supabase } from '@/src/utils/supabase';
 
 interface FormData {
   email: string;
@@ -19,7 +20,7 @@ const LoginPage: React.FC = () => {
     setErrors((prev) => ({ ...prev, [name]: undefined }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validate email format
     const email = formData.email.trim();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -35,6 +36,23 @@ const LoginPage: React.FC = () => {
     setErrors({});
     // Later: call API from services/api.ts
     console.log("Login Data:", formData);
+
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: formData.password,
+      });
+      console.log(data);
+      console.log(error);
+      if (error) {
+        setErrors((prev) => ({ ...prev, password: error.message || 'Login failed' }));
+      }
+    } catch (err) {
+      console.error('Login error', err);
+      setErrors((prev) => ({ ...prev, password: 'An unexpected error occurred' }));
+    }
+    
   };
 
   const colorScheme = useColorScheme();

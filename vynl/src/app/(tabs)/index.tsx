@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { Platform, StyleSheet } from 'react-native';
+import { supabase } from '@/src/utils/supabase';
 
 import { HelloWave } from '@/src/components/hello-wave';
 import ParallaxScrollView from '@/src/components/parallax-scroll-view';
@@ -8,8 +9,8 @@ import { ThemedView } from '@/src/components/themed-view';
 import { Link, Redirect } from 'expo-router';
 
 export default function HomeScreen() {
-  return <Redirect href={"../LoginPage"} />;
-  
+  return <Redirect href="../SignupPage" />;
+}
   /*
   return (
     <ParallaxScrollView
@@ -79,6 +80,14 @@ export default function HomeScreen() {
       </ThemedView>
     </ParallaxScrollView>
   );*/
+
+async function signInWithEmail() {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: 'zcrouse@uw.edu',
+    password: 'example-password',
+  })
+  console.log(data);
+  console.log(error);
 }
 
 const styles = StyleSheet.create({
