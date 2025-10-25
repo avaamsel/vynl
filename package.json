@@ -10,5 +10,13 @@
     "lint": "npm --prefix ./vynl run lint",
     "reset-project": "npm --prefix ./vynl run reset-project",
     "install": "npm --prefix ./vynl install"
+  },
+  "dependencies": {
+    "@spotify/web-api-ts-sdk": "^1.2.0",
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.1",
+    "typescript": "^5.9.3"
   }
 }

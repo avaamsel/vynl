@@ -15,15 +15,20 @@ Vynl allows users to quickly assemble vibe-consistent platform-neutral playlists
 ## repository layout
 ```
 vynl/
-├── .expo/            
-├── node_modules/   
-├── vynl/                 
-│   └── app/
-│   └── assets/images/   
-│   └── components/     
-│   └── constants/   
-│   └── hooks/  
-│   └── scripts/           
+├── .github/  
+│   └── bug_report.yml
+│   └── documentation.yml
+│   └── feature_request.yml
+├── reports/   
+├── vynl/    
+│   └── assets/images/  
+│   └── scripts/    
+│   └── src/ 
+│       └── app/        
+│       └── components/   
+│       └── constants/  
+│       └── hooks/   
+│       └── utils/            
 └── App.js
 ```
 
