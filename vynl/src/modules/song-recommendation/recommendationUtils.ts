@@ -33,6 +33,7 @@ export async function getRecommendationsForSongTable(
     if (exists) validSongs.push(song);
   }
 
+  console.log("length : ", validSongs.length);
   if (validSongs.length === 0) {
     throw new Error("None of the provided songs exist in Last.fm database.");
   }
@@ -46,6 +47,10 @@ export async function getRecommendationsForSongTable(
       title: t.name,
     }));
     allRecommendations.push(...mapped);
+  }
+
+  if (allRecommendations.length == 0) {
+    throw new Error("No recommendation could be found for your seed songs.");
   }
 
   const countMap: Map<string, { song: Song; count: number }> = new Map();

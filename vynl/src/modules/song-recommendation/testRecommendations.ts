@@ -4,12 +4,12 @@ import { getRecommendationsForSongTable } from "./recommendationUtils.ts";
 
 async function test() {
   const seedSongs = [
-    { artist: "nowifi", title: "Without Me" },
-    { artist: "Milco", title: "Sippin" },
+    { artist: "Bl3ss", title: "Kisses (feat. bbyclose)" },
+    { artist: "Disco Lines", title: "No Broke Boys" },
   ];
 
   try {
-    const recommendations = await getRecommendationsForSongTable(seedSongs, 10);
+    const recommendations = await getRecommendationsForSongTable(seedSongs, 15);
     console.log("Top recommendations:", recommendations);
   } catch (error) {
     console.error("Error during recommendation test:", error);
