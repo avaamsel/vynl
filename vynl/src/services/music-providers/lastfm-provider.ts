@@ -1,6 +1,7 @@
 import 'dotenv/config';
 const BASE_URL = "https://ws.audioscrobbler.com/2.0/";
 const LASTFM_API_KEY = process.env.LASTFM_API_KEY ?? '';
+
 export class LastFmService {
     constructor() {
         if (!LASTFM_API_KEY) {

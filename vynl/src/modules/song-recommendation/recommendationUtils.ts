@@ -1,6 +1,6 @@
 import { LastFmService } from "../../services/music-providers/lastfm-provider.ts";
 
-type Song = {
+export type Song = {
   artist: string;
   title: string;
 };
