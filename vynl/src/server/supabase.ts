@@ -3,7 +3,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_KEY!;
 
-export async function createSupabaseClient(accessToken: string, refreshToken: string): Promise<SupabaseClient | null> {
+export async function createSupabaseClient(accessToken: string): Promise<SupabaseClient | null> {
     const supabase = createClient(
         supabaseUrl,
         supabasePublishableKey,
@@ -11,7 +11,10 @@ export async function createSupabaseClient(accessToken: string, refreshToken: st
     try {
         const { data, error } = await supabase.auth.setSession({
         access_token: accessToken,
-        refresh_token: refreshToken,
+        // We give it a placeholder value since we do not have a refresh token.
+        // These supabase clients should be short lived anyways so the refresh 
+        // token should never get used
+        refresh_token: "PLACEHOLDER",
         });
 
         if (error) {
