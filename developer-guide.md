@@ -59,7 +59,7 @@ Vynl uses Expo and npm for development builds
 
 **3.2  Install dependencies**
 
-*npm install*
+``npm install``
 
 This installs dependencies for the project and the app under `./vynl`.
 
@@ -67,7 +67,7 @@ This installs dependencies for the project and the app under `./vynl`.
 
 Start the development server from the repository root
 
-*npx expo start*
+``npx expo start``
 
 ## 4\. 🧑‍💻 How to test the software:
 
