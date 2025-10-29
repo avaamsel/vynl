@@ -9,7 +9,7 @@ This document provides full instructions for setting up the development environm
 Vynl is maintained in a single Git repository. No submodules are required.
 
 
-```
+```bash
 # SSH 
 git clone git@github.com:avaamsel/vynl.git
 
@@ -59,7 +59,9 @@ Vynl uses Expo and npm for development builds
 
 **3.2  Install dependencies**
 
-``npm install``
+```bash 
+npm install
+```
 
 This installs dependencies for the project and the app under `./vynl`.
 
@@ -67,7 +69,9 @@ This installs dependencies for the project and the app under `./vynl`.
 
 Start the development server from the repository root
 
-``npx expo start``
+```bash 
+npx expo start
+```
 
 ## 4\. 🧑‍💻 How to test the software:
 
@@ -93,11 +97,13 @@ For more examples for testing, especially regarding APIs, check out: [https://ca
 
 First, make sure Expo cli is installed (npm install \-g expo-cli), and log into expo with this command : 
 
-```npx expo login```
+```bash 
+npx expo login
+```
 
 After, make sure the app.json package has this structure : 
 
-```
+```bash
 
 {
   "expo": {
@@ -120,11 +126,15 @@ Then, build the releases with the following commands :
 
 **Android** : 
 
-``npx eas build \--platform android``
+```bash 
+npx eas build \--platform android
+```
 
 **IOS** : 
 
-``npx eas build \--platform ios``
+```bash 
+npx eas build \--platform ios
+```
 
 If this is your first time, you’ll be prompted to set up credentials (Expo can manage them for you);
 
@@ -132,7 +142,9 @@ If this is your first time, you’ll be prompted to set up credentials (Expo can
 
 If you want to install the APK file, then use the command : 
 
-``adb install \<file\>.apk``
+```bash 
+adb install \<file\>.apk
+```
 
 To publish on App Store / Play Store, upload the generated .aab / .ipa.
 
@@ -140,8 +152,12 @@ To publish on App Store / Play Store, upload the generated .aab / .ipa.
 
 You can build locally the app by using : 
 
-``npx expo run:android \--variant release``
+```bash 
+# for Andriod 
+npx expo run:android \--variant release
 
-``npx expo run:ios \--configuration Release``
+# for iOS
+npx expo run:ios \--configuration Release
+```
 
 This compiles the app on your own machine, but you need Android Studio or Xcode installed.
