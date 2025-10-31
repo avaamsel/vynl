@@ -1,10 +1,11 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { Database } from '../constants/database.types';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_KEY!;
 
 export async function createSupabaseClient(accessToken: string): Promise<SupabaseClient | null> {
-    const supabase = createClient(
+    const supabase = createClient<Database>(
         supabaseUrl,
         supabasePublishableKey,
     );
