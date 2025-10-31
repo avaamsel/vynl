@@ -3,8 +3,15 @@ import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 import { Database } from '../constants/database.types';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_KEY!;
+if (!process.env.EXPO_PUBLIC_SUPABASE_URL) {
+  throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL');
+}
+if (!process.env.EXPO_PUBLIC_SUPABASE_KEY) {
+  throw new Error('Missing EXPO_PUBLIC_SUPABASE_KEY');
+}
+
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_KEY;
 
 const storage = AsyncStorage;
 
