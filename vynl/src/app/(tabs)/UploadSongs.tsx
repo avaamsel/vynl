@@ -1,22 +1,23 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import AppButton from '@/src/components/AppButton';
 import {
-  SafeAreaView, View, Text, StyleSheet, Image, TouchableOpacity, TextInput, ScrollView
+  SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image'; // ← more robust for remote images
 
 const SONGS = [
   {
     id: '1',
-    title: 'Nights',
+    title: 'Pryamids',
     artist: 'Frank Ocean',
-    artwork: 'https://i.scdn.co/image/ab67616d00001e02e3ddac71977b8c5a09d29124',
+    artwork: 'https://i.scdn.co/image/ab67616d0000b2737aede4855f6d0d738012e2e5',
   },
   {
     id: '2',
     title: 'Ladders',
     artist: 'Mac Miller',
-    artwork: 'https://i.scdn.co/image/ab67616d00001e02dc68e0a6bf2a444ef0e00216',
+    artwork: 'https://upload.wikimedia.org/wikipedia/en/5/5e/Mac_Miller_-_Swimming.png',
   },
 ];
 
@@ -24,9 +25,18 @@ export default function UploadSongs() {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
 
+  // Prefetch artwork to reduce flicker and surface early failures in logs
+  useEffect(() => {
+    SONGS.forEach(s => {
+      Image.prefetch(s.artwork).catch(e => {
+        console.warn('Prefetch failed for', s.title, e?.message ?? e);
+      });
+    });
+  }, []);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return SONGS;
+    if (!q) return [];
     return SONGS.filter(
       s => s.title.toLowerCase().includes(q) || s.artist.toLowerCase().includes(q)
     );
@@ -55,7 +65,6 @@ export default function UploadSongs() {
           />
         </View>
 
-        {/* Plain list, no FlatList, should always render */}
         <ScrollView
           contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
           keyboardShouldPersistTaps="handled"
@@ -65,7 +74,17 @@ export default function UploadSongs() {
             return (
               <TouchableOpacity key={item.id} onPress={() => toggle(item.id)} activeOpacity={0.85}>
                 <View style={[s.row, on && s.rowOn]}>
-                  <Image source={{ uri: item.artwork }} style={s.art} />
+                  <Image
+                    source={{ uri: item.artwork }}
+                    style={s.art}
+                    contentFit="cover"
+                    transition={150}
+                    onError={({ error }) => {
+  console.warn('Image failed', item.title, error ?? '');
+}}
+                    // Simple blur placeholder while loading
+                    placeholder={BLUR_PLACEHOLDER}
+                  />
                   <View style={{ flex: 1 }}>
                     <Text style={s.song}>{item.title}</Text>
                     <Text style={s.artist}>{item.artist}</Text>
@@ -89,6 +108,9 @@ export default function UploadSongs() {
   );
 }
 
+const BLUR_PLACEHOLDER =
+  'L5H2EC=PM+yV0g-mq.wG9c010J}I';
+
 const s = StyleSheet.create({
   wrap: { flex: 1 },
   header: { paddingTop: 40, paddingHorizontal: 24 },
@@ -99,7 +121,6 @@ const s = StyleSheet.create({
     paddingVertical: 15, paddingHorizontal: 20, fontSize: 16, color: 'black', textAlign: 'center',
     fontFamily: 'AppleGaramond-Regular',
   },
-
   row: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 16, padding: 12, marginTop: 14,
@@ -111,6 +132,5 @@ const s = StyleSheet.create({
   dot: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: '#2F2F2F', alignItems: 'center', justifyContent: 'center' },
   dotOn: { backgroundColor: '#2F2F2F' },
   check: { color: 'white', fontWeight: '800' },
-
   cta: { position: 'absolute', left: 24, right: 24, bottom: 24 },
 });
