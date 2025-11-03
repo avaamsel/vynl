@@ -18,6 +18,7 @@ export default function RootLayout() {
           <Stack.Screen name="UserChoice" />
           <Stack.Screen name="SignupPage" />
           <Stack.Screen name="LoginPage" />
+          <Stack.Screen name="SelectSong" options={{ presentation: 'card', title: 'Select Songs' }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
         <StatusBar style="auto" />

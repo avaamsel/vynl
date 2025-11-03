@@ -1,110 +1,220 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-import { supabase } from '@/src/utils/supabase';
+import { StyleSheet, View, Text, TouchableOpacity, Platform, ScrollView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { useFonts } from 'expo-font';
+import { Poppins_400Regular } from '@expo-google-fonts/poppins';
+import { EBGaramond_400Regular } from '@expo-google-fonts/eb-garamond';
 
-import { HelloWave } from '@/src/components/hello-wave';
-import ParallaxScrollView from '@/src/components/parallax-scroll-view';
-import { ThemedText } from '@/src/components/themed-text';
-import { ThemedView } from '@/src/components/themed-view';
-import { Link, Redirect } from 'expo-router';
+// Image assets
+const imgVinyl1 = require('@/assets/images/vinyl.png');
+const imgBackground = require('@/assets/images/background.png');
 
-export default function HomeScreen() {
-  return <Redirect href="../UserChoice" />;
-}
-  /*
+export default function DashboardScreen() {
+  const router = useRouter();
+  const [fontsLoaded] = useFonts({
+    Poppins: Poppins_400Regular,
+    EBGaramond: EBGaramond_400Regular,
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
+  const handleCreatePlaylist = () => {
+    router.push('/SelectSong');
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/tabs/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
+    <View style={styles.container}>
+      {/* Background Image */}
+      <Image
+        source={imgBackground}
+        style={styles.backgroundImage}
+        contentFit="cover"
+      />
+      
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Welcome Section */}
+          <View style={styles.welcomeSection}>
+            <Text style={styles.welcomeText}>Welcome</Text>
+            <Text style={styles.subtitleText}>What's Your Vibe Today?</Text>
+          </View>
+
+          {/* Middle Section - Large Card with Vinyl Record */}
+          <View style={styles.cardContainer}>
+            <View style={styles.peachCard}>
+              <Image
+                source={imgVinyl1}
+                style={styles.vinylImage}
+                contentFit="cover"
               />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+            </View>
+          </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );*/
-
-async function signInWithEmail() {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: 'zcrouse@uw.edu',
-    password: 'example-password',
-  })
-  console.log(data);
-  console.log(error);
+          {/* Create New Playlist Button */}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.playlistButton}
+              onPress={handleCreatePlaylist}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={['#FF6B9D', '#FF8C42']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.plusIconGradient}
+              >
+                <Text style={styles.plusSign}>+</Text>
+              </LinearGradient>
+              <View style={styles.buttonTextContainer}>
+                <Text style={styles.buttonTitle}>Create New Playlist</Text>
+                <Text style={styles.buttonSubtitle}>Start discovering your music</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    position: 'relative',
   },
-  stepContainer: {
-    gap: 8,
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    transform: [{ scaleX: 2.17 }, { scaleY: 1 }, { translateX: -0.58 }],
+  },
+  safeArea: {
+    flex: 1,
+    position: 'relative',
+    zIndex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: 40,
+    paddingHorizontal: 20,
+    paddingBottom: 120, // Space for navigation bar
+  },
+  welcomeSection: {
+    marginBottom: 30,
+    maxWidth: 350,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  welcomeText: {
+    fontSize: 60,
+    fontFamily: Platform.select({
+      ios: 'AppleGaramond-Italic',
+      android: 'EBGaramond',
+      default: 'EBGaramond',
+    }),
+    fontStyle: 'italic',
+    color: '#000000',
+    textAlign: 'left',
+    lineHeight: 72,
+    fontWeight: '300',
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  subtitleText: {
+    fontSize: 18,
+    fontFamily: 'Poppins',
+    fontWeight: '400',
+    color: '#000000',
+    textAlign: 'left',
+    lineHeight: 27,
+  },
+  cardContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 25,
+  },
+  peachCard: {
+    width: '100%',
+    maxWidth: 350,
+    height: 320,
+    backgroundColor: '#FFF8F5',
+    borderRadius: 28,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 5,
+  },
+  vinylImage: {
     position: 'absolute',
+    right: -90,
+    top: '50%',
+    marginTop: -140,
+    width: 320,
+    height: 320,
+  },
+  buttonContainer: {
+    paddingBottom: 20,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  playlistButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 350,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  plusIconGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  plusSign: {
+    fontSize: 32,
+    color: '#FFFFFF',
+    fontWeight: '300',
+    lineHeight: 32,
+  },
+  buttonTextContainer: {
+    flex: 1,
+  },
+  buttonTitle: {
+    fontSize: 18,
+    fontFamily: 'Poppins',
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 4,
+  },
+  buttonSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Poppins',
+    fontWeight: '400',
+    color: '#666666',
   },
 });
