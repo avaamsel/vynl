@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { supabase } from '@/src/utils/supabase';
 
 import { HelloWave } from '@/src/components/hello-wave';
@@ -7,6 +7,7 @@ import ParallaxScrollView from '@/src/components/parallax-scroll-view';
 import { ThemedText } from '@/src/components/themed-text';
 import { ThemedView } from '@/src/components/themed-view';
 import { Link, Redirect } from 'expo-router';
+import { useEffect, useState } from 'react';
 
 export default function HomeScreen() {
   return <Redirect href="../UserChoice" />;
