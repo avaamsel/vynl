@@ -6,6 +6,7 @@ interface AppButtonProps {
   onPress: (event: GestureResponderEvent) => void;
   backgroundColor?: string; // optional prop to change color
   width?: number | string;
+  disabled?: boolean;
 }
 
 const AppButton: React.FC<AppButtonProps> = ({ title, onPress, backgroundColor = '#F1CCA6', width }) => {
