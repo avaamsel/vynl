@@ -1,6 +1,5 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
 
 import { HapticTab } from '@/src/components/haptic-tab';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,14 +16,16 @@ export default function TabLayout() {
         tabBarBackground: () => null,
         tabBarItemStyle: {
           paddingTop: 3,
-          paddingHorizontal: 4,
-          flex: 1,
+          paddingHorizontal: 0,
+          minWidth: 70,
         },
         tabBarLabelStyle: {
           fontSize: 11,
           fontFamily: 'Poppins',
           fontWeight: '400',
           marginTop: 4,
+          width: '100%',
+          textAlign: 'center',
         },
         tabBarStyle: {
           position: 'absolute',
@@ -36,7 +37,7 @@ export default function TabLayout() {
           borderTopWidth: 0,
           elevation: 0,
           shadowOpacity: 0,
-          paddingHorizontal: 10,
+          paddingHorizontal: 0,
           paddingBottom: 20,
           paddingTop: 10,
         },
