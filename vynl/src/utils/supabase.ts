@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
-import { Database } from '../constants/database.types';
+import { Database } from '../types/database.types';
 
 if (!process.env.EXPO_PUBLIC_SUPABASE_URL) {
   throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL');

@@ -1,32 +1,29 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import { Database } from '../constants/database.types';
+import { Database } from '../types/database.types'
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_KEY!;
 
-export async function createSupabaseClient(accessToken: string): Promise<SupabaseClient | null> {
+export async function createSupabaseClient(req: Request): Promise<SupabaseClient<Database> | Response> {
+    const auth = req.headers.get('Authorization');
+    if (!auth || auth.split(" ").length < 2) {
+        return new Response('Missing Authorization Header', {
+            status: 403
+        });
+    }
+    const access_token = auth.split(" ").length;
+
     const supabase = createClient<Database>(
         supabaseUrl,
         supabasePublishableKey,
-    );
-    try {
-        const { data, error } = await supabase.auth.setSession({
-        access_token: accessToken,
-        // We give it a placeholder value since we do not have a refresh token.
-        // These supabase clients should be short lived anyways so the refresh 
-        // token should never get used
-        refresh_token: "PLACEHOLDER",
-        });
-
-        if (error) {
-        console.error('Error setting session:', error.message);
-        return null;
+        {
+        global: {
+            headers: {
+            Authorization: `Bearer ${access_token}`,
+            },
+        },
         }
+    );
 
-        console.log('Session successfully set:', data.session);
-        return supabase;
-    } catch (err) {
-        console.error('Unexpected error:', err);
-        return null;
-    }
+    return supabase;
 }
