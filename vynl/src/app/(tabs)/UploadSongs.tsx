@@ -66,7 +66,7 @@ export default function UploadSongs() {
     <LinearGradient colors={['#F1CCA6', '#F28695']} start={{x:0,y:0}} end={{x:0,y:1}} style={{ flex: 1 }}>
       <SafeAreaView style={s.wrap}>
         <View style={s.header}>
-          <Text style={s.title}>Upload</Text>
+          <Text style={s.title}>Select</Text>
           <Text style={s.subtitle}>Choose 2 songs to get started</Text>
 
           <TextInput
@@ -172,11 +172,11 @@ const s = StyleSheet.create({
   wrap: { flex: 1 },
   header: { paddingTop: 40, paddingHorizontal: 24 },
   title: { color: 'black', fontSize: 60, fontFamily: 'AppleGaramond-Italic' },
-  subtitle: { color: 'black', fontSize: 20, marginTop: 12, fontFamily: 'AppleGaramond-Regular' },
+  subtitle: { color: 'black', fontSize: 20, marginTop: 12, fontFamily: 'Poppins-Regular' },
   search: {
     marginTop: 20, backgroundColor: '#F3F3F3', borderRadius: 30,
     paddingVertical: 15, paddingHorizontal: 20, fontSize: 16, color: 'black', textAlign: 'center',
-    fontFamily: 'AppleGaramond-Regular',
+    fontFamily: 'Poppins-Regular',
   },
 
   // Liked tray
