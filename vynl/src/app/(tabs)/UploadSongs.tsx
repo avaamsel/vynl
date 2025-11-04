@@ -1,12 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import AppButton from '@/src/components/AppButton';
 import {
-  SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView
+  SafeAreaView, View, Text, StyleSheet, Image, TouchableOpacity, TextInput, ScrollView
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Image } from 'expo-image';
-import { useRouter } from 'expo-router'; // ← navigation
-import { Ionicons } from '@expo/vector-icons';
 
 const SONGS = [
   {
@@ -49,17 +46,13 @@ export default function UploadSongs() {
           <Text style={s.title}>Upload</Text>
           <Text style={s.subtitle}>Choose 2 songs to get started</Text>
 
-          <View style={s.searchWrap}>
-            <Ionicons name="search" size={20} color="rgba(0,0,0,0.5)" />
-            <TextInput
-              style={s.searchInput}
-              placeholder="What's your vibe?"
-              placeholderTextColor="rgba(0,0,0,0.5)"
-              value={query}
-              onChangeText={setQuery}
-              underlineColorAndroid="transparent"
-            />
-          </View>
+          <TextInput
+            style={s.search}
+            placeholder="What's your vibe?"
+            placeholderTextColor="rgba(0,0,0,0.5)"
+            value={query}
+            onChangeText={setQuery}
+          />
         </View>
 
         {/* Plain list, no FlatList, should always render */}
@@ -100,23 +93,11 @@ const s = StyleSheet.create({
   wrap: { flex: 1 },
   header: { paddingTop: 40, paddingHorizontal: 24 },
   title: { color: 'black', fontSize: 60, fontFamily: 'AppleGaramond-Italic' },
-  subtitle: { color: 'black', fontSize: 20, marginTop: 12, fontFamily: 'Poppins-Regular' },
-  searchWrap: {
-    marginTop: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F3F3',
-    borderRadius: 30,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 16,
-    color: 'black',
-    fontFamily: 'Poppins-Regular',
-    padding: 0,
+  subtitle: { color: 'black', fontSize: 20, marginTop: 12, fontFamily: 'AppleGaramond-Regular' },
+  search: {
+    marginTop: 20, backgroundColor: '#F3F3F3', borderRadius: 30,
+    paddingVertical: 15, paddingHorizontal: 20, fontSize: 16, color: 'black', textAlign: 'center',
+    fontFamily: 'AppleGaramond-Regular',
   },
 
   row: {
