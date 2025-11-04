@@ -11,8 +11,8 @@ export async function createSupabaseClient(req: Request): Promise<SupabaseClient
             status: 403
         });
     }
-    const access_token = auth.split(" ").length;
-
+    const access_token = auth.split(" ")[1];
+    
     const supabase = createClient<Database>(
         supabaseUrl,
         supabasePublishableKey,

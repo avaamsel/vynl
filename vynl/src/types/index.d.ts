@@ -6,7 +6,7 @@ export interface User {
 }
 
 export interface Song {
-  id: number;
+  song_id: number;
   title: string;
   artist: string;
   duration_sec: number;

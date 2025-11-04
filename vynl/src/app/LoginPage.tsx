@@ -48,6 +48,21 @@ const LoginPage: React.FC = () => {
       if (error) {
         setErrors((prev) => ({ ...prev, password: error.message || 'Login failed' }));
       }
+      const session = data.session;
+      if (session?.access_token) {
+        console.log(session.access_token);
+        const response = await fetch('/api/playlist/12345', {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + session.access_token
+          }
+        });
+
+        if (response.ok) {
+          const playlist = await response.json();
+          
+        }
+      }
     } catch (err) {
       console.error('Login error', err);
       setErrors((prev) => ({ ...prev, password: 'An unexpected error occurred' }));

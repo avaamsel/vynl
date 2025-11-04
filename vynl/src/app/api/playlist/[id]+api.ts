@@ -1,4 +1,6 @@
 import { createSupabaseClient } from "@/src/server/supabase";
+import { isPlaylistData } from "@/src/types/database.types";
+import { deserializePlaylist } from "@/src/server/dataDeserialization";
 
 // GET "api/playlist"
 export async function GET(req: Request, { id }: Record<string, string>) {
@@ -13,6 +15,7 @@ export async function GET(req: Request, { id }: Record<string, string>) {
         const playlist_id = parseInt(id);
 
         if (playlist_id == undefined) {
+            console.log("Invalid Playlist ID:", id);
             return new Response('Invalid Playlist ID', {
                 status: 400
             });
@@ -22,7 +25,7 @@ export async function GET(req: Request, { id }: Record<string, string>) {
             .from('playlists')
             .select('*')
             .eq('playlist_id', playlist_id)
-            .single()
+            .single();
 
         if (error) {
             console.log("Error fetching playlist:", error);
@@ -30,16 +33,30 @@ export async function GET(req: Request, { id }: Record<string, string>) {
         }
 
         if (!data) {
+            console.log("Playlist not found:", playlist_id);
             return new Response('Playlist Not Found', {
                 status: 404
             });
         }
 
         console.log("Fetched playlist:", data);
-        return new Response(JSON.stringify(data), {
+
+        const deserializedPlaylist = await deserializePlaylist(data, supabase);
+
+        if (!deserializedPlaylist) {
+            console.log("Error deserializing playlist:", playlist_id);
+            return new Response('Error Deserializing Playlist', {
+                status: 500
+            });
+        }
+
+        const response = new Response(JSON.stringify(deserializedPlaylist), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-        })
+        });
+        console.log("Sending data:" + JSON.stringify(deserializedPlaylist));
+        // console.log("Response:", response);
+        return response;
     } catch (error) {
         console.error(error);
         return new Response('Unknown Server Error', {

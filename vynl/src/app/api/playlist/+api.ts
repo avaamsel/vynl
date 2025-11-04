@@ -4,6 +4,7 @@ import { createSupabaseClient } from "@/src/server/supabase";
 export async function GET(req: Request) {
     try {
         const supabase = await createSupabaseClient(req);
+        console.log("Supabase client created:", supabase);
 
         if (supabase instanceof Response) {
             return supabase
@@ -32,7 +33,7 @@ export async function GET(req: Request) {
     }
 }
 
-// PUT "api/pliaylist/:id"
+// PUT "api/playlist/:id"
 export async function PUT(req: Request) {
-
+    
 }
