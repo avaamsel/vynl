@@ -6,6 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router'; // ← navigation
+import { Ionicons } from '@expo/vector-icons';
 
 const SONGS = [
   { id: '1',  title: 'Super Shy', artist: 'NewJeans', artwork: 'https://i.scdn.co/image/ab67616d00001e023d98a0ae7c78a3a9babaf8af' },
@@ -69,13 +70,17 @@ export default function UploadSongs() {
           <Text style={s.title}>Select</Text>
           <Text style={s.subtitle}>Choose 2 songs to get started</Text>
 
-          <TextInput
-            style={s.search}
-            placeholder="What's your vibe?"
-            placeholderTextColor="rgba(0,0,0,0.5)"
-            value={query}
-            onChangeText={setQuery}
-          />
+          <View style={s.searchWrap}>
+            <Ionicons name="search" size={20} color="rgba(0,0,0,0.5)" />
+            <TextInput
+              style={s.searchInput}
+              placeholder="What's your vibe?"
+              placeholderTextColor="rgba(0,0,0,0.5)"
+              value={query}
+              onChangeText={setQuery}
+              underlineColorAndroid="transparent"
+            />
+          </View>
         </View>
 
         {/* Liked tray stays visible while searching */}
@@ -173,10 +178,22 @@ const s = StyleSheet.create({
   header: { paddingTop: 40, paddingHorizontal: 24 },
   title: { color: 'black', fontSize: 60, fontFamily: 'AppleGaramond-Italic' },
   subtitle: { color: 'black', fontSize: 20, marginTop: 12, fontFamily: 'Poppins-Regular' },
-  search: {
-    marginTop: 20, backgroundColor: '#F3F3F3', borderRadius: 30,
-    paddingVertical: 15, paddingHorizontal: 20, fontSize: 16, color: 'black', textAlign: 'center',
+  searchWrap: {
+    marginTop: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F3F3',
+    borderRadius: 30,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 16,
+    color: 'black',
     fontFamily: 'Poppins-Regular',
+    padding: 0,
   },
 
   // Liked tray

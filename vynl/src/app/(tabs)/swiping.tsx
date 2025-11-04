@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Ionicons, Feather, FontAwesome } from '@expo/vector-icons';
 import { SafeAreaView, View, Text, StyleSheet, Dimensions, Animated, PanResponder, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -161,21 +162,35 @@ export default function Swiping() {
   return (
     <LinearGradient colors={['#F8F9FD', '#FFFFFF']} style={{ flex: 1 }}>
       <SafeAreaView style={styles.wrap}>
-        {/* top bar */}
-        <View style={styles.topbar}>
-          <TouchableOpacity style={styles.topBtn} disabled><Text style={styles.topIcon}>‹</Text></TouchableOpacity>
-          <Text style={styles.counter}>{Math.min(index + 1, SONGS.length)}/{SONGS.length}</Text>
-          <TouchableOpacity style={styles.topBtn} disabled><Text style={styles.topIcon}>?</Text></TouchableOpacity>
-        </View>
+        {/* top bar with undo and home button */}
+      <View style={styles.topbar}>
+        {/* Undo Button */}
+        <TouchableOpacity style={styles.topBtn} onPress={() => { /* TODO: implement undo */ }}>
+          <FontAwesome name="undo" size={24} color="#F28695" />
+        </TouchableOpacity>
+
+
+        <Text style={styles.counter}>
+          {Math.min(index + 1, SONGS.length)}/{SONGS.length}
+        </Text>
+
+        {/* Home Button */}
+        <TouchableOpacity style={styles.topBtn} onPress={() => { /* TODO: navigate to home */ }}>
+          <Feather name="home" size={22} color="#F28695" />
+        </TouchableOpacity>
+      </View>
+
 
         {/* centered deck */}
         <View style={styles.deck}>
           {/* next card behind for depth */}
           {next && (
             <View key={next.id} style={[styles.card, styles.cardUnder]}>
-              <VinylDisc spinning={false} artwork={next.artwork} />
-              <Text numberOfLines={1} style={styles.song}>{next.title}</Text>
-              <Text numberOfLines={1} style={styles.artist}>{next.artist}</Text>
+              <View style={styles.media}>
+                <VinylDisc spinning={false} artwork={next.artwork} />
+                <Text numberOfLines={1} style={styles.song}>{next.title}</Text>
+                <Text numberOfLines={1} style={styles.artist}>{next.artist}</Text>
+              </View>
             </View>
           )}
 
@@ -193,7 +208,11 @@ export default function Swiping() {
               renderToHardwareTextureAndroid
               removeClippedSubviews
             >
-              <VinylDisc spinning={playing} artwork={top.artwork} />
+              <View style={styles.media}>
+                <VinylDisc spinning={playing} artwork={top.artwork} />
+                <Text numberOfLines={1} style={styles.song}>{top.title}</Text>
+                <Text numberOfLines={1} style={styles.artist}>{top.artist}</Text>
+              </View>
 
               {/* swipe banners */}
               <Animated.View style={[styles.banner, styles.bannerLike, { opacity: likeOpacity }]}>
@@ -202,9 +221,6 @@ export default function Swiping() {
               <Animated.View style={[styles.banner, styles.bannerNope, { opacity: nopeOpacity }]}>
                 <Text style={styles.bannerText}>NOPE</Text>
               </Animated.View>
-
-              <Text numberOfLines={1} style={styles.song}>{top.title}</Text>
-              <Text numberOfLines={1} style={styles.artist}>{top.artist}</Text>
 
               {/* bottom buttons */}
               <View style={styles.controls}>
@@ -225,7 +241,7 @@ export default function Swiping() {
 
           {finished && (
             <View style={styles.done}>
-              <Text style={styles.doneTitle}>All caught up</Text>
+              <Text style={styles.doneTitle}>Done!</Text>
               <Text style={styles.doneSub}>Liked {liked.length} · Passed {passed.length}</Text>
             </View>
           )}
@@ -237,7 +253,7 @@ export default function Swiping() {
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, paddingHorizontal: 18 },
-  topbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+  topbar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginHorizontal: 18},
   topBtn: {
     width: 42, height: 42, borderRadius: 12, backgroundColor: 'white',
     alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8,
@@ -267,6 +283,9 @@ const styles = StyleSheet.create({
   // perfectly centered vinyl
   vinylCenter: { alignItems: 'center', justifyContent: 'center' },
 
+  // group vinyl + labels so we can nudge them up together
+  media: { alignItems: 'center', justifyContent: 'center', transform: [{ translateY: -40 }] },
+
   disc: { backgroundColor: '#131415' },
   ring: { position: 'absolute', borderWidth: 2, borderColor: 'rgba(255,255,255,0.06)' },
   gloss: {
@@ -275,8 +294,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  song: { fontSize: 18, fontWeight: '800', color: '#1d1d1d', marginTop: 16, textAlign: 'center' },
-  artist: { fontSize: 14, color: '#666', marginTop: 2, textAlign: 'center' },
+  song: { fontSize: 18, fontWeight: '800', color: '#1d1d1d', marginTop: 8, textAlign: 'center' },
+  artist: { fontSize: 14, color: '#666', marginTop: 4, textAlign: 'center' },
 
   banner: { position: 'absolute', top: 18, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8 },
   bannerLike: { left: 18, backgroundColor: 'rgba(20,200,120,0.9)' },
