@@ -5,15 +5,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { Poppins_400Regular } from '@expo-google-fonts/poppins';
 import { EBGaramond_400Regular } from '@expo-google-fonts/eb-garamond';
+import { useRouter } from 'expo-router';
 
 // Image assets
 const imgVinyl1 = require('@/assets/images/vinyl.png');
 const imgBackground = require('@/assets/images/background.png');
 
 export default function DashboardScreen() {
+  const router = useRouter();
   const [fontsLoaded] = useFonts({
     Poppins: Poppins_400Regular,
     EBGaramond: EBGaramond_400Regular,
+    'AppleGaramond-Regular': require('@/assets/fonts/AppleGaramond.ttf'),
+    'AppleGaramond-Italic': require('@/assets/fonts/AppleGaramond-Italic.ttf'),
   });
 
   if (!fontsLoaded) {
@@ -54,23 +58,25 @@ export default function DashboardScreen() {
 
           {/* Create New Playlist Button */}
           <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.playlistButton}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={['#FF6B9D', '#FF8C42']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.plusIconGradient}
+            <View style={styles.playlistButton}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => router.push('/(tabs)/UploadSongs')}
               >
-                <Text style={styles.plusSign}>+</Text>
-              </LinearGradient>
+                <LinearGradient
+                  colors={['#FF6B9D', '#FF8C42']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.plusIconGradient}
+                >
+                  <Text style={styles.plusSign}>+</Text>
+                </LinearGradient>
+              </TouchableOpacity>
               <View style={styles.buttonTextContainer}>
                 <Text style={styles.buttonTitle}>Create New Playlist</Text>
                 <Text style={styles.buttonSubtitle}>Start discovering your music</Text>
               </View>
-            </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -114,11 +120,7 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: 60,
-    fontFamily: Platform.select({
-      ios: 'AppleGaramond-Italic',
-      android: 'EBGaramond',
-      default: 'EBGaramond',
-    }),
+    fontFamily: 'AppleGaramond-Italic',
     fontStyle: 'italic',
     color: '#000000',
     textAlign: 'left',
