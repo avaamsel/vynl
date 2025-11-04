@@ -10,7 +10,7 @@ import { Link, Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 export default function HomeScreen() {
-  return <Redirect href="../UserChoice" />;
+  return <Redirect href="../UploadSongs" />;
 }
   /*
   return (
