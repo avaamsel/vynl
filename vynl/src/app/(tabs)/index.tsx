@@ -2,7 +2,6 @@ import { Image } from 'expo-image';
 import { StyleSheet, View, Text, TouchableOpacity, Platform, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { Poppins_400Regular } from '@expo-google-fonts/poppins';
 import { EBGaramond_400Regular } from '@expo-google-fonts/eb-garamond';
@@ -12,7 +11,6 @@ const imgVinyl1 = require('@/assets/images/vinyl.png');
 const imgBackground = require('@/assets/images/background.png');
 
 export default function DashboardScreen() {
-  const router = useRouter();
   const [fontsLoaded] = useFonts({
     Poppins: Poppins_400Regular,
     EBGaramond: EBGaramond_400Regular,
@@ -21,10 +19,6 @@ export default function DashboardScreen() {
   if (!fontsLoaded) {
     return null;
   }
-
-  const handleCreatePlaylist = () => {
-    router.push('/SelectSong');
-  };
 
   return (
     <View style={styles.container}>
@@ -62,7 +56,6 @@ export default function DashboardScreen() {
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={styles.playlistButton}
-              onPress={handleCreatePlaylist}
               activeOpacity={0.8}
             >
               <LinearGradient

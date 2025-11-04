@@ -17,23 +17,26 @@ export default function TabLayout() {
         tabBarBackground: () => null,
         tabBarItemStyle: {
           paddingTop: 3,
-          height: 38,
-          paddingHorizontal: 0,
+          paddingHorizontal: 4,
+          flex: 1,
         },
         tabBarLabelStyle: {
-          display: 'none', // Hide labels to match Figma design
+          fontSize: 11,
+          fontFamily: 'Poppins',
+          fontWeight: '400',
+          marginTop: 4,
         },
         tabBarStyle: {
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
-          height: 80,
+          height: 90,
           backgroundColor: 'transparent',
           borderTopWidth: 0,
           elevation: 0,
           shadowOpacity: 0,
-          paddingHorizontal: 20,
+          paddingHorizontal: 10,
           paddingBottom: 20,
           paddingTop: 10,
         },
@@ -48,20 +51,20 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="playlists"
         options={{
-          title: 'Search',
+          title: 'Playlists',
           tabBarIcon: ({ focused }) => (
-            <Ionicons name="search" size={22} color="#3b4f7d" />
+            <Ionicons name="musical-notes" size={22} color="#3b4f7d" />
           ),
         }}
       />
       <Tabs.Screen
-        name="UploadSongs"
+        name="swipe"
         options={{
-          title: 'Shuffle',
+          title: 'Swipe',
           tabBarIcon: ({ focused }) => (
-            <Ionicons name="shuffle" size={22} color="#3b4f7d" />
+            <Ionicons name="swap-horizontal" size={22} color="#3b4f7d" />
           ),
         }}
       />
