@@ -129,7 +129,7 @@ export default function UploadSongs() {
         {/* Hide the bottom list entirely once two songs are selected */}
         {!ready && (
           <ScrollView
-            contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 120 }}
+            contentContainerStyle={{ paddingHorizontal: 30, paddingBottom: 120 }}
             keyboardShouldPersistTaps="handled"
           >
             {filtered.map(item => {
@@ -160,11 +160,13 @@ export default function UploadSongs() {
         )}
 
         <View style={s.cta}>
-          <AppButton
-            title={ready ? 'Start Swiping' : `Pick ${2 - selected.length} more`}
-            disabled={!ready}
-            onPress={goSwiping}
-          />
+            <AppButton
+              title={ready ? 'Start Swiping' : `Pick ${2 - selected.length} more`}
+              disabled={!ready}
+              onPress={goSwiping}
+              backgroundColor="#FFFFFF"
+              textColor="#000000"
+            />
         </View>
       </SafeAreaView>
     </LinearGradient>
@@ -175,7 +177,7 @@ const BLUR_PLACEHOLDER = 'L5H2EC=PM+yV0g-mq.wG9c010J}I';
 
 const s = StyleSheet.create({
   wrap: { flex: 1 },
-  header: { paddingTop: 40, paddingHorizontal: 24 },
+  header: { paddingTop: 40, paddingHorizontal: 30 },
   title: { color: 'black', fontSize: 60, fontFamily: 'AppleGaramond-Italic' },
   subtitle: { color: 'black', fontSize: 20, marginTop: 12, fontFamily: 'Poppins-Regular' },
   searchWrap: {
@@ -197,7 +199,7 @@ const s = StyleSheet.create({
   },
 
   // Liked tray
-  likedWrap: { marginTop: 12, paddingHorizontal: 24 },
+  likedWrap: { marginTop: 12, paddingHorizontal: 30 },
   likedHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   likedTitle: { color: '#2F2F2F', fontSize: 16, fontWeight: '700' },
   likedCount: { color: '#2F2F2F', fontSize: 14, opacity: 0.7 },
@@ -229,5 +231,5 @@ const s = StyleSheet.create({
   dot: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: '#2F2F2F', alignItems: 'center', justifyContent: 'center' },
   dotOn: { backgroundColor: '#2F2F2F' },
   check: { color: 'white', fontWeight: '800' },
-  cta: { position: 'absolute', left: 24, right: 24, bottom: 24 },
+  cta: { position: 'absolute', left: 30, right: 30, bottom: 24 },
 });
