@@ -29,7 +29,7 @@ export async function GET(req: Request, { id }: Record<string, string>) {
         }
 
         const songs: Song[] = [];
-        deserializedPlaylist.songs.forEach(element => {
+        deserializedPlaylist.songs.forEach((element: Song) => {
             songs.push({
                 song_id: element.song_id,
                 title: element.title,
@@ -38,7 +38,12 @@ export async function GET(req: Request, { id }: Record<string, string>) {
             });
         });
 
-        const recommendations = getRecommendationsForSongTable(songs, numberOfSeedSongs);
+        const recommendations = await getRecommendationsForSongTable(songs, numberOfSeedSongs);
+
+        return new Response(JSON.stringify(recommendations), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
 
     } catch (error) {
         console.error(error);

@@ -51,7 +51,7 @@ const LoginPage: React.FC = () => {
       const session = data.session;
       if (session?.access_token) {
         console.log(session.access_token);
-        const response = await fetch('/api/playlist/12345', {
+        const response = await fetch('/api/playlist/11111', {
           method: 'GET',
           headers: {
             'Authorization': 'Bearer ' + session.access_token

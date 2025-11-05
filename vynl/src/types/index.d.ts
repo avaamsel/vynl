@@ -7,7 +7,7 @@ export interface User {
 export interface Song {
   song_id: number;
   title: string;
-  artist: string | null;
+  artist: string;
   duration_sec: number | null;
 }
 
