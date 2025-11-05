@@ -11,6 +11,13 @@ export interface Song {
   duration_sec: number | null;
 }
 
+export interface ITunesSong {
+  title: string;
+  artist: string;
+  cover: string;
+  preview_url: string;
+}
+
 export interface Playlist {
   id: number;
   name: string;
