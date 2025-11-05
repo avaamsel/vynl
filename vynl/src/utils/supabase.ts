@@ -12,13 +12,15 @@ if (!process.env.EXPO_PUBLIC_SUPABASE_KEY) {
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_KEY;
 
-const storage = AsyncStorage;
+const storage = Platform.OS === 'web' 
+  ? localStorage 
+  : AsyncStorage;
 
 export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   auth: {
     storage: storage,
     autoRefreshToken: true,
-    persistSession: Platform.OS !== "web",
-    detectSessionInUrl: Platform.OS === "web",
+    persistSession: true,
+    detectSessionInUrl: Platform.OS === 'web',
   },
 })

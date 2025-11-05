@@ -5,20 +5,22 @@ interface AppButtonProps {
   title: string;
   onPress: (event: GestureResponderEvent) => void;
   backgroundColor?: string; // optional prop to change color
+  textColor?: string; // optional prop to change text color
   width?: number | string;
-  disabled?: boolean;
+  disabled?: boolean; // optional prop to disable the button
 }
 
-const AppButton: React.FC<AppButtonProps> = ({ title, onPress, backgroundColor = '#F1CCA6', width }) => {
+const AppButton: React.FC<AppButtonProps> = ({ title, onPress, backgroundColor = '#F1CCA6', textColor = 'white', width, disabled = false }) => {
   return (
     <TouchableOpacity 
-      style={[styles.button, { backgroundColor, width: width as any }]} 
-      onPress={onPress}
-      accessible={true}
-      accessibilityRole="button"
-      accessibilityLabel={title}
+      style={[
+        styles.button, 
+        { backgroundColor, width: width as any, opacity: disabled ? 0.5 : 1 }
+      ]} 
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
     >
-      <Text style={styles.text}>{title}</Text>
+      <Text style={[styles.text, { color: textColor }]}>{title}</Text>
     </TouchableOpacity>
   );
 };
