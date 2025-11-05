@@ -1,5 +1,5 @@
 import { Database, playlist_data } from "../types/database.types";
-import { Playlist, Song } from "../types";
+import { Playlist, Song } from "../types/index.d";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export async function deserializePlaylist(playlist_data: playlist_data, supabase: SupabaseClient<Database>): Promise<Playlist | null> {
@@ -72,8 +72,6 @@ export async function getPlaylistFromDatabase(id: string, supabase: SupabaseClie
             status: 404
         });
     }
-
-    console.log("Fetched playlist:", data);
 
     const deserializedPlaylist = await deserializePlaylist(data, supabase);
 

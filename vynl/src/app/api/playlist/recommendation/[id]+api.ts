@@ -1,10 +1,10 @@
 import { createSupabaseClient } from "@/src/server/supabase";
 import { getPlaylistFromDatabase } from "@/src/server/dataDeserialization";
-import { Song } from "@/src/types/index.d";
+import { Song, Playlist } from "@/src/types/index.d";
 import { getRecommendationsForSongTable } from "@/src/server/song-recommendation/recommendationUtils";
 
 export async function GET(req: Request, { id }: Record<string, string>) {
-
+    console.log("Recommendation request for playlist ID:", id);
     try {
         const { searchParams } = new URL(req.url);
         const amount = searchParams.get("amount") || "5"; // default if missing
@@ -24,6 +24,7 @@ export async function GET(req: Request, { id }: Record<string, string>) {
 
         const deserializedPlaylist = await getPlaylistFromDatabase(id, supabase);
 
+        console.log("Deserialized Playlist for recommendations:", deserializedPlaylist);
         if (deserializedPlaylist instanceof Response) {
             return deserializedPlaylist;
         }
@@ -37,6 +38,8 @@ export async function GET(req: Request, { id }: Record<string, string>) {
                 duration_sec: element.duration_sec,
             });
         });
+
+        console.log("Songs : ", songs);
 
         const recommendations = await getRecommendationsForSongTable(songs, numberOfSeedSongs);
 

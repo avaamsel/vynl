@@ -29,7 +29,6 @@ export async function getRecommendationsForSongTable(
     if (exists) validSongs.push(song);
   }
 
-  console.log("length : ", validSongs.length);
   if (validSongs.length === 0) {
     throw new Error("None of the provided songs exist in Last.fm database.");
   }
@@ -41,6 +40,8 @@ export async function getRecommendationsForSongTable(
     const mapped = similar.map((t: any) => ({
       artist: t.artist?.name ?? t.artist,
       title: t.name,
+      song_id: 10, // Placeholder because we should put mbid which is a string
+      duration_sec: t.duration ? t.duration : null,
     }));
     allRecommendations.push(...mapped);
   }
