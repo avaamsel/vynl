@@ -6,7 +6,7 @@ import AppButton from "../components/AppButton";
 import InputField from '../components/InputField';
 import { supabase } from '@/src/utils/supabase';
 import { Playlist } from '../types/index.d';
-import { LastFmService } from "../services/music-providers/lastfm-provider";
+import { fetchSongs } from "@/src/services/music-providers/itunes-provider";
 
 interface FormData {
   email: string;
@@ -48,6 +48,26 @@ const LoginPage: React.FC = () => {
       }
       const session = data.session;
       if (session?.access_token) {
+        const searchResults = await fetchSongs("Charger", 5);
+
+        console.log("Search Results:", searchResults);
+
+        const res = await fetch('/api/song/Charger', {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + session.access_token
+          }
+        });
+
+        if (res.ok) {
+          const songs: Playlist = await res.json();
+
+          console.log('Songs found:', songs);
+          
+        }
+
+
+
         const response = await fetch('/api/playlist/recommendation/11111', {
           method: 'GET',
           headers: {
@@ -58,7 +78,7 @@ const LoginPage: React.FC = () => {
         if (response.ok) {
           const playlist: Playlist = await response.json();
 
-          console.log('Recommended Playlist:', playlist);
+          //console.log('Recommended Playlist:', playlist);
           
         }
       }

@@ -16,7 +16,7 @@ interface ITunesSearchResult {
  * @param numberOfSongs The number of songs to fetch.
  * @returns A promise that resolves to an array of song objects.
  */
-async function fetchSongs(searchValue: string, numberOfSongs: number = 5): Promise<Array<ITunesSong>> {
+export async function fetchSongs(searchValue: string, numberOfSongs: number = 5): Promise<ITunesSong[]> {
     const url = `https://itunes.apple.com/search?term=${encodeURIComponent(searchValue)}&media=music&limit=${numberOfSongs}`;
     const response = await fetch(url);
     if (!response.ok) {
@@ -46,6 +46,7 @@ async function fetchSongs(searchValue: string, numberOfSongs: number = 5): Promi
  * @param trackIds An array of iTunes track IDs.
  * @returns A promise that resolves to an array of song objects.
  */
+/*
 async function fetchSimilarSongs(trackIds: number[]): Promise<Array<ITunesSong>> {
     // TODO: implement fetching songs by trackIds by using last.fm
     // TODO: the frontend should check that the songs selected by the user exist in last.fm api
@@ -83,4 +84,4 @@ async function fetchSimilarSongs(trackIds: number[]): Promise<Array<ITunesSong>>
 
     return similarTracks;
 }
-
+ */
