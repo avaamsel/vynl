@@ -6,6 +6,7 @@ import AppButton from "../components/AppButton";
 import InputField from '../components/InputField';
 import { supabase } from '@/src/utils/supabase';
 import { Playlist } from '../types/index.d';
+import { LastFmService } from "../services/music-providers/lastfm-provider";
 
 interface FormData {
   email: string;
@@ -35,8 +36,6 @@ const LoginPage: React.FC = () => {
       return;
     }
     setErrors({});
-    // Later: call API from services/api.ts
-    console.log("Login Data:", formData);
 
 
     try {
@@ -44,14 +43,11 @@ const LoginPage: React.FC = () => {
         email,
         password: formData.password,
       });
-      console.log(data);
-      console.log(error);
       if (error) {
         setErrors((prev) => ({ ...prev, password: error.message || 'Login failed' }));
       }
       const session = data.session;
       if (session?.access_token) {
-        console.log(session.access_token);
         const response = await fetch('/api/playlist/recommendation/11111', {
           method: 'GET',
           headers: {

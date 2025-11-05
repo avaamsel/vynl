@@ -1,4 +1,5 @@
-import type { User, Song, Playlist } from './index.d';
+import type { User, Song, Playlist, ITunesSong } from './index.d';
+import { LastFmService } from '@/src/services/music-providers/lastfm-provider';
 
 export function isUser(obj: any): obj is User {
   return (
@@ -45,4 +46,28 @@ export function isPlaylist(obj: any): obj is Playlist {
     Array.isArray(obj.songs) &&
     obj.songs.every(isSong)
   );
+}
+
+export async function iTunesSongToSong(itunesSong: ITunesSong): Promise<Song | Error> {
+  if (!itunesSong) return new Error("Invalid iTunes Song");
+
+  const lastfmService = new LastFmService();
+
+  const trackExists = await lastfmService.trackExists(itunesSong.artist, itunesSong.title);
+  if (!trackExists) {
+    return new Error("Track does not exist in Last.fm database");
+  }
+
+  const trackInfo = await lastfmService.getTrackInfo(itunesSong.artist, itunesSong.title);
+
+  if (!trackInfo) {
+    return new Error("Failed to retrieve track info from Last.fm");
+  }
+
+  return {
+    song_id: 10, // Should be trackInfo.mbid,
+    title: itunesSong.title,
+    artist: itunesSong.artist,
+    duration_sec: 10, // Should be parseInt(trackInfo.duration) / 1000
+  };
 }

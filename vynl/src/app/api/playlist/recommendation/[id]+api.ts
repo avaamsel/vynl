@@ -24,7 +24,6 @@ export async function GET(req: Request, { id }: Record<string, string>) {
 
         const deserializedPlaylist = await getPlaylistFromDatabase(id, supabase);
 
-        console.log("Deserialized Playlist for recommendations:", deserializedPlaylist);
         if (deserializedPlaylist instanceof Response) {
             return deserializedPlaylist;
         }
@@ -38,8 +37,6 @@ export async function GET(req: Request, { id }: Record<string, string>) {
                 duration_sec: element.duration_sec,
             });
         });
-
-        console.log("Songs : ", songs);
 
         const recommendations = await getRecommendationsForSongTable(songs, numberOfSeedSongs);
 
