@@ -1,11 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Feather, FontAwesome } from '@expo/vector-icons';
-import { SafeAreaView, View, Text, StyleSheet, Dimensions, Animated, PanResponder, TouchableOpacity } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, Dimensions, Animated, PanResponder, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { savePlaylist, updatePlaylist, getPlaylist, type Song as PlaylistSong } from '@/src/utils/playlistStorage';
+import AppButton from '@/src/components/AppButton';
 
 type Song = { id: string; title: string; artist: string; artwork: string };
 
@@ -113,11 +115,77 @@ export default function Swiping() {
   const [playing, setPlaying] = useState(true);
   const [swipeHistory, setSwipeHistory] = useState<SwipeHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [playlistName, setPlaylistName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [playlistSaved, setPlaylistSaved] = useState(false);
   
-  // Load session state on mount
+  const playlistId = params.playlistId as string | undefined;
+  const isAddingMode = params.mode === 'add' && !!playlistId;
+  
+  const position = useRef(new Animated.ValueXY()).current;
+  const cardOpacity = useRef(new Animated.Value(1)).current;
+  
+  // Load playlist name if in add mode
+  useEffect(() => {
+    const loadPlaylistName = async () => {
+      if (isAddingMode && playlistId) {
+        try {
+          // Try to get from params first (faster)
+          if (params.playlistName) {
+            setPlaylistName(params.playlistName as string);
+          } else {
+            // Fallback: load from storage
+            const playlist = await getPlaylist(playlistId);
+            if (playlist) {
+              setPlaylistName(playlist.name);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading playlist name:', error);
+        }
+      }
+    };
+    
+    loadPlaylistName();
+  }, [isAddingMode, playlistId, params.playlistName]);
+
+  // Reset state function
+  const resetState = useCallback((preservePlaylistName = false) => {
+    setIndex(0);
+    setLiked([]);
+    setPassed([]);
+    setSwipeHistory([]);
+    if (!preservePlaylistName) {
+      setPlaylistName('');
+    }
+    setPlaylistSaved(false);
+    setIsSaving(false);
+    setPlaying(true);
+    position.setValue({ x: 0, y: 0 });
+    cardOpacity.setValue(1);
+  }, [position, cardOpacity]);
+
+  // Clear session from storage
+  const clearSession = useCallback(async () => {
+    try {
+      await AsyncStorage.removeItem(SWIPE_SESSION_KEY);
+    } catch (error) {
+      console.error('Error clearing session:', error);
+    }
+  }, []);
+
+  // Load session state on mount or when params change
   useEffect(() => {
     const loadSession = async () => {
       try {
+        // If no seed songs provided, reset everything
+        if (!params.s1 || !params.s2) {
+          await clearSession();
+          resetState();
+          setIsLoading(false);
+          return;
+        }
+
         const savedSession = await AsyncStorage.getItem(SWIPE_SESSION_KEY);
         if (savedSession) {
           const session = JSON.parse(savedSession);
@@ -129,22 +197,38 @@ export default function Swiping() {
             setSwipeHistory(session.swipeHistory || []);
           } else {
             // Different session, clear old data
-            await AsyncStorage.removeItem(SWIPE_SESSION_KEY);
+            await clearSession();
+            resetState();
           }
+        } else {
+          // No saved session, start fresh
+          resetState();
         }
       } catch (error) {
         console.error('Error loading session:', error);
+        resetState();
       } finally {
         setIsLoading(false);
       }
     };
     
     loadSession();
-  }, [params.s1, params.s2]);
+  }, [params.s1, params.s2, resetState, clearSession]);
 
-  // Save session state whenever it changes
+  // Clear session when component comes into focus without params (user navigated back)
+  useFocusEffect(
+    useCallback(() => {
+      if (!params.s1 || !params.s2) {
+        // No seed songs, clear session and reset state
+        clearSession();
+        resetState();
+      }
+    }, [params.s1, params.s2, clearSession, resetState])
+  );
+
+  // Save session state whenever it changes (only if we have seed songs)
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && params.s1 && params.s2) {
       const saveSession = async () => {
         try {
           const session = {
@@ -163,16 +247,6 @@ export default function Swiping() {
       saveSession();
     }
   }, [index, liked, passed, swipeHistory, isLoading, params.s1, params.s2]);
-
-  // Log the selected seed songs for debugging
-  useEffect(() => {
-    if (params.s1 && params.s2) {
-      console.log('Seed songs:', params.s1, params.s2);
-    }
-  }, [params]);
-
-  const position = useRef(new Animated.ValueXY()).current;
-  const cardOpacity = useRef(new Animated.Value(1)).current;
 
   const top = SONGS[index];
   const next = SONGS[index + 1];
@@ -199,6 +273,44 @@ export default function Swiping() {
   const likeOpacity = position.x.interpolate({ inputRange: [0, SWIPE_THRESHOLD], outputRange: [0, 1], extrapolate: 'clamp' });
   const nopeOpacity = position.x.interpolate({ inputRange: [-SWIPE_THRESHOLD, 0], outputRange: [1, 0], extrapolate: 'clamp' });
 
+  // Use ref to store current index to avoid closure issues
+  const indexRef = useRef(index);
+  useEffect(() => {
+    indexRef.current = index;
+  }, [index]);
+
+  const swipe = useCallback((dir: 'left' | 'right', vy: number) => {
+    // Get current index from ref to ensure we have the latest value
+    const currentIndex = indexRef.current;
+    const currentSong = SONGS[currentIndex];
+    
+    if (!currentSong) return;
+    
+    console.log('Swiping', dir, 'song:', currentSong.id, currentSong.title, 'at index:', currentIndex);
+    
+    const toX = dir === 'right' ? width * 1.3 : -width * 1.3;
+    Haptics.selectionAsync();
+    Animated.timing(position, { toValue: { x: toX, y: vy * 16 }, duration: 220, useNativeDriver: true }).start(() => {
+      // Add to history for undo functionality
+      setSwipeHistory(prev => [...prev, { songId: currentSong.id, direction: dir, index: currentIndex }]);
+      
+      if (dir === 'right') {
+        setLiked(arr => {
+          const newArr = [...arr, currentSong.id];
+          console.log('Liked songs after swipe:', newArr);
+          return newArr;
+        });
+      } else {
+        setPassed(arr => [...arr, currentSong.id]);
+      }
+      
+      // reset transform then advance next frame to avoid one-frame ghost
+      position.setValue({ x: 0, y: 0 });
+      requestAnimationFrame(() => setIndex(i => i + 1));
+      setPlaying(true);
+    });
+  }, []);
+
   const pan = useMemo(
     () =>
       PanResponder.create({
@@ -210,29 +322,8 @@ export default function Swiping() {
           else Animated.spring(position, { toValue: { x: 0, y: 0 }, useNativeDriver: true, friction: 6 }).start();
         },
       }),
-    []
+    [swipe]
   );
-
-  const swipe = (dir: 'left' | 'right', vy: number) => {
-    const toX = dir === 'right' ? width * 1.3 : -width * 1.3;
-    Haptics.selectionAsync();
-    Animated.timing(position, { toValue: { x: toX, y: vy * 16 }, duration: 220, useNativeDriver: true }).start(() => {
-      if (top) {
-        // Add to history for undo functionality
-        setSwipeHistory(prev => [...prev, { songId: top.id, direction: dir, index }]);
-        
-        if (dir === 'right') {
-          setLiked(arr => [...arr, top.id]);
-        } else {
-          setPassed(arr => [...arr, top.id]);
-        }
-      }
-      // reset transform then advance next frame to avoid one-frame ghost
-      position.setValue({ x: 0, y: 0 });
-      requestAnimationFrame(() => setIndex(i => i + 1));
-      setPlaying(true);
-    });
-  };
 
   const undo = () => {
     if (swipeHistory.length === 0) return;
@@ -266,6 +357,67 @@ export default function Swiping() {
   };
 
   const programmatic = (dir: 'left' | 'right') => swipe(dir, 0);
+
+  const handleSavePlaylist = async () => {
+    if (isAddingMode) {
+      // Adding to existing playlist - no name needed
+      if (isSaving || !playlistId) return;
+    } else {
+      // Creating new playlist - name required
+      if (!playlistName.trim() || isSaving) return;
+    }
+    
+    setIsSaving(true);
+    try {
+      // Convert liked song IDs to Song objects
+      const likedSongs: PlaylistSong[] = liked
+        .map(songId => {
+          const song = SONGS.find(s => s.id === songId);
+          return song ? {
+            id: song.id,
+            title: song.title,
+            artist: song.artist,
+            artwork: song.artwork,
+          } : null;
+        })
+        .filter((song): song is PlaylistSong => song !== null);
+
+      if (isAddingMode && playlistId) {
+        // Add songs to existing playlist
+        const existingPlaylist = await getPlaylist(playlistId);
+        if (existingPlaylist) {
+          // Merge songs, avoiding duplicates
+          const existingSongIds = new Set(existingPlaylist.songs.map(s => s.id));
+          const newSongs = likedSongs.filter(s => !existingSongIds.has(s.id));
+          const updatedSongs = [...existingPlaylist.songs, ...newSongs];
+          await updatePlaylist(playlistId, { songs: updatedSongs });
+          // Ensure playlist name is set from the loaded playlist
+          if (!playlistName || playlistName !== existingPlaylist.name) {
+            setPlaylistName(existingPlaylist.name);
+          }
+        }
+      } else {
+        // Create new playlist
+        const playlist = {
+          id: `playlist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name: playlistName.trim(),
+          songs: likedSongs,
+          createdAt: Date.now(),
+        };
+        await savePlaylist(playlist);
+      }
+
+      setPlaylistSaved(true);
+      // Clear session after saving playlist
+      await clearSession();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error('Error saving playlist:', error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Don't render until session is loaded
   if (isLoading) {
@@ -364,10 +516,129 @@ export default function Swiping() {
             </Animated.View>
           )}
 
-          {finished && (
+          {finished && !playlistSaved && (
+            <View style={styles.confirmationContainer}>
+              <ScrollView 
+                style={styles.confirmationScrollView}
+                contentContainerStyle={styles.confirmationScrollContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                <Text style={styles.confirmationTitle}>
+                  {isAddingMode ? 'Add Songs to Playlist' : 'Create Your Playlist'}
+                </Text>
+                <Text style={styles.confirmationSubtitle}>
+                  {isAddingMode 
+                    ? playlistName 
+                      ? `You liked ${liked.length} song${liked.length !== 1 ? 's' : ''} to add to "${playlistName}"`
+                      : `You liked ${liked.length} song${liked.length !== 1 ? 's' : ''} to add to this playlist`
+                    : `You liked ${liked.length} song${liked.length !== 1 ? 's' : ''}`
+                  }
+                </Text>
+                
+                {!isAddingMode && (
+                  <View style={styles.nameInputContainer}>
+                    <Text style={styles.inputLabel}>Playlist Name</Text>
+                    <TextInput
+                      style={styles.nameInput}
+                      placeholder="Enter playlist name..."
+                      placeholderTextColor="#999"
+                      value={playlistName}
+                      onChangeText={setPlaylistName}
+                      autoFocus
+                    />
+                  </View>
+                )}
+
+                <View style={styles.songsPreview}>
+                  <Text style={styles.previewTitle}>Songs in playlist:</Text>
+                  <ScrollView 
+                    style={styles.songsList} 
+                    contentContainerStyle={styles.songsListContent}
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {liked.map((songId, idx) => {
+                      const song = SONGS.find(s => s.id === songId);
+                      return song ? (
+                        <View key={`${songId}-${idx}`} style={styles.songPreviewItem}>
+                          <Image
+                            source={{ uri: song.artwork }}
+                            style={styles.previewArtwork}
+                            contentFit="cover"
+                          />
+                          <View style={styles.previewSongInfo}>
+                            <Text style={styles.previewSongTitle}>{song.title}</Text>
+                            <Text style={styles.previewSongArtist}>{song.artist}</Text>
+                          </View>
+                        </View>
+                      ) : null;
+                    })}
+                  </ScrollView>
+                </View>
+              </ScrollView>
+
+              <View style={styles.confirmationButtons}>
+                <AppButton
+                  title={isAddingMode ? "Add Songs" : "Save Playlist"}
+                  onPress={handleSavePlaylist}
+                  disabled={(!isAddingMode && !playlistName.trim()) || isSaving}
+                  backgroundColor="#F28695"
+                  textColor="#FFFFFF"
+                />
+              </View>
+            </View>
+          )}
+
+          {finished && playlistSaved && (
             <View style={styles.done}>
-              <Text style={styles.doneTitle}>Done!</Text>
-              <Text style={styles.doneSub}>Liked {liked.length} · Passed {passed.length}</Text>
+              <Text style={styles.doneTitle}>
+                {isAddingMode ? 'Songs Added! 🎉' : 'Playlist Saved! 🎉'}
+              </Text>
+              <Text style={styles.doneSub}>{playlistName}</Text>
+              <View style={styles.doneButtons}>
+                {isAddingMode ? (
+                  <AppButton
+                    title="Back to Playlist"
+                    onPress={async () => {
+                      await clearSession();
+                      // Don't reset playlist name when going back in add mode
+                      resetState(true);
+                      router.push({
+                        pathname: '/(tabs)/playlist-detail',
+                        params: { id: playlistId }
+                      });
+                    }}
+                    backgroundColor="#F28695"
+                    textColor="#FFFFFF"
+                    width="80%"
+                  />
+                ) : (
+                  <>
+                    <AppButton
+                      title="View Playlists"
+                      onPress={async () => {
+                        await clearSession();
+                        router.push('/(tabs)/playlists');
+                      }}
+                      backgroundColor="#F28695"
+                      textColor="#FFFFFF"
+                      width="80%"
+                    />
+                    <AppButton
+                      title="Continue Swiping"
+                      onPress={async () => {
+                        await clearSession();
+                        resetState();
+                        router.push('/(tabs)/UploadSongs');
+                      }}
+                      backgroundColor="#FFFFFF"
+                      textColor="#000000"
+                      width="80%"
+                    />
+                  </>
+                )}
+              </View>
             </View>
           )}
         </View>
@@ -442,7 +713,114 @@ const styles = StyleSheet.create({
   pillPrimary: { backgroundColor: '#F28695' },
   pillIcon: { fontSize: 24, fontWeight: '900' },
 
-  done: { alignItems: 'center', justifyContent: 'center' },
-  doneTitle: { fontSize: 22, fontWeight: '800', color: '#001133' },
-  doneSub: { marginTop: 6, fontSize: 14, color: '#6F7A88' },
+  done: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
+  doneTitle: { fontSize: 22, fontWeight: '800', color: '#001133', marginBottom: 8 },
+  doneSub: { fontSize: 16, color: '#6F7A88', marginBottom: 24 },
+  doneButtons: { width: '100%', alignItems: 'center', gap: 12 },
+  
+  confirmationContainer: { 
+    flex: 1, 
+    paddingHorizontal: 12, 
+    paddingTop: 40, 
+    paddingBottom: 0,
+    alignItems: 'center',
+  },
+  confirmationScrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  confirmationScrollContent: {
+    paddingBottom: 20,
+  },
+  confirmationTitle: { 
+    fontSize: 28, 
+    fontWeight: '800', 
+    color: '#001133', 
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  confirmationSubtitle: { 
+    fontSize: 16, 
+    color: '#6F7A88', 
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  nameInputContainer: { 
+    width: '100%', 
+    marginBottom: 20,
+  },
+  inputLabel: { 
+    fontSize: 14, 
+    fontWeight: '600', 
+    color: '#001133', 
+    marginBottom: 8,
+  },
+  nameInput: { 
+    backgroundColor: 'white', 
+    borderRadius: 12, 
+    padding: 16, 
+    fontSize: 16,
+    color: '#001133',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  songsPreview: {
+    width: '100%',
+    marginBottom: 20,
+    minHeight: 200,
+    maxHeight: height * 0.35,
+  },
+  previewTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#001133',
+    marginBottom: 12,
+  },
+  songsList: {
+    maxHeight: height * 0.35,
+  },
+  songsListContent: {
+    paddingBottom: 20,
+  },
+  songPreviewItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+    width: '100%',
+    marginHorizontal: -4,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+    minHeight: 70,
+  },
+  previewArtwork: {
+    width: 50,
+    height: 50,
+    borderRadius: 6,
+    marginRight: 14,
+    flexShrink: 0,
+  },
+  previewSongInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  previewSongTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#001133',
+    marginBottom: 3,
+  },
+  previewSongArtist: {
+    fontSize: 13,
+    color: '#6F7A88',
+  },
+  confirmationButtons: {
+    width: '100%',
+    paddingTop: 12,
+    paddingBottom: 100,
+    backgroundColor: 'transparent',
+  },
 });

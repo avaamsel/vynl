@@ -57,3 +57,29 @@ export async function deletePlaylist(playlistId: string): Promise<void> {
   }
 }
 
+export async function updatePlaylist(playlistId: string, updates: Partial<Playlist>): Promise<void> {
+  try {
+    const existing = await getPlaylists();
+    const updated = existing.map(p => {
+      if (p.id === playlistId) {
+        return { ...p, ...updates };
+      }
+      return p;
+    });
+    await AsyncStorage.setItem(PLAYLIST_STORAGE_KEY, JSON.stringify(updated));
+  } catch (error) {
+    console.error('Error updating playlist:', error);
+    throw error;
+  }
+}
+
+export async function getPlaylist(playlistId: string): Promise<Playlist | null> {
+  try {
+    const playlists = await getPlaylists();
+    return playlists.find(p => p.id === playlistId) || null;
+  } catch (error) {
+    console.error('Error getting playlist:', error);
+    return null;
+  }
+}
+
