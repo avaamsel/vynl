@@ -1,6 +1,7 @@
 import { createSupabaseClient } from "@/src/server/supabase";
 import { isPlaylistData } from "@/src/types/database.types";
-import { deserializePlaylist } from "@/src/server/dataDeserialization";
+import { deserializePlaylist, getPlaylistFromDatabase } from "@/src/server/dataDeserialization";
+import { isPlaylist } from "@/src/types";
 
 // GET "api/playlist"
 export async function GET(req: Request, { id }: Record<string, string>) {
@@ -11,58 +12,57 @@ export async function GET(req: Request, { id }: Record<string, string>) {
         if (supabase instanceof Response) {
             return supabase
         }
+
+        const playlist = getPlaylistFromDatabase(id, supabase);
         
-        const playlist_id = parseInt(id);
-
-        if (playlist_id == undefined) {
-            console.log("Invalid Playlist ID:", id);
-            return new Response('Invalid Playlist ID', {
-                status: 400
-            });
+        // If given an error response from playlist method
+        if (playlist instanceof Response) {
+            return playlist;
         }
 
-        const { data, error } = await supabase
-            .from('playlists')
-            .select('*')
-            .eq('playlist_id', playlist_id)
-            .single();
-
-        if (error) {
-            console.log("Error fetching playlist:", error);
-            return new Response(JSON.stringify({ error: error.message }), { status: 404 })
-        }
-
-        if (!data) {
-            console.log("Playlist not found:", playlist_id);
-            return new Response('Playlist Not Found', {
-                status: 404
-            });
-        }
-
-        console.log("Fetched playlist:", data);
-
-        const deserializedPlaylist = await deserializePlaylist(data, supabase);
-
-        if (!deserializedPlaylist) {
-            console.log("Error deserializing playlist:", playlist_id);
-            return new Response('Error Deserializing Playlist', {
-                status: 500
-            });
-        }
-
-        const response = new Response(JSON.stringify(deserializedPlaylist), {
+        return new Response(JSON.stringify(playlist), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
         });
-        console.log("Sending data:" + JSON.stringify(deserializedPlaylist));
-        // console.log("Response:", response);
-        return response;
     } catch (error) {
         console.error(error);
         return new Response('Unknown Server Error', {
             status: 500
         });
     }
+}
 
-    
+// PUT "api/playlist"
+export async function PUT(req: Request, { id }: Record<string, string>) {
+    try {
+        const body = await req.json();
+        const supabase = await createSupabaseClient(req);
+        // If given an error response return it
+        if (supabase instanceof Response) {
+            return supabase
+        }
+        
+        if (!isPlaylist(body)) {
+            return new Response('Invalid Body, Expected Playlist Object', {
+                status: 400
+            });
+        }
+
+        const playlist = getPlaylistFromDatabase(id, supabase);
+        
+        // If given an error response from playlist method
+        if (playlist instanceof Response) {
+            return playlist;
+        }
+
+        return new Response(JSON.stringify(playlist), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    } catch (error) {
+        console.error(error);
+        return new Response('Unknown Server Error', {
+            status: 500
+        });
+    }
 }

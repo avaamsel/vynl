@@ -19,6 +19,11 @@ export async function deserializePlaylist(playlist_data: playlist_data, supabase
         .eq("playlist_id", playlist_data.playlist_id)
         .order("position", { ascending: true });
 
+    if (error) {
+        console.error(error);
+        return null;
+    }
+
     const songs: Song[] = (data ?? [])
         .map((ps) => ps.songs)
         .filter((song): song is Song => song !== null)
@@ -38,4 +43,45 @@ export async function deserializePlaylist(playlist_data: playlist_data, supabase
     };
 
     return playlist;
+}
+
+export async function getPlaylistFromDatabase(id: string, supabase: SupabaseClient<Database>): Promise<Playlist | Response> {
+    const playlist_id = parseInt(id);
+
+    if (playlist_id == undefined) {
+        console.log("Invalid Playlist ID:", id);
+        return new Response('Invalid Playlist ID', {
+            status: 400
+        });
+    }
+
+    const { data, error } = await supabase
+        .from('playlists')
+        .select('*')
+        .eq('playlist_id', playlist_id)
+        .single();
+
+    if (error) {
+        console.log("Error fetching playlist:", error);
+        return new Response(JSON.stringify({ error: error.message }), { status: 404 })
+    }
+
+    if (!data) {
+        console.log("Playlist not found:", playlist_id);
+        return new Response('Playlist Not Found', {
+            status: 404
+        });
+    }
+
+    console.log("Fetched playlist:", data);
+
+    const deserializedPlaylist = await deserializePlaylist(data, supabase);
+
+    if (!deserializedPlaylist) {
+        console.log("Error deserializing playlist:", id);
+        return new Response('Error Deserializing Playlist', {
+            status: 500
+        });
+    }
+    return deserializedPlaylist;
 }

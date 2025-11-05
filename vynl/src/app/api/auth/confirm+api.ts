@@ -1,7 +1,6 @@
 import { createServerClient, parseCookieHeader, serializeCookieHeader  } from '@supabase/ssr';
 import type { SerializeOptions } from "cookie";
 import { type EmailOtpType } from '@supabase/supabase-js';
-import { createSupabaseClientFromRequest } from '../../../lib/supabaseServer'
 import { createSupabaseClient } from '../../../server/supabase';
 
 // export async function GET(req: Request) {

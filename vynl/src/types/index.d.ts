@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -8,8 +7,8 @@ export interface User {
 export interface Song {
   song_id: number;
   title: string;
-  artist: string;
-  duration_sec: number;
+  artist: string | null;
+  duration_sec: number | null;
 }
 
 export interface Playlist {
@@ -19,3 +18,5 @@ export interface Playlist {
   user_id: string;
   songs: Song[];
 }
+
+export {};
