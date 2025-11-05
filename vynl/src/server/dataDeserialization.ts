@@ -1,5 +1,6 @@
-import { Database, playlist_data } from "../types/database.types";
-import { Playlist, Song } from "../types/index.d";
+import { Database } from "../types/database.types";
+import { playlist_data } from "../types/database";
+import { Playlist, Song } from "../types";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export async function deserializePlaylist(playlist_data: playlist_data, supabase: SupabaseClient<Database>): Promise<Playlist | null> {

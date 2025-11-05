@@ -1,6 +1,5 @@
 import { createSupabaseClient } from "@/src/server/supabase";
-import { isPlaylistData } from "@/src/types/database.types";
-import { deserializePlaylist, getPlaylistFromDatabase } from "@/src/server/dataDeserialization";
+import { getPlaylistFromDatabase } from "@/src/server/dataDeserialization";
 import { isPlaylist } from "@/src/types";
 
 // GET "api/playlist"
