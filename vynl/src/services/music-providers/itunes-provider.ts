@@ -1,4 +1,5 @@
-import { getRecommendationsForSongTable, Song } from "../../modules/song-recommendation/recommendationUtils";
+import { getRecommendationsForSongTable } from "../../server/song-recommendation/recommendationUtils";
+import { Song } from "../../types/index.d";
 
 interface ITunesSearchResult {
     results: Array<{
@@ -59,12 +60,15 @@ async function fetchSimilarSongs(trackIds: number[]): Promise<Array<{ artist: st
 
     const data: ITunesSearchResult = await response.json();
 
-    let tracksInfo: Array<Song> = [];
-
+    let tracksInfo: Song[] = [];
+    
     if (data.results && data.results.length > 0) {
-        tracksInfo = data.results.map(result => (
-            {artist: result.artistName, title: result.trackName}
-        ));
+        tracksInfo = data.results.map(result => ({
+            artist: result.artistName,
+            title: result.trackName,
+            song_id: 10, // Placeholder because we have to change the type to string
+            duration_sec: null
+        }));
     }
 
     console.log(tracksInfo);

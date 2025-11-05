@@ -5,6 +5,7 @@ import { Link } from 'expo-router';
 import AppButton from "../components/AppButton";
 import InputField from '../components/InputField';
 import { supabase } from '@/src/utils/supabase';
+import { Playlist } from '../types/index.d';
 
 interface FormData {
   email: string;
@@ -47,6 +48,23 @@ const LoginPage: React.FC = () => {
       console.log(error);
       if (error) {
         setErrors((prev) => ({ ...prev, password: error.message || 'Login failed' }));
+      }
+      const session = data.session;
+      if (session?.access_token) {
+        console.log(session.access_token);
+        const response = await fetch('/api/playlist/recommendation/11111', {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + session.access_token
+          }
+        });
+
+        if (response.ok) {
+          const playlist: Playlist = await response.json();
+
+          console.log('Recommended Playlist:', playlist);
+          
+        }
       }
     } catch (err) {
       console.error('Login error', err);
