@@ -44,8 +44,8 @@ export function isPlaylistData(obj: any): obj is playlist_data {
     typeof obj.name === 'string' &&
     'playlist_id' in obj &&
     typeof obj.playlist_id === 'number' &&
-    'uuid' in obj &&
-    typeof obj.uuid === 'string'
+    'uid' in obj &&
+    typeof obj.uid === 'string'
   );
 }
 

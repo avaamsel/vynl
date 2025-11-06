@@ -51,20 +51,41 @@ const LoginPage: React.FC = () => {
       }
       const session = data.session;
       if (session?.access_token) {
-        console.log(session.access_token);
-        const response = await fetch('/api/playlist/recommendation/11111', {
-          method: 'GET',
+        const playlist: Playlist = {
+          id: 0,
+          name: 'Test Create Playlist',
+          created_at: '',
+          user_id: session.user.id,
+          songs: [
+            {
+              song_id: 1,
+              title: "Unknown/Nth",
+              artist: "Hozier",
+              duration_sec: 10
+            },
+            {
+              song_id: 2,
+              title: "The Ghost On The Shore",
+              artist: "Lord Huron",
+              duration_sec: 56
+            }
+          ]
+        }
+        const response = await fetch('/api/playlist', {
+          method: 'POST',
           headers: {
             'Authorization': 'Bearer ' + session.access_token
-          }
+          },
+          body: JSON.stringify(playlist)
         });
 
-        if (response.ok) {
-          const playlist: Playlist = await response.json();
+        console.log(response);
+        // if (response.ok) {
+        //   const playlist: Playlist = await response.json();
 
-          console.log('Recommended Playlist:', playlist);
+        //   console.log('Recommended Playlist:', playlist);
           
-        }
+        // }
       }
     } catch (err) {
       console.error('Login error', err);
