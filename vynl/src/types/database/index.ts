@@ -13,14 +13,15 @@ export interface playlist_data {
 export interface playlist_song {
   playlist_id: number
   position: number | null
-  song_id: number
+  song_id: string
 }
 
 export interface songs_data {
   artist: string
   duration_sec: number | null
-  song_id: number
+  song_id: string
   title: string
+  cover_url: string
 }
 
 export function isProfile(obj: any): obj is profile {

@@ -1,6 +1,6 @@
 import { createSupabaseClient } from "@/src/server/supabase";
 import { getPlaylistFromDatabase } from "@/src/server/dataDeserialization";
-import { isPlaylist } from "@/src/types";
+import { isITunesPlaylist } from "@/src/types";
 
 // GET "api/playlist"
 export async function GET(req: Request, { id }: Record<string, string>) {
@@ -41,7 +41,7 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             return supabase
         }
         
-        if (!isPlaylist(body)) {
+        if (!isITunesPlaylist(body)) {
             return new Response('Invalid Body, Expected Playlist Object', {
                 status: 400
             });

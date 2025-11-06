@@ -1,5 +1,5 @@
 import { getRecommendationsForSongTable } from "../../server/song-recommendation/recommendationUtils";
-import { ITunesSong, Song } from "../../types/";
+import { ITunesSong } from "../../types/";
 
 interface ITunesSearchResult {
     results: Array<{
@@ -7,6 +7,8 @@ interface ITunesSearchResult {
         trackName: string;
         artworkUrl100: string;
         previewUrl: string;
+        trackId: number;
+        trackTimeMillis: number;
     }>;
 }
 
@@ -29,9 +31,11 @@ export async function fetchSongs(searchValue: string, numberOfSongs: number = 5)
 
     if (data.results && data.results.length > 0) {
         songs = data.results.map(result => ({
-            artist: result.artistName,
+            song_id: result.trackId,
             title: result.trackName,
-            cover: result.artworkUrl100,
+            artist: result.artistName,
+            duration_sec: result.trackTimeMillis / 1000,
+            cover_url: result.artworkUrl100,
             preview_url: result.previewUrl
         }));
 

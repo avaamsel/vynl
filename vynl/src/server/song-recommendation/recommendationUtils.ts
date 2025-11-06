@@ -1,5 +1,5 @@
 import { LastFmService } from "../../services/music-providers/lastfm-provider.ts";
-import { Song } from "../../types/";
+import { ITunesSong, LastFmSong } from "../../types/";
 
 // Helper to shuffle an array in-place
 function shuffleArray<T>(array: T[]): T[] {
@@ -11,9 +11,9 @@ function shuffleArray<T>(array: T[]): T[] {
 }
 
 export async function getRecommendationsForSongTable(
-  songTable: Song[],
+  songTable: ITunesSong[],
   n: number
-): Promise<Song[]> {
+): Promise<LastFmSong[]> {
   const lastFm = new LastFmService();
 
   if (n > 10 * songTable.length) {
@@ -23,7 +23,7 @@ export async function getRecommendationsForSongTable(
   }
 
   // Check the songs all exist in the database 
-  const validSongs: Song[] = [];
+  const validSongs: ITunesSong[] = [];
   for (const song of songTable) {
     const exists = await lastFm.trackExists(song.artist, song.title);
     if (exists) validSongs.push(song);
@@ -33,14 +33,14 @@ export async function getRecommendationsForSongTable(
     throw new Error("None of the provided songs exist in Last.fm database.");
   }
 
-  const allRecommendations: Song[] = [];
+  const allRecommendations: LastFmSong[] = [];
   for (const song of validSongs) {
     const similar = await lastFm.getSimilarTracks(song.artist, song.title, 10);
     // Map Last.fm result to our Song type
     const mapped = similar.map((t: any) => ({
       artist: t.artist?.name ?? t.artist,
       title: t.name,
-      song_id: 10, // Placeholder because we should put mbid which is a string
+      song_id: t.mbid, // Placeholder because we should put mbid which is a string
       duration_sec: t.duration ? t.duration : null,
     }));
     allRecommendations.push(...mapped);
@@ -50,7 +50,7 @@ export async function getRecommendationsForSongTable(
     throw new Error("No recommendation could be found for your seed songs.");
   }
 
-  const countMap: Map<string, { song: Song; count: number }> = new Map();
+  const countMap: Map<string, { song: LastFmSong; count: number }> = new Map();
   for (const rec of allRecommendations) {
     const key = `${rec.artist}||${rec.title}`;
     if (countMap.has(key)) {
@@ -61,7 +61,7 @@ export async function getRecommendationsForSongTable(
   }
 
   // Group by count
-  const groupedByCount: Map<number, { song: Song; count: number }[]> = new Map();
+  const groupedByCount: Map<number, { song: LastFmSong; count: number }[]> = new Map();
   for (const entry of countMap.values()) {
     const group = groupedByCount.get(entry.count) ?? [];
     group.push(entry);
@@ -69,7 +69,7 @@ export async function getRecommendationsForSongTable(
   }
 
   // Sort counts descending, shuffle within each group, flatten, slice top n
-  const topRecommendations: Song[] = Array.from(groupedByCount.keys())
+  const topRecommendations: LastFmSong[] = Array.from(groupedByCount.keys())
     .sort((a, b) => b - a) // descending by count
     .flatMap(count => shuffleArray(groupedByCount.get(count)!)) // shuffle within same count
     .slice(0, n)

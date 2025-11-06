@@ -7,25 +7,27 @@ export interface User {
   email: string; //Do we store that ?
 }
 
-export interface Song {
-  song_id: number;
+export interface LastFmSong {
+  mbid: number;
   title: string;
   artist: string;
   duration_sec: number | null;
 }
 
-export interface Playlist {
+export interface ITunesPlaylist {
   id: number;
   name: string;
   created_at: string;
   user_id: string;
-  songs: Song[];
+  songs: ITunesSong[];
 }
 
 export interface ITunesSong {
+  song_id: number;
   title: string;
   artist: string;
-  cover: string;
+  duration_sec: number | null;
+  cover_url: string;
   preview_url: string;
 }
 
@@ -33,50 +35,56 @@ export function isUser(obj: any): obj is User {
   return (
     typeof obj === 'object' &&
     obj !== null &&
-    'id' in obj &&
     typeof obj.id === 'string' &&
-    'name' in obj &&
     typeof obj.name === 'string' &&
-    'email' in obj &&
-    typeof obj.email === 'number'
+    typeof obj.email === 'string'
   );
 }
 
-export function isSong(obj: any): obj is Song {
+
+export function isLastFmSong(obj: any): obj is LastFmSong {
   return (
     typeof obj === 'object' &&
     obj !== null &&
-    'song_id' in obj &&
-    typeof obj.song_id === 'number' &&
-    'title' in obj &&
+    typeof obj.mbid === 'number' &&
     typeof obj.title === 'string' &&
-    'artist' in obj &&
-    typeof obj.artist === 'string' ||
-    obj.artist == null &&
-    'duration_sec' in obj &&
-    typeof obj.duration_sec === 'number' ||
-    obj.duration_sec == null
+    typeof obj.artist === 'string' &&
+    ('duration_sec' in obj &&
+      (typeof obj.duration_sec === 'number' || obj.duration_sec === null))
   );
 }
 
-export function isPlaylist(obj: any): obj is Playlist {
+
+export function isITunesSong(obj: any): obj is ITunesSong {
   return (
     typeof obj === 'object' &&
     obj !== null &&
-    'id' in obj &&
+    typeof obj.song_id === 'number' &&
+    typeof obj.title === 'string' &&
+    typeof obj.artist === 'string' &&
+    ('duration_sec' in obj &&
+      (typeof obj.duration_sec === 'number' || obj.duration_sec === null)) &&
+    typeof obj.cover_url === 'string' &&
+    typeof obj.preview_url === 'string'
+  );
+}
+
+
+export function isITunesPlaylist(obj: any): obj is ITunesPlaylist {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
     typeof obj.id === 'number' &&
-    'name' in obj &&
     typeof obj.name === 'string' &&
-    'created_at' in obj &&
     typeof obj.created_at === 'string' &&
-    'user_id' in obj &&
     typeof obj.user_id === 'string' &&
     Array.isArray(obj.songs) &&
-    obj.songs.every(isSong)
+    obj.songs.every(isITunesSong)
   );
 }
 
-export async function iTunesSongToSong(itunesSong: ITunesSong): Promise<Song | Error> {
+
+export async function iTunesSongToLastFMSong(itunesSong: ITunesSong): Promise<LastFmSong | Error> {
   if (!itunesSong) return new Error("Invalid iTunes Song");
 
   const lastfmService = new LastFmService();
@@ -93,9 +101,9 @@ export async function iTunesSongToSong(itunesSong: ITunesSong): Promise<Song | E
   }
 
   return {
-    song_id: 10, // Should be trackInfo.mbid,
+    mbid: trackInfo.mbid,
     title: itunesSong.title,
     artist: itunesSong.artist,
-    duration_sec: 10, // Should be parseInt(trackInfo.duration) / 1000
+    duration_sec: parseInt(trackInfo.duration) / 1000,
   };
 }

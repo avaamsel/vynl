@@ -6,7 +6,7 @@ import AppButton from "../components/AppButton";
 import InputField from '../components/InputField';
 import { supabase } from '@/src/utils/supabase';
 import { fetchSongs } from "@/src/services/music-providers/itunes-provider";
-import { Playlist } from '../types';
+import { ITunesPlaylist } from '../types';
 
 interface FormData {
   email: string;
@@ -60,7 +60,7 @@ const LoginPage: React.FC = () => {
         });
 
         if (res.ok) {
-          const songs: Playlist = await res.json();
+          const songs: ITunesPlaylist = await res.json();
 
           console.log('Songs found:', songs);
           
@@ -76,7 +76,7 @@ const LoginPage: React.FC = () => {
         });
 
         if (response.ok) {
-          const playlist: Playlist = await response.json();
+          const playlist: ITunesPlaylist = await response.json();
 
           //console.log('Recommended Playlist:', playlist);
           

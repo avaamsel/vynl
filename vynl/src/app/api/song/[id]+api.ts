@@ -1,5 +1,5 @@
 import { createSupabaseClient } from "@/src/server/supabase";
-import { Song, Playlist } from "@/src/types/";
+import { ITunesSong } from "@/src/types/";
 
 export async function GET(req: Request, { id }: Record<string, string>) {
     try {
@@ -8,6 +8,8 @@ export async function GET(req: Request, { id }: Record<string, string>) {
         if (supabase instanceof Response) {
             return supabase
         }
+        
+
 
     } catch (error) {
         console.error(error);
