@@ -1,6 +1,6 @@
 import { createSupabaseClient } from "@/src/server/supabase";
 import { getPlaylistFromDatabase } from "@/src/server/dataDeserialization";
-import { Song, Playlist } from "@/src/types/index.d";
+import { Song } from "@/src/types";
 import { getRecommendationsForSongTable } from "@/src/server/song-recommendation/recommendationUtils";
 
 export async function GET(req: Request, { id }: Record<string, string>) {

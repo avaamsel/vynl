@@ -1,5 +1,5 @@
 import { LastFmService } from "../../services/music-providers/lastfm-provider.ts";
-import { Song } from "../../types/index.d";
+import { Song } from "../../types/";
 
 // Helper to shuffle an array in-place
 function shuffleArray<T>(array: T[]): T[] {

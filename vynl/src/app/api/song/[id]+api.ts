@@ -1,5 +1,5 @@
 import { createSupabaseClient } from "@/src/server/supabase";
-import { Song, Playlist } from "@/src/types/index.d";
+import { Song, Playlist } from "@/src/types/";
 
 export async function GET(req: Request, { id }: Record<string, string>) {
     try {
@@ -9,7 +9,7 @@ export async function GET(req: Request, { id }: Record<string, string>) {
             return supabase
         }
 
-        
+
 
     } catch (error) {
         console.error(error);

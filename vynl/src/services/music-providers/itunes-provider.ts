@@ -1,5 +1,5 @@
 import { getRecommendationsForSongTable } from "../../server/song-recommendation/recommendationUtils";
-import { ITunesSong, Song } from "../../types/index.d";
+import { ITunesSong, Song } from "../../types/";
 
 interface ITunesSearchResult {
     results: Array<{

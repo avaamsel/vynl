@@ -5,8 +5,8 @@ import { Link } from 'expo-router';
 import AppButton from "../components/AppButton";
 import InputField from '../components/InputField';
 import { supabase } from '@/src/utils/supabase';
-import { Playlist } from '../types/index.d';
 import { fetchSongs } from "@/src/services/music-providers/itunes-provider";
+import { Playlist } from '../types';
 
 interface FormData {
   email: string;
