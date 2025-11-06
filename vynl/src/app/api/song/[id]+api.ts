@@ -9,8 +9,6 @@ export async function GET(req: Request, { id }: Record<string, string>) {
             return supabase
         }
 
-
-
     } catch (error) {
         console.error(error);
         return new Response('Unknown Server Error', {
