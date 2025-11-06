@@ -52,7 +52,7 @@ const LoginPage: React.FC = () => {
 
         console.log("Search Results:", searchResults);
 
-        const res = await fetch('/api/song/Charger', {
+        const res = await fetch('/api/song/search/Charger', {
           method: 'GET',
           headers: {
             'Authorization': 'Bearer ' + session.access_token
