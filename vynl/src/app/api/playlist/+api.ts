@@ -37,7 +37,6 @@ export async function GET(req: Request) {
 // POST "api/playlist"
 export async function POST(req: Request) {
     try {
-        console.log('here')
         const body = await req.json();
         const supabase = await createSupabaseClient(req);
 
@@ -79,12 +78,12 @@ export async function POST(req: Request) {
                 });
 
             const { data: ps_data, error: ps_err } = await supabase
-            .from('playlists_songs')
-            .insert({
-                playlist_id: p_data.playlist_id,
-                position: i,
-                song_id: cur_song.song_id
-            })
+                .from('playlists_songs')
+                .insert({
+                    playlist_id: p_data.playlist_id,
+                    position: i,
+                    song_id: cur_song.song_id
+                });
 
             if (ps_err || s_err) {
                 return new Response('Failed to insert songs into database', {
