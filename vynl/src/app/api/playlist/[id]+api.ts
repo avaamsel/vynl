@@ -1,6 +1,7 @@
 import { createSupabaseClient } from "@/src/server/supabase";
 import { getPlaylistFromDatabase } from "@/src/server/dataDeserialization";
 import { isPlaylist } from "@/src/types";
+import { isPlaylistData } from "@/src/types/database";
 
 // GET "api/playlist"
 export async function GET(req: Request, { id }: Record<string, string>) {
@@ -32,6 +33,7 @@ export async function GET(req: Request, { id }: Record<string, string>) {
 }
 
 // PUT "api/playlist"
+// Does not create a playlist, only updates
 export async function PUT(req: Request, { id }: Record<string, string>) {
     try {
         const body = await req.json();
@@ -47,14 +49,29 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             });
         }
 
-        const playlist = getPlaylistFromDatabase(id, supabase);
+        const new_playlist = body;
+        const old_playlist = await getPlaylistFromDatabase(id, supabase);
         
         // If given an error response from playlist method
-        if (playlist instanceof Response) {
-            return playlist;
+        if (old_playlist instanceof Response) {
+            return old_playlist;
         }
 
-        return new Response(JSON.stringify(playlist), {
+        // Updating playlist object in database
+        const { data: p_data, error: p_err } = await supabase
+            .from('playlists')
+            .insert({ name: new_playlist.name, uid: body.user_id})
+            .eq('playlist_id', old_playlist.id)
+            .select()
+            .single();
+        
+        if (p_err || !isPlaylistData(p_data)) {
+            return new Response('Failed to insert into database', {
+                status: 400
+            });
+        }
+
+        return new Response(JSON.stringify(old_playlist), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
         });

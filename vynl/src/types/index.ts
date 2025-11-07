@@ -1,15 +1,12 @@
+import { songs_data } from "./database";
+
 export interface User {
   id: string;
   name: string;
   email: string; //Do we store that ?
 }
 
-export interface Song {
-  song_id: number;
-  title: string;
-  artist: string;
-  duration_sec: number | null;
-}
+export type Song = songs_data;
 
 export interface Playlist {
   id: number;
