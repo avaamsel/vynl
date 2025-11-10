@@ -19,9 +19,10 @@ export interface playlist_song {
 export interface songs_data {
   artist: string
   duration_sec: number | null
-  song_id: string
+  song_id: number
   title: string
-  cover_url: string
+  cover_url: string | null
+  preview_url: string | null
 }
 
 export function isProfile(obj: any): obj is profile {
@@ -74,6 +75,10 @@ export function isSongData(obj: any): obj is songs_data {
     'song_id' in obj &&
     typeof obj.song_id === 'number' &&
     'title' in obj &&
-    typeof obj.title === 'string'
+    typeof obj.title === 'string' &&
+    'cover_url' in obj &&
+    (obj.cover_url === null || typeof obj.cover_url === 'string') &&
+    'preview_url' in obj &&
+    (obj.preview_url === null || typeof obj.preview_url === 'string')
   );
 }

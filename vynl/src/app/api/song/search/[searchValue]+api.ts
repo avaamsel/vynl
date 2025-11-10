@@ -1,5 +1,5 @@
 import { createSupabaseClient } from "@/src/server/supabase";
-import { ITunesSong } from "@/src/types/index.d";
+import { ITunesSong } from "@/src/types/index.ts";
 import { fetchSongs } from "@/src/services/music-providers/itunes-provider";
 
 // GET "api/playlist"
@@ -12,17 +12,7 @@ export async function GET(req: Request, { searchValue }: Record<string, string>)
             return supabase
         }
 
-        const searchResults = await fetchSongs(searchValue, 5);
-
-        const songResults: ITunesSong[] = [];
-        for (const result of searchResults) {
-            songResults.push({
-                artist: result.artist,
-                title: result.title,
-                cover: result.cover,
-                preview_url: result.preview_url
-            });
-        }
+        const songResults = await fetchSongs(searchValue, 5);
 
         return new Response(JSON.stringify(songResults), {
             status: 200,

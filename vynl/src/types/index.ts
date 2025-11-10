@@ -26,12 +26,12 @@ export interface ITunesPlaylist {
 }
 
 export interface ITunesSong {
-  song_id: number;
-  title: string;
-  artist: string;
-  duration_sec: number | null;
-  cover_url: string;
-  preview_url: string;
+  artist: string
+  cover_url: string | null
+  duration_sec: number | null
+  preview_url: string | null
+  song_id: number
+  title: string
 }
 
 export function isUser(obj: any): obj is User {

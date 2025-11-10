@@ -1,6 +1,6 @@
 import { createSupabaseClient } from "@/src/server/supabase";
-import { isPlaylist } from "@/src/types";
-import { isPlaylistData, playlist_data } from "@/src/types/database";
+import { isITunesPlaylist } from "@/src/types";
+import { isPlaylistData, isPlaylistSong, isSongData } from "@/src/types/database";
 
 // GET "api/playlist"
 export async function GET(req: Request) {
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
             return supabase
         }
 
-        if (!isPlaylist(body)) {
+        if (!isITunesPlaylist(body)) {
             return new Response('Invalid Body, expected playlist object', {
                 status: 400
             });
@@ -74,7 +74,9 @@ export async function POST(req: Request) {
                     song_id: cur_song.song_id, 
                     artist: cur_song.artist, 
                     duration_sec: cur_song.duration_sec,
-                    title: cur_song.title
+                    title: cur_song.title,
+                    cover_url: cur_song.cover_url,
+                    preview_url: cur_song.preview_url
                 });
 
             const { data: ps_data, error: ps_err } = await supabase
@@ -85,7 +87,7 @@ export async function POST(req: Request) {
                     song_id: cur_song.song_id
                 });
 
-            if (ps_err || s_err) {
+            if (ps_err || s_err || !isSongData(s_data) || !isPlaylistSong(ps_data)) {
                 return new Response('Failed to insert songs into database', {
                     status: 400
                 });

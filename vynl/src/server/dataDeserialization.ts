@@ -87,12 +87,26 @@ export async function getPlaylistFromDatabase(id: string, supabase: SupabaseClie
     return deserializedPlaylist;
 }
 
-export async function getSongFromDatabase(id: number, supabase: SupabaseClient<Database>): Promise<ITunesSong | Response> {
+export async function getSongFromDatabase(song_id: number, supabase: SupabaseClient<Database>): Promise<ITunesSong | Response> {
     const { data, error } = await supabase
         .from('songs')
         .select('*')
-        .eq('song_id', id)
+        .eq('song_id', song_id)
         .single();
 
-    //return 
+    if (error) {
+        console.log("Error fetching song:", error);
+        return new Response(JSON.stringify({ error: error.message }), { status: 404 })
+    }
+
+    if (!data) {
+        console.log("Song not found:", song_id);
+        return new Response('Playlist Not Found', {
+            status: 404
+        });
+    }
+
+    const song: ITunesSong = data;
+
+    return song;
 }
