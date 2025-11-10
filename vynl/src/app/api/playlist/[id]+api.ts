@@ -1,7 +1,7 @@
 import { createSupabaseClient } from "@/src/server/supabase";
 import { getPlaylistFromDatabase } from "@/src/server/dataDeserialization";
 import { isPlaylist } from "@/src/types";
-import { isPlaylistData } from "@/src/types/database";
+import { isPlaylistData, playlist_song } from "@/src/types/database";
 
 // GET "api/playlist"
 export async function GET(req: Request, { id }: Record<string, string>) {
@@ -70,6 +70,50 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
                 status: 400
             });
         }
+
+        // Add or update new playlist songs
+        const new_song_ids = new Set<number>();
+        let new_playlist_songs: playlist_song[] = [];
+        for (let i = 0; i < new_playlist.songs.length; i++) {
+            new_song_ids.add(new_playlist.songs[i].song_id);
+            new_playlist_songs.push({
+                playlist_id: old_playlist.id,
+                song_id: new_playlist.songs[i].song_id,
+                position: i
+            });
+        }
+        const { data: nps_data, error: nps_err } = await supabase
+            .from('playlists_songs')
+            .upsert(new_playlist_songs)
+            .select()
+
+        if (nps_err) {
+            return new Response('Failed to insert into database', {
+                status: 400
+            });
+        }
+
+        // Delete playlist songs that are not included anymore
+        let songs_to_remove: number[] = [];
+        for (let i = 0; i < old_playlist.songs.length; i++) {
+            const cur_song_id = old_playlist.songs[i].song_id;
+            if (!new_song_ids.has(cur_song_id)) {
+                songs_to_remove.push(old_playlist.songs[i].song_id);
+            }
+        }
+        const { data: ops_data, error: ops_err } = await supabase
+            .from('playlists_songs')
+            .delete()
+            .eq('playlist_id', old_playlist.id)
+            .in('song_id', songs_to_remove)
+
+        if (ops_err) {
+            return new Response('Failed to insert into database', {
+                status: 400
+            });
+        }
+
+        // TODO: Add to songs table any new songs
 
         return new Response(JSON.stringify(old_playlist), {
             status: 200,
