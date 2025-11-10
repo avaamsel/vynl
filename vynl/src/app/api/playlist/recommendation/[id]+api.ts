@@ -1,6 +1,6 @@
 import { createSupabaseClient } from "@/src/server/supabase";
 import { getPlaylistFromDatabase } from "@/src/server/dataDeserialization";
-import { Song } from "@/src/types";
+import { ITunesSong } from "@/src/types";
 import { getRecommendationsForSongTable } from "@/src/server/song-recommendation/recommendationUtils";
 
 export async function GET(req: Request, { id }: Record<string, string>) {
@@ -24,22 +24,21 @@ export async function GET(req: Request, { id }: Record<string, string>) {
 
         const deserializedPlaylist = await getPlaylistFromDatabase(id, supabase);
 
-        console.log("Deserialized Playlist for recommendations:", deserializedPlaylist);
         if (deserializedPlaylist instanceof Response) {
             return deserializedPlaylist;
         }
 
-        const songs: Song[] = [];
-        deserializedPlaylist.songs.forEach((element: Song) => {
+        const songs: ITunesSong[] = [];
+        deserializedPlaylist.songs.forEach((element: ITunesSong) => {
             songs.push({
                 song_id: element.song_id,
                 title: element.title,
                 artist: element.artist,
                 duration_sec: element.duration_sec,
+                cover_url: element.cover_url,
+                preview_url: element.preview_url
             });
         });
-
-        console.log("Songs : ", songs);
 
         const recommendations = await getRecommendationsForSongTable(songs, numberOfSeedSongs);
 

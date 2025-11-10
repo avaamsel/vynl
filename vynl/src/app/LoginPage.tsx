@@ -5,7 +5,8 @@ import { Link } from 'expo-router';
 import AppButton from "../components/AppButton";
 import InputField from '../components/InputField';
 import { supabase } from '@/src/utils/supabase';
-import { Playlist } from '../types';
+import { fetchSongs } from "@/src/services/music-providers/itunes-provider";
+import { ITunesPlaylist, ITunesSong } from '../types';
 
 interface FormData {
   email: string;
@@ -35,8 +36,6 @@ const LoginPage: React.FC = () => {
       return;
     }
     setErrors({});
-    // Later: call API from services/api.ts
-    console.log("Login Data:", formData);
 
 
     try {
@@ -44,14 +43,12 @@ const LoginPage: React.FC = () => {
         email,
         password: formData.password,
       });
-      console.log(data);
-      console.log(error);
       if (error) {
         setErrors((prev) => ({ ...prev, password: error.message || 'Login failed' }));
       }
       const session = data.session;
       if (session?.access_token) {
-        const playlist: Playlist = {
+        const playlist: ITunesPlaylist = {
           id: 0,
           name: 'Test Create Playlist',
           created_at: '',
@@ -61,13 +58,17 @@ const LoginPage: React.FC = () => {
               song_id: 1,
               title: "Unknown/Nth",
               artist: "Hozier",
-              duration_sec: 10
+              duration_sec: 10,
+              cover_url: "",
+              preview_url: ""
             },
             {
               song_id: 2,
               title: "The Ghost On The Shore",
               artist: "Lord Huron",
-              duration_sec: 56
+              duration_sec: 56,
+              cover_url: "",
+              preview_url: ""
             }
           ]
         }

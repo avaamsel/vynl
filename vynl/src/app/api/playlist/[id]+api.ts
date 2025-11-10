@@ -1,7 +1,7 @@
 import { createSupabaseClient } from "@/src/server/supabase";
 import { getPlaylistFromDatabase } from "@/src/server/dataDeserialization";
-import { isPlaylist } from "@/src/types";
 import { isPlaylistData, playlist_song } from "@/src/types/database";
+import { isITunesPlaylist } from "@/src/types";
 
 // GET "api/playlist"
 export async function GET(req: Request, { id }: Record<string, string>) {
@@ -43,7 +43,7 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             return supabase
         }
         
-        if (!isPlaylist(body)) {
+        if (!isITunesPlaylist(body)) {
             return new Response('Invalid Body, Expected Playlist Object', {
                 status: 400
             });
@@ -73,6 +73,7 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
 
         // Add or update new playlist songs
         const new_song_ids = new Set<number>();
+        //TODO : should be an ITunes Playlist no ?
         let new_playlist_songs: playlist_song[] = [];
         for (let i = 0; i < new_playlist.songs.length; i++) {
             new_song_ids.add(new_playlist.songs[i].song_id);

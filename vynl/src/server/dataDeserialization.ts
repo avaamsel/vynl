@@ -1,9 +1,9 @@
 import { Database } from "../types/database.types.ts";
 import { playlist_data } from "../types/database";
-import { Playlist, Song } from "../types";
+import { ITunesPlaylist, ITunesSong } from "../types";
 import { SupabaseClient } from "@supabase/supabase-js";
 
-export async function deserializePlaylist(playlist_data: playlist_data, supabase: SupabaseClient<Database>): Promise<Playlist | null> {
+export async function deserializePlaylist(playlist_data: playlist_data, supabase: SupabaseClient<Database>): Promise<ITunesPlaylist | null> {
 
     const { data, error } = await supabase
         .from("playlists_songs")
@@ -25,17 +25,19 @@ export async function deserializePlaylist(playlist_data: playlist_data, supabase
         return null;
     }
 
-    const songs: Song[] = (data ?? [])
+    const songs: ITunesSong[] = (data ?? [])
         .map((ps) => ps.songs)
-        .filter((song): song is Song => song !== null)
+        .filter((song): song is ITunesSong => song !== null)
         .map((s) => ({
             song_id: s.song_id,
             title: s.title,
             artist: s.artist,
-            duration_sec: s.duration_sec
+            duration_sec: s.duration_sec,
+            cover_url: s.cover_url,
+            preview_url: s.preview_url,
         }));
 
-    const playlist: Playlist = {
+    const playlist: ITunesPlaylist = {
         id: playlist_data.playlist_id,
         name: playlist_data.name,
         created_at: playlist_data.created_at,
@@ -46,7 +48,7 @@ export async function deserializePlaylist(playlist_data: playlist_data, supabase
     return playlist;
 }
 
-export async function getPlaylistFromDatabase(id: string, supabase: SupabaseClient<Database>): Promise<Playlist | Response> {
+export async function getPlaylistFromDatabase(id: string, supabase: SupabaseClient<Database>): Promise<ITunesPlaylist | Response> {
     const playlist_id = parseInt(id);
 
     if (playlist_id == undefined) {
@@ -83,4 +85,14 @@ export async function getPlaylistFromDatabase(id: string, supabase: SupabaseClie
         });
     }
     return deserializedPlaylist;
+}
+
+export async function getSongFromDatabase(id: number, supabase: SupabaseClient<Database>): Promise<ITunesSong | Response> {
+    const { data, error } = await supabase
+        .from('songs')
+        .select('*')
+        .eq('song_id', id)
+        .single();
+
+    //return 
 }

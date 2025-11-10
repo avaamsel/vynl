@@ -19,8 +19,9 @@ export interface playlist_song {
 export interface songs_data {
   artist: string
   duration_sec: number | null
-  song_id: number
+  song_id: string
   title: string
+  cover_url: string
 }
 
 export function isProfile(obj: any): obj is profile {

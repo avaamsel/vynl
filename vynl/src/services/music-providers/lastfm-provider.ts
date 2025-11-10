@@ -1,6 +1,7 @@
-import 'dotenv/config';
 const BASE_URL = "https://ws.audioscrobbler.com/2.0/";
-const LASTFM_API_KEY = process.env.LASTFM_API_KEY ?? '';
+
+const LASTFM_API_KEY = process.env.EXPO_PUBLIC_LASTFM_API_KEY || "";
+
 export class LastFmService {
     constructor() {
         if (!LASTFM_API_KEY) {
@@ -100,7 +101,7 @@ export class LastFmService {
     /**
      * Get detailed info about a specific track (can help validate iTunes results).
      */
-    async getTrackInfo(artist: string, track: string) {
+    async getTrackInfo(artist: string, track: string): Promise<any | null> {
         try {
             const params = new URLSearchParams(
             this.formatParams({
