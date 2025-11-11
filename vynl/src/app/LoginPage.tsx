@@ -5,6 +5,8 @@ import { Link } from 'expo-router';
 import AppButton from "../components/AppButton";
 import InputField from '../components/InputField';
 import { supabase } from '@/src/utils/supabase';
+import { fetchSongs } from "@/src/services/music-providers/itunes-provider";
+import { ITunesPlaylist, ITunesSong } from '../types';
 
 interface FormData {
   email: string;
@@ -34,8 +36,6 @@ const LoginPage: React.FC = () => {
       return;
     }
     setErrors({});
-    // Later: call API from services/api.ts
-    console.log("Login Data:", formData);
 
 
     try {
@@ -43,10 +43,50 @@ const LoginPage: React.FC = () => {
         email,
         password: formData.password,
       });
-      console.log(data);
-      console.log(error);
       if (error) {
         setErrors((prev) => ({ ...prev, password: error.message || 'Login failed' }));
+      }
+      const session = data.session;
+      if (session?.access_token) {
+        const playlist: ITunesPlaylist = {
+          id: 0,
+          name: 'Test Create Playlist',
+          created_at: '',
+          user_id: session.user.id,
+          songs: [
+            {
+              song_id: 1,
+              title: "Unknown/Nth",
+              artist: "Hozier",
+              duration_sec: 10,
+              cover_url: "",
+              preview_url: ""
+            },
+            {
+              song_id: 2,
+              title: "The Ghost On The Shore",
+              artist: "Lord Huron",
+              duration_sec: 56,
+              cover_url: "",
+              preview_url: ""
+            }
+          ]
+        }
+        const response = await fetch('/api/playlist', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + session.access_token
+          },
+          body: JSON.stringify(playlist)
+        });
+
+        console.log(response);
+        // if (response.ok) {
+        //   const playlist: Playlist = await response.json();
+
+        //   console.log('Recommended Playlist:', playlist);
+          
+        // }
       }
     } catch (err) {
       console.error('Login error', err);
