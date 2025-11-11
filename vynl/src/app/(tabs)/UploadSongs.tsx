@@ -26,19 +26,20 @@ const SONGS = [
 
 export default function UploadSongs() {
   const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<number[]>([]);
+  const [selected, setSelected] = useState<ITunesSong[]>([]);
   const router = useRouter();
 
   const { results: filtered, loading, error } = useSongSearch(query);
 
   const likedSongs = useMemo(() => {
+    console.log("Selected : " + selected);
     if (!selected.length) return [];
-    return filtered.filter(s => selected.includes(s.song_id));
+    return selected;
   }, [selected, filtered]);
 
-  const toggle = (id: number) => {
-    if (selected.includes(id)) setSelected(selected.filter(x => x !== id));
-    else if (selected.length < 2) setSelected([...selected, id]);
+  const toggle = (song: ITunesSong) => {
+    if (selected.includes(song)) setSelected(selected.filter(x => x !== song));
+    else if (selected.length < 2) setSelected([...selected, song]);
   };
 
   const ready = selected.length === 2;
@@ -47,7 +48,7 @@ export default function UploadSongs() {
   const goSwiping = () => {
     if (!ready) return;
     // pass as simple params (s1, s2). Access in swipe.tsx via useLocalSearchParams()
-    router.push({ pathname: '/swipe', params: { s1: selected[0], s2: selected[1] } });
+    router.push({ pathname: '/swipe', params: { s1: selected[0].song_id, s2: selected[1].song_id } });
   };
 
   return (
@@ -88,7 +89,7 @@ export default function UploadSongs() {
               {likedSongs.map(item => (
                 <TouchableOpacity
                   key={item.song_id}
-                  onPress={() => toggle(item.song_id)}
+                  onPress={() => toggle(item)}
                   activeOpacity={0.9}
                 >
                   <View style={s.likedChip}>
@@ -123,9 +124,9 @@ export default function UploadSongs() {
             keyboardShouldPersistTaps="handled"
           >
             {filtered.map(item => {
-              const on = selected.includes(item.song_id);
+              const on = selected.includes(item);
               return (
-                <TouchableOpacity key={item.song_id} onPress={() => toggle(item.song_id)} activeOpacity={0.85}>
+                <TouchableOpacity key={item.song_id} onPress={() => toggle(item)} activeOpacity={0.85}>
                   <View style={[s.row, on && s.rowOn]}>
                     <Image
                       source={{ uri: item.cover_url ?? BLUR_PLACEHOLDER }}
