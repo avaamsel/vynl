@@ -57,10 +57,21 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             return old_playlist;
         }
 
+        // Upsert all song objects into the song table
+        const { data: s_data, error: s_err } = await supabase
+            .from('songs')
+            .upsert(new_playlist.songs)
+
+        if (s_err) {
+            return new Response('Failed to insert into database', {
+                status: 400
+            });
+        }
+
         // Updating playlist object in database
         const { data: p_data, error: p_err } = await supabase
             .from('playlists')
-            .update({ name: new_playlist.name, uid: body.user_id})
+            .update({ name: new_playlist.name})
             .eq('playlist_id', old_playlist.id)
             .select()
             .single();
@@ -114,7 +125,7 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             });
         }
 
-        // TODO: Add to songs table any new songs
+        
 
         return new Response(JSON.stringify(old_playlist), {
             status: 200,
