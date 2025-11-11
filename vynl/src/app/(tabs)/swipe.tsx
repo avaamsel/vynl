@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Feather, FontAwesome } from '@expo/vector-icons';
-import { SafeAreaView, View, Text, StyleSheet, Dimensions, Animated, PanResponder, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, Dimensions, Animated, PanResponder, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
@@ -8,8 +8,12 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { savePlaylist, updatePlaylist, getPlaylist, type Song as PlaylistSong } from '@/src/utils/playlistStorage';
 import AppButton from '@/src/components/AppButton';
-
-type Song = { id: string; title: string; artist: string; artwork: string };
+import { 
+  getInitialRecommendations, 
+  getMoreRecommendations, 
+  getSongById,
+  type Song 
+} from '@/src/utils/recommendationService';
 
 const { width, height } = Dimensions.get('window');
 const DISC_SIZE = Math.min(width * 0.78, 320);
@@ -17,19 +21,10 @@ const LABEL_SIZE = DISC_SIZE * 0.38;   // center label with artwork
 const HOLE_SIZE  = DISC_SIZE * 0.04;
 const SWIPE_THRESHOLD = width * 0.28;
 const ROTATION = 12;
-
-const SONGS: Song[] = [
-  { id: '1',  title: 'SUPER SHY', artist: 'NEW JEANS', artwork: 'https://i.scdn.co/image/ab67616d00001e023d98a0ae7c78a3a9babaf8af' },
-  { id: '2',  title: 'ESPRESSO', artist: 'SABRINA CARPENTER', artwork: 'https://upload.wikimedia.org/wikipedia/en/7/71/Espresso_-_Sabrina_Carpenter.png' },
-  { id: '3',  title: 'SNOOZE', artist: 'SZA', artwork: 'https://m.media-amazon.com/images/I/91BazzuLE+L._UF350,350_QL50_.jpg' },
-  { id: '4',  title: 'THE ADULTS ARE TALKING', artist: 'THE STROKES', artwork: 'https://pics.filmaffinity.com/the_strokes_the_adults_are_talking-770338151-mmed.jpg' },
-  { id: '5',  title: 'FIRST PERSON SHOOTER', artist: 'DRAKE', artwork: 'https://m.media-amazon.com/images/I/41bNY36ilJL._UXNaN_FMjpg_QL85_.jpg' },
-  { id: '6',  title: 'RUSH', artist: 'TROYE SIVAN', artwork: 'https://upload.wikimedia.org/wikipedia/en/b/b4/Troye_Sivan_-_Rush.png' },
-  { id: '7',  title: 'TQG', artist: 'KAROL G & SHAKIRA', artwork: 'https://i.scdn.co/image/ab67616d0000b27382de1ca074ae63cb18fce335' },
-  { id: '8',  title: 'CALM DOWN', artist: 'REMA', artwork: 'https://upload.wikimedia.org/wikipedia/en/b/b1/Rema_-_Calm_Down.png' },
-  { id: '9',  title: 'BAGS', artist: 'CLAIRO', artwork: 'https://i.scdn.co/image/ab67616d0000b27333ccb60f9b2785ef691b2fbc' },
-  { id: '10', title: 'HOT GIRL', artist: 'CHARLI XCX', artwork: 'https://i1.sndcdn.com/artworks-19CTU1x0lsAE-0-t500x500.jpg' },
-];
+const INITIAL_BATCH_SIZE = 10;
+const LOAD_MORE_THRESHOLD = 7; // Load more when user reaches this index
+const LOAD_MORE_BATCH_SIZE = 10;
+const MAX_SWIPES = 10; // Stop swiping after this many swipes and prompt for playlist
 
 const BLUR = 'L5H2EC=PM+yV0g-mq.wG9c010J}I';
 
@@ -106,6 +101,18 @@ type SwipeHistory = {
   index: number;
 };
 
+/**
+ * Shuffle array using Fisher-Yates algorithm
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export default function Swiping() {
   const params = useLocalSearchParams();
   const router = useRouter();
@@ -118,12 +125,25 @@ export default function Swiping() {
   const [playlistName, setPlaylistName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [playlistSaved, setPlaylistSaved] = useState(false);
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [shownSongIds, setShownSongIds] = useState<string[]>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [shouldContinueAfterLoad, setShouldContinueAfterLoad] = useState(false);
   
   const playlistId = params.playlistId as string | undefined;
   const isAddingMode = params.mode === 'add' && !!playlistId;
   
   const position = useRef(new Animated.ValueXY()).current;
   const cardOpacity = useRef(new Animated.Value(1)).current;
+  const previousSongsLengthRef = useRef(0);
+  
+  // Get seed songs from params
+  const seedSongIds = useMemo(() => {
+    if (params.s1 && params.s2) {
+      return [params.s1 as string, params.s2 as string];
+    }
+    return [];
+  }, [params.s1, params.s2]);
   
   // Load playlist name if in add mode
   useEffect(() => {
@@ -149,12 +169,154 @@ export default function Swiping() {
     loadPlaylistName();
   }, [isAddingMode, playlistId, params.playlistName]);
 
+  // Load initial songs based on seed songs or playlist songs
+  const loadInitialSongs = useCallback(async () => {
+    let songsToUseForRecommendations: string[] = [];
+    
+    // If we have seed songs, use them
+    if (seedSongIds.length > 0) {
+      songsToUseForRecommendations = seedSongIds;
+    } else if (isAddingMode && playlistId) {
+      // In add mode, try to get songs from the existing playlist to use as seeds
+      try {
+        console.log('Loading playlist for seed songs, playlistId:', playlistId);
+        const playlist = await getPlaylist(playlistId);
+        console.log('Loaded playlist:', playlist ? `has ${playlist.songs.length} songs` : 'null');
+        if (playlist && playlist.songs.length > 0) {
+          // Use up to 2 songs from the playlist as seed songs
+          // Prefer songs that haven't been shown yet
+          const playlistSongIds = playlist.songs.map(s => s.id);
+          songsToUseForRecommendations = playlistSongIds.slice(0, 2);
+          console.log('Using playlist songs as seeds:', songsToUseForRecommendations);
+        } else {
+          console.warn('Playlist is empty or not found, will use fallback');
+        }
+      } catch (error) {
+        console.error('Error loading playlist for seed songs:', error);
+      }
+    }
+    
+    // If we still don't have seed songs, we can't generate recommendations
+    if (songsToUseForRecommendations.length === 0) {
+      if (isAddingMode) {
+        // In add mode, if playlist is empty, try to use some default songs from the database
+        // Or we could redirect to song selection, but for now let's use a fallback
+        console.warn('No seed songs available in add mode - playlist may be empty, using fallback');
+        // Use first two songs from the database as fallback seeds
+        const fallbackSongs = ['1', '2']; // Use first two songs as fallback
+        songsToUseForRecommendations = fallbackSongs;
+      } else {
+        // In create mode, seed songs are required
+        setSongs([]);
+        return;
+      }
+    }
+    
+    // Final check - if we still don't have seed songs, we can't proceed
+    if (songsToUseForRecommendations.length === 0) {
+      console.error('Unable to get seed songs for recommendations');
+      setSongs([]);
+      return;
+    }
+    
+    try {
+      // Get initial recommendations and randomize order
+      const recommendations = getInitialRecommendations(songsToUseForRecommendations, INITIAL_BATCH_SIZE);
+      console.log('Got', recommendations.length, 'recommendations for seed songs:', songsToUseForRecommendations);
+      const shuffled = shuffleArray(recommendations);
+      console.log('Setting', shuffled.length, 'songs to state');
+      setSongs(shuffled);
+      // Track seed songs as shown (they're not in recommendations but user selected them)
+      setShownSongIds(songsToUseForRecommendations);
+    } catch (error) {
+      console.error('Error loading initial songs:', error);
+      setSongs([]);
+    }
+  }, [seedSongIds, isAddingMode, playlistId]);
+
+  // Get seed songs for recommendations (either from params or playlist)
+  const getSeedSongsForRecommendations = useCallback(async (): Promise<string[]> => {
+    // If we have seed songs from params, use them
+    if (seedSongIds.length > 0) {
+      return seedSongIds;
+    }
+    
+    // In add mode, try to get songs from the existing playlist
+    if (isAddingMode && playlistId) {
+      try {
+        const playlist = await getPlaylist(playlistId);
+        if (playlist && playlist.songs.length > 0) {
+          // Use up to 2 songs from the playlist as seed songs
+          return playlist.songs.map(s => s.id).slice(0, 2);
+        } else {
+          // Playlist is empty, use fallback songs
+          console.warn('Playlist is empty, using fallback seed songs');
+          return ['1', '2']; // Use first two songs as fallback
+        }
+      } catch (error) {
+        console.error('Error loading playlist for seed songs:', error);
+        // On error, use fallback songs in add mode
+        if (isAddingMode) {
+          return ['1', '2'];
+        }
+      }
+    }
+    
+    return [];
+  }, [seedSongIds, isAddingMode, playlistId]);
+
+  // Load more songs when user is getting close to the end
+  const loadMoreSongs = useCallback(async (): Promise<void> => {
+    if (isLoadingMore) return;
+    
+    const currentSeedSongs = await getSeedSongsForRecommendations();
+    if (currentSeedSongs.length === 0) {
+      console.warn('No seed songs available for loading more songs');
+      return;
+    }
+    
+    setIsLoadingMore(true);
+    try {
+      // Get all songs that have been shown (including seed songs, liked, passed, and all shown)
+      const allShownIds = [
+        ...currentSeedSongs,
+        ...shownSongIds,
+        ...liked,
+        ...passed,
+      ];
+      
+      // Remove duplicates
+      const uniqueShownIds = Array.from(new Set(allShownIds));
+      
+      // Get more recommendations excluding all shown songs
+      const moreRecommendations = getMoreRecommendations(
+        currentSeedSongs,
+        liked,
+        passed,
+        uniqueShownIds,
+        LOAD_MORE_BATCH_SIZE
+      );
+      
+      if (moreRecommendations.length > 0) {
+        // Randomize the new batch
+        const shuffled = shuffleArray(moreRecommendations);
+        // Append to existing songs
+        setSongs(prev => [...prev, ...shuffled]);
+      }
+    } catch (error) {
+      console.error('Error loading more songs:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [shownSongIds, liked, passed, isLoadingMore, getSeedSongsForRecommendations]);
+
   // Reset state function
-  const resetState = useCallback((preservePlaylistName = false) => {
+  const resetState = useCallback(async (preservePlaylistName = false) => {
     setIndex(0);
     setLiked([]);
     setPassed([]);
     setSwipeHistory([]);
+    setShownSongIds([]);
     if (!preservePlaylistName) {
       setPlaylistName('');
     }
@@ -163,7 +325,9 @@ export default function Swiping() {
     setPlaying(true);
     position.setValue({ x: 0, y: 0 });
     cardOpacity.setValue(1);
-  }, [position, cardOpacity]);
+    // Reload initial songs
+    await loadInitialSongs();
+  }, [position, cardOpacity, loadInitialSongs]);
 
   // Clear session from storage
   const clearSession = useCallback(async () => {
@@ -178,14 +342,28 @@ export default function Swiping() {
   useEffect(() => {
     const loadSession = async () => {
       try {
-        // If no seed songs provided, reset everything
-        if (!params.s1 || !params.s2) {
+        // In add mode, we don't require seed songs from params - we'll use playlist songs
+        // In create mode, seed songs are required
+        if (!isAddingMode && (!params.s1 || !params.s2)) {
           await clearSession();
-          resetState();
+          await resetState();
           setIsLoading(false);
           return;
         }
 
+        // For add mode, always start fresh (don't restore session)
+        // For create mode, check for saved session
+        if (isAddingMode) {
+          // In add mode, load songs based on playlist
+          console.log('Loading songs in add mode for playlist:', playlistId);
+          await loadInitialSongs();
+          // Note: songs state will update asynchronously, so we set loading to false
+          // The component will re-render when songs are set
+          setIsLoading(false);
+          return;
+        }
+
+        // Create mode: check for saved session
         const savedSession = await AsyncStorage.getItem(SWIPE_SESSION_KEY);
         if (savedSession) {
           const session = JSON.parse(savedSession);
@@ -195,35 +373,96 @@ export default function Swiping() {
             setLiked(session.liked || []);
             setPassed(session.passed || []);
             setSwipeHistory(session.swipeHistory || []);
+            setShownSongIds(session.shownSongIds || seedSongIds);
+            // Restore songs if available, otherwise load fresh
+            if (session.songs && Array.isArray(session.songs) && session.songs.length > 0) {
+              setSongs(session.songs);
+            } else {
+              await loadInitialSongs();
+            }
           } else {
             // Different session, clear old data
             await clearSession();
-            resetState();
+            await resetState();
+            await loadInitialSongs();
           }
         } else {
           // No saved session, start fresh
-          resetState();
+          await loadInitialSongs();
         }
       } catch (error) {
         console.error('Error loading session:', error);
-        resetState();
+        await loadInitialSongs();
       } finally {
         setIsLoading(false);
       }
     };
     
     loadSession();
-  }, [params.s1, params.s2, resetState, clearSession]);
+  }, [params.s1, params.s2, resetState, clearSession, seedSongIds, loadInitialSongs, isAddingMode]);
+
+  // Load more songs when user is close to the end
+  useEffect(() => {
+    if (songs.length > 0 && index >= LOAD_MORE_THRESHOLD && index < songs.length - 2) {
+      // Check if we need to load more
+      const remaining = songs.length - index;
+      if (remaining <= 3 && !isLoadingMore) {
+        loadMoreSongs().catch(err => console.error('Error auto-loading more songs:', err));
+      }
+    }
+    // In add mode, automatically load more songs when we run out (unless we're already loading)
+    // Check if we've run out of songs (index >= songs.length) but not due to max swipes
+    const hasRunOutOfSongs = songs.length > 0 && index >= songs.length;
+    const totalSwipes = swipeHistory.length;
+    const isMaxSwipesReached = !isAddingMode && totalSwipes >= MAX_SWIPES;
+    if (isAddingMode && hasRunOutOfSongs && !isLoadingMore && !isMaxSwipesReached) {
+      loadMoreSongs().catch(err => console.error('Error auto-loading more songs in add mode:', err));
+    }
+  }, [index, songs.length, loadMoreSongs, isLoadingMore, isAddingMode, swipeHistory.length]);
+
+  // Track shown songs when index changes
+  useEffect(() => {
+    if (songs.length > 0 && index < songs.length) {
+      const currentSong = songs[index];
+      if (currentSong && !shownSongIds.includes(currentSong.id)) {
+        setShownSongIds(prev => [...prev, currentSong.id]);
+      }
+    }
+  }, [index, songs, shownSongIds]);
+
+  // Handle continuing after loading more songs
+  useEffect(() => {
+    if (shouldContinueAfterLoad && !isLoadingMore && songs.length > previousSongsLengthRef.current) {
+      // Songs have been loaded, continue from where we were
+      const continueIndex = previousSongsLengthRef.current;
+      setIndex(continueIndex);
+      setPlaylistSaved(false);
+      setPlaying(true);
+      position.setValue({ x: 0, y: 0 });
+      cardOpacity.setValue(1);
+      setShouldContinueAfterLoad(false);
+      Haptics.selectionAsync();
+    }
+    // Update ref when songs length changes
+    if (songs.length !== previousSongsLengthRef.current) {
+      previousSongsLengthRef.current = songs.length;
+    }
+  }, [songs.length, shouldContinueAfterLoad, isLoadingMore, position, cardOpacity]);
 
   // Clear session when component comes into focus without params (user navigated back)
   useFocusEffect(
     useCallback(() => {
+      // In add mode, we don't require seed songs, so don't clear
+      if (isAddingMode) {
+        return;
+      }
+      // In create mode, require seed songs
       if (!params.s1 || !params.s2) {
         // No seed songs, clear session and reset state
         clearSession();
-        resetState();
+        resetState().catch(err => console.error('Error resetting state:', err));
       }
-    }, [params.s1, params.s2, clearSession, resetState])
+    }, [params.s1, params.s2, clearSession, resetState, isAddingMode])
   );
 
   // Save session state whenever it changes (only if we have seed songs)
@@ -238,6 +477,8 @@ export default function Swiping() {
             liked,
             passed,
             swipeHistory,
+            shownSongIds,
+            songs, // Save current songs array
           };
           await AsyncStorage.setItem(SWIPE_SESSION_KEY, JSON.stringify(session));
         } catch (error) {
@@ -246,11 +487,15 @@ export default function Swiping() {
       };
       saveSession();
     }
-  }, [index, liked, passed, swipeHistory, isLoading, params.s1, params.s2]);
+  }, [index, liked, passed, swipeHistory, shownSongIds, songs, isLoading, params.s1, params.s2]);
 
-  const top = SONGS[index];
-  const next = SONGS[index + 1];
-  const finished = index >= SONGS.length;
+  const top = songs[index];
+  const next = songs[index + 1];
+  // Finished when: we've made ~10 swipes (only in create mode, not add mode) OR we've run out of songs
+  const totalSwipes = swipeHistory.length;
+  // In add mode, don't stop after MAX_SWIPES - allow continuous swiping
+  // In create mode, stop after MAX_SWIPES to prompt for playlist creation
+  const finished = songs.length === 0 || index >= songs.length || (!isAddingMode && totalSwipes >= MAX_SWIPES);
 
   useEffect(() => {
     if (top) Image.prefetch(top.artwork).catch(() => {});
@@ -273,43 +518,77 @@ export default function Swiping() {
   const likeOpacity = position.x.interpolate({ inputRange: [0, SWIPE_THRESHOLD], outputRange: [0, 1], extrapolate: 'clamp' });
   const nopeOpacity = position.x.interpolate({ inputRange: [-SWIPE_THRESHOLD, 0], outputRange: [1, 0], extrapolate: 'clamp' });
 
-  // Use ref to store current index to avoid closure issues
+  // Use ref to store current index and swipe history to avoid closure issues
   const indexRef = useRef(index);
+  const swipeHistoryRef = useRef(swipeHistory);
   useEffect(() => {
     indexRef.current = index;
-  }, [index]);
+    swipeHistoryRef.current = swipeHistory;
+  }, [index, swipeHistory]);
 
   const swipe = useCallback((dir: 'left' | 'right', vy: number) => {
-    // Get current index from ref to ensure we have the latest value
+    // Get current values from refs to ensure we have the latest values
     const currentIndex = indexRef.current;
-    const currentSong = SONGS[currentIndex];
+    const currentSwipes = swipeHistoryRef.current.length;
+    const currentSong = songs[currentIndex];
     
     if (!currentSong) return;
     
-    console.log('Swiping', dir, 'song:', currentSong.id, currentSong.title, 'at index:', currentIndex);
+    // Check if we've reached the max swipe limit (only in create mode, not add mode)
+    // In add mode, allow unlimited swipes
+    if (!isAddingMode && currentSwipes >= MAX_SWIPES) {
+      // Don't allow more swipes, user should create playlist
+      console.log('Max swipes reached, cannot swipe more');
+      return;
+    }
+    
+    console.log('Swiping', dir, 'song:', currentSong.id, currentSong.title, 'at index:', currentIndex, 'swipes:', currentSwipes + 1);
     
     const toX = dir === 'right' ? width * 1.3 : -width * 1.3;
     Haptics.selectionAsync();
     Animated.timing(position, { toValue: { x: toX, y: vy * 16 }, duration: 220, useNativeDriver: true }).start(() => {
-      // Add to history for undo functionality
-      setSwipeHistory(prev => [...prev, { songId: currentSong.id, direction: dir, index: currentIndex }]);
-      
-      if (dir === 'right') {
-        setLiked(arr => {
-          const newArr = [...arr, currentSong.id];
-          console.log('Liked songs after swipe:', newArr);
-          return newArr;
+      // Add to history for undo functionality using functional update
+      setSwipeHistory(prev => {
+        const newHistory = [...prev, { songId: currentSong.id, direction: dir, index: currentIndex }];
+        // Check if we've reached max swipes after this swipe
+        const willReachMax = newHistory.length >= MAX_SWIPES;
+        
+        // Track as shown (use functional update to avoid closure issues)
+        setShownSongIds(prevShown => {
+          if (!prevShown.includes(currentSong.id)) {
+            return [...prevShown, currentSong.id];
+          }
+          return prevShown;
         });
-      } else {
-        setPassed(arr => [...arr, currentSong.id]);
-      }
-      
-      // reset transform then advance next frame to avoid one-frame ghost
-      position.setValue({ x: 0, y: 0 });
-      requestAnimationFrame(() => setIndex(i => i + 1));
-      setPlaying(true);
+        
+        if (dir === 'right') {
+          setLiked(arr => {
+            const newArr = [...arr, currentSong.id];
+            console.log('Liked songs after swipe:', newArr);
+            return newArr;
+          });
+        } else {
+          setPassed(arr => [...arr, currentSong.id]);
+        }
+        
+        // reset transform then advance next frame to avoid one-frame ghost
+        position.setValue({ x: 0, y: 0 });
+        requestAnimationFrame(() => {
+          // In add mode, always advance (no max swipe limit)
+          // In create mode, stop advancing if we've reached max swipes
+          if (isAddingMode || !willReachMax) {
+            setIndex(i => i + 1);
+          } else {
+            // We've reached max swipes in create mode, advance index but finished state will trigger
+            setIndex(i => Math.min(i + 1, songs.length));
+          }
+          setPlaying(true);
+        });
+        
+        return newHistory;
+      });
     });
-  }, []);
+  }, [songs, position, isAddingMode]);
 
   const pan = useMemo(
     () =>
@@ -369,10 +648,10 @@ export default function Swiping() {
     
     setIsSaving(true);
     try {
-      // Convert liked song IDs to Song objects
+      // Convert liked song IDs to Song objects using recommendation service
       const likedSongs: PlaylistSong[] = liked
         .map(songId => {
-          const song = SONGS.find(s => s.id === songId);
+          const song = getSongById(songId);
           return song ? {
             id: song.id,
             title: song.title,
@@ -419,13 +698,20 @@ export default function Swiping() {
     }
   };
 
-  // Don't render until session is loaded
-  if (isLoading) {
+  // Don't render until session is loaded and songs are ready
+  // In add mode, we don't require seedSongIds, so check differently
+  const shouldShowLoading = isLoading || 
+    (!isAddingMode && seedSongIds.length > 0 && songs.length === 0 && !finished) ||
+    (isAddingMode && songs.length === 0 && !finished && !playlistSaved);
+  
+  if (shouldShowLoading) {
+    console.log('Showing loading screen. isLoading:', isLoading, 'isAddingMode:', isAddingMode, 'songs.length:', songs.length, 'finished:', finished, 'playlistSaved:', playlistSaved);
     return (
       <LinearGradient colors={['#F8F9FD', '#FFFFFF']} style={{ flex: 1 }}>
         <SafeAreaView style={styles.wrap}>
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ color: '#001133' }}>Loading...</Text>
+            <ActivityIndicator size="large" color="#F28695" />
+            <Text style={{ color: '#001133', marginTop: 16 }}>Loading songs...</Text>
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -448,7 +734,10 @@ export default function Swiping() {
 
 
         <Text style={styles.counter}>
-          {Math.min(index + 1, SONGS.length)}/{SONGS.length}
+          {isAddingMode 
+            ? `${swipeHistory.length} swipes` 
+            : `${swipeHistory.length}/${MAX_SWIPES} swipes`
+          }
         </Text>
 
         {/* Home Button */}
@@ -460,8 +749,8 @@ export default function Swiping() {
 
         {/* centered deck */}
         <View style={styles.deck}>
-          {/* next card behind for depth */}
-          {next && (
+          {/* next card behind for depth - hide when playlist is saved or confirmation screen is showing */}
+          {next && !playlistSaved && !finished && (
             <View key={next.id} style={[styles.card, styles.cardUnder]}>
               <View style={styles.media}>
                 <VinylDisc spinning={false} artwork={next.artwork} />
@@ -471,7 +760,7 @@ export default function Swiping() {
             </View>
           )}
 
-          {!finished && top && (
+          {!finished && top && !playlistSaved && (
             <Animated.View
               key={top.id}
               style={[
@@ -501,22 +790,30 @@ export default function Swiping() {
 
               {/* bottom buttons */}
               <View style={styles.controls}>
-                <TouchableOpacity style={[styles.pill, styles.pillGhost]} onPress={() => programmatic('left')}>
-                  <Text style={[styles.pillIcon, { color: '#F28695' }]}>✕</Text>
+                <TouchableOpacity 
+                  style={[styles.pill, styles.pillGhost, finished && styles.pillDisabled]} 
+                  onPress={() => !finished && programmatic('left')}
+                  disabled={finished}
+                >
+                  <Text style={[styles.pillIcon, { color: finished ? '#CCCCCC' : '#F28695' }]}>✕</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={[styles.pill, styles.pillPrimary]} onPress={() => setPlaying(p => !p)} activeOpacity={0.9}>
                   {playing ? <PauseIcon /> : <Text style={[styles.pillIcon, { color: 'white' }]}>▶︎</Text>}
                 </TouchableOpacity>
 
-                <TouchableOpacity style={[styles.pill, styles.pillGhost]} onPress={() => programmatic('right')}>
-                  <Text style={[styles.pillIcon, { color: '#F28695' }]}>♥</Text>
+                <TouchableOpacity 
+                  style={[styles.pill, styles.pillGhost, finished && styles.pillDisabled]} 
+                  onPress={() => !finished && programmatic('right')}
+                  disabled={finished}
+                >
+                  <Text style={[styles.pillIcon, { color: finished ? '#CCCCCC' : '#F28695' }]}>♥</Text>
                 </TouchableOpacity>
               </View>
             </Animated.View>
           )}
 
-          {finished && !playlistSaved && (
+          {finished && !playlistSaved && !isLoadingMore && (isAddingMode ? liked.length > 0 : true) && (
             <View style={styles.confirmationContainer}>
               <ScrollView 
                 style={styles.confirmationScrollView}
@@ -532,6 +829,8 @@ export default function Swiping() {
                     ? playlistName 
                       ? `You liked ${liked.length} song${liked.length !== 1 ? 's' : ''} to add to "${playlistName}"`
                       : `You liked ${liked.length} song${liked.length !== 1 ? 's' : ''} to add to this playlist`
+                    : totalSwipes >= MAX_SWIPES
+                      ? `You've swiped through ${MAX_SWIPES} songs and liked ${liked.length} song${liked.length !== 1 ? 's' : ''}. Ready to create your playlist?`
                     : `You liked ${liked.length} song${liked.length !== 1 ? 's' : ''}`
                   }
                 </Text>
@@ -559,7 +858,7 @@ export default function Swiping() {
                     showsVerticalScrollIndicator={false}
                   >
                     {liked.map((songId, idx) => {
-                      const song = SONGS.find(s => s.id === songId);
+                      const song = getSongById(songId);
                       return song ? (
                         <View key={`${songId}-${idx}`} style={styles.songPreviewItem}>
                           <Image
@@ -586,6 +885,36 @@ export default function Swiping() {
                   backgroundColor="#F28695"
                   textColor="#FFFFFF"
                 />
+                {!isAddingMode && (
+                  <AppButton
+                    title={isLoadingMore ? "Loading..." : "Continue Swiping"}
+                    onPress={async () => {
+                      // Reset swipe count to allow more swipes
+                      setSwipeHistory([]);
+                      // Mark that we want to continue after loading
+                      previousSongsLengthRef.current = songs.length;
+                      setShouldContinueAfterLoad(true);
+                      await loadMoreSongs();
+                    }}
+                    disabled={isLoadingMore}
+                    backgroundColor="#FFFFFF"
+                    textColor="#F28695"
+                  />
+                )}
+                {isAddingMode && (
+                  <AppButton
+                    title={isLoadingMore ? "Loading..." : "Continue Adding Songs"}
+                    onPress={async () => {
+                      // In add mode, just continue swiping - load more songs if needed
+                      previousSongsLengthRef.current = songs.length;
+                      setShouldContinueAfterLoad(true);
+                      await loadMoreSongs();
+                    }}
+                    disabled={isLoadingMore}
+                    backgroundColor="#FFFFFF"
+                    textColor="#F28695"
+                  />
+                )}
               </View>
             </View>
           )}
@@ -626,7 +955,22 @@ export default function Swiping() {
                       width="80%"
                     />
                     <AppButton
-                      title="Continue Swiping"
+                      title={isLoadingMore ? "Loading..." : "Continue Swiping"}
+                      onPress={async () => {
+                        // Reset swipe count to allow more swipes
+                        setSwipeHistory([]);
+                        // Mark that we want to continue after loading
+                        previousSongsLengthRef.current = songs.length;
+                        setShouldContinueAfterLoad(true);
+                        await loadMoreSongs();
+                      }}
+                      disabled={isLoadingMore}
+                      backgroundColor="#FFFFFF"
+                      textColor="#F28695"
+                      width="80%"
+                    />
+                    <AppButton
+                      title="Start New Session"
                       onPress={async () => {
                         await clearSession();
                         resetState();
@@ -711,9 +1055,21 @@ const styles = StyleSheet.create({
   },
   pillGhost: { backgroundColor: 'white' },
   pillPrimary: { backgroundColor: '#F28695' },
+  pillDisabled: { opacity: 0.5 },
   pillIcon: { fontSize: 24, fontWeight: '900' },
 
-  done: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
+  done: { 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    paddingHorizontal: 20,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+    backgroundColor: 'rgba(248, 249, 253, 0.98)', // Match the gradient background
+  },
   doneTitle: { fontSize: 22, fontWeight: '800', color: '#001133', marginBottom: 8 },
   doneSub: { fontSize: 16, color: '#6F7A88', marginBottom: 24 },
   doneButtons: { width: '100%', alignItems: 'center', gap: 12 },
@@ -724,6 +1080,13 @@ const styles = StyleSheet.create({
     paddingTop: 40, 
     paddingBottom: 0,
     alignItems: 'center',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
+    backgroundColor: 'rgba(248, 249, 253, 0.98)', // Match the gradient background
   },
   confirmationScrollView: {
     flex: 1,
