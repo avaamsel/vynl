@@ -44,8 +44,13 @@ export async function POST(req: Request) {
             return supabase
         }
 
-        if (!isITunesPlaylist(body)) {
-            return new Response('Invalid Body, expected playlist object', {
+        if (
+            !body ||
+            typeof body.name !== "string" ||
+            typeof body.user_id !== "string" ||
+            !Array.isArray(body.songs)
+        ) {
+            return new Response("Invalid body: expected { user_id, name, songs[] }", {
                 status: 400
             });
         }
@@ -64,6 +69,14 @@ export async function POST(req: Request) {
             return new Response('Failed to insert into database', {
                 status: 400
             });
+        }
+
+        for (const song of body.songs) {
+            if (!isSongData(song)) {
+                return new Response("Invalid song structure in playlist.songs", {
+                    status: 400
+                });
+            }
         }
 
         for (let i = 0; i < body.songs.length; i++) {

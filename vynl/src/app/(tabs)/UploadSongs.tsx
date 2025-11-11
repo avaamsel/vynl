@@ -8,7 +8,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router'; // ← navigation
 import { Ionicons } from '@expo/vector-icons';
 import { useSongSearch } from '@/src/hooks/use-song-search';
-import { ITunesSong } from '@/src/types';
+import { ITunesSong, ITunesPlaylist } from '@/src/types';
 
 
 const SONGS = [
@@ -31,6 +31,7 @@ export default function UploadSongs() {
 
   const { results: filtered, loading, error } = useSongSearch(query);
 
+  //TODO : dif between liked and selected songs ? 
   const likedSongs = useMemo(() => {
     console.log("Selected : " + selected);
     if (!selected.length) return [];
@@ -48,7 +49,7 @@ export default function UploadSongs() {
   const goSwiping = () => {
     if (!ready) return;
     // pass as simple params (s1, s2). Access in swipe.tsx via useLocalSearchParams()
-    router.push({ pathname: '/swipe', params: { s1: selected[0].song_id, s2: selected[1].song_id } });
+    router.push({ pathname: '/swipe', params: {songs: JSON.stringify(selected)}});
   };
 
   return (

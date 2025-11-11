@@ -12,10 +12,12 @@ export async function PUT(req: Request) {
         }
 
         if (!isITunesSong(body)) {
+            console.log("is not itunes song");
             return new Response('Invalid Body, expected itunes song object', {
                 status: 400
             });
         }
+        console.log("is itunes song");
 
         const { data: s_data, error: s_err } = await supabase
             .from('songs')
@@ -30,10 +32,13 @@ export async function PUT(req: Request) {
             .single();
         
         if (s_err || !isSongData(s_data)) {
+            console.log("failed here");
             return new Response('Failed to insert song into database', {
                 status: 400
             });
         }
+        console.log("no fail");
+        return;
     } catch (error) {
         console.error(error);
         return new Response('Unknown Server Error', {

@@ -8,6 +8,9 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { savePlaylist, updatePlaylist, getPlaylist, type Song as PlaylistSong } from '@/src/utils/playlistStorage';
 import AppButton from '@/src/components/AppButton';
+import { usePutSong } from '@/src/hooks/use-put-song';
+import { ITunesPlaylist, ITunesSong } from '@/src/types';
+
 
 type Song = { id: string; title: string; artist: string; artwork: string };
 
@@ -107,7 +110,8 @@ type SwipeHistory = {
 };
 
 export default function Swiping() {
-  const params = useLocalSearchParams();
+  const { songs } = useLocalSearchParams();
+  const selectedSongs: ITunesSong[] = JSON.parse(songs as string);
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [liked, setLiked] = useState<string[]>([]);
@@ -119,6 +123,40 @@ export default function Swiping() {
   const [isSaving, setIsSaving] = useState(false);
   const [playlistSaved, setPlaylistSaved] = useState(false);
   
+  //First we add the selected songs to the database
+  const { loading, error, putSong } = usePutSong();
+
+  const saveSongs = async (songs: ITunesSong[]) => {
+    for (let i = 0; i < songs.length; i++) {
+      const success = await putSong(songs[i]);
+      if (!success) {
+        console.error('Failed to save song:', songs[i].title, error);
+        // optionally break or continue depending on your needs
+      } else {
+        console.log('Saved song:', songs[i].title);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const saveAllSongs = async () => {
+      setIsSaving(true);
+      try {
+        await saveSongs(selectedSongs);
+        console.log("savedSongs in database");
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    saveAllSongs();
+  }, []);
+  //TODO : create a playlist
+
+  const params = { playlistId: "2", mode: "add", playlistName: "test", s1: null, s2: null};
+
   const playlistId = params.playlistId as string | undefined;
   const isAddingMode = params.mode === 'add' && !!playlistId;
   
