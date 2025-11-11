@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import AppButton from '@/src/components/AppButton';
 import {
   SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView
@@ -7,6 +7,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router'; // ← navigation
 import { Ionicons } from '@expo/vector-icons';
+import { useSongSearch } from '@/src/hooks/use-song-search';
+import { ITunesSong } from '@/src/types';
+
 
 const SONGS = [
   { id: '1',  title: 'Super Shy', artist: 'NewJeans', artwork: 'https://i.scdn.co/image/ab67616d00001e023d98a0ae7c78a3a9babaf8af' },
@@ -23,33 +26,17 @@ const SONGS = [
 
 export default function UploadSongs() {
   const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<number[]>([]);
   const router = useRouter();
 
-  useEffect(() => {
-    SONGS.forEach(s => {
-      Image.prefetch(s.artwork).catch(e => {
-        console.warn('Prefetch failed for', s.title, e?.message ?? e);
-      });
-    });
-  }, []);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return SONGS.filter(
-      s =>
-        s.title.toLowerCase().includes(q) ||
-        s.artist.toLowerCase().includes(q)
-    );
-  }, [query]);
+  const { results: filtered, loading, error } = useSongSearch(query);
 
   const likedSongs = useMemo(() => {
     if (!selected.length) return [];
-    return SONGS.filter(s => selected.includes(s.id));
-  }, [selected]);
+    return filtered.filter(s => selected.includes(s.song_id));
+  }, [selected, filtered]);
 
-  const toggle = (id: string) => {
+  const toggle = (id: number) => {
     if (selected.includes(id)) setSelected(selected.filter(x => x !== id));
     else if (selected.length < 2) setSelected([...selected, id]);
   };
@@ -90,6 +77,9 @@ export default function UploadSongs() {
               <Text style={s.likedTitle}>Liked</Text>
               <Text style={s.likedCount}>{selected.length}/2</Text>
             </View>
+            {loading && <Text style={{ textAlign: 'center', marginTop: 20 }}>Loading...</Text>}
+            {error && <Text style={{ textAlign: 'center', marginTop: 20, color: 'red' }}>{error}</Text>}
+
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -97,13 +87,13 @@ export default function UploadSongs() {
             >
               {likedSongs.map(item => (
                 <TouchableOpacity
-                  key={item.id}
-                  onPress={() => toggle(item.id)}
+                  key={item.song_id}
+                  onPress={() => toggle(item.song_id)}
                   activeOpacity={0.9}
                 >
                   <View style={s.likedChip}>
                     <Image
-                      source={{ uri: item.artwork }}
+                      source={{ uri: item.cover_url ?? BLUR_PLACEHOLDER }}
                       style={s.likedArt}
                       contentFit="cover"
                       transition={120}
@@ -133,12 +123,12 @@ export default function UploadSongs() {
             keyboardShouldPersistTaps="handled"
           >
             {filtered.map(item => {
-              const on = selected.includes(item.id);
+              const on = selected.includes(item.song_id);
               return (
-                <TouchableOpacity key={item.id} onPress={() => toggle(item.id)} activeOpacity={0.85}>
+                <TouchableOpacity key={item.song_id} onPress={() => toggle(item.song_id)} activeOpacity={0.85}>
                   <View style={[s.row, on && s.rowOn]}>
                     <Image
-                      source={{ uri: item.artwork }}
+                      source={{ uri: item.cover_url ?? BLUR_PLACEHOLDER }}
                       style={s.art}
                       contentFit="cover"
                       transition={150}

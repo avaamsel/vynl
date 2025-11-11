@@ -5,14 +5,6 @@ import { fetchSongs } from "@/src/services/music-providers/itunes-provider";
 // GET "api/playlist"
 export async function GET(req: Request, { searchValue }: Record<string, string>): Promise<ITunesSong[] | Response> {
     try {
-        //TODO : we do not need supabaseclient here ?
-        const supabase = await createSupabaseClient(req);
-
-        // If given an error response return it
-        if (supabase instanceof Response) {
-            return supabase
-        }
-
         const songResults = await fetchSongs(searchValue, 5);
 
         return new Response(JSON.stringify(songResults), {
