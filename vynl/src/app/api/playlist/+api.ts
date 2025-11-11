@@ -1,5 +1,5 @@
 import { createSupabaseClient } from "@/src/server/supabase";
-import { isITunesPlaylist } from "@/src/types";
+import { isITunesPlaylist, ITunesPlaylist } from "@/src/types";
 import { isPlaylistData, isPlaylistSong, isSongData } from "@/src/types/database";
 
 // GET "api/playlist"
@@ -66,18 +66,12 @@ export async function POST(req: Request) {
             });
         }
 
+        // TODO: We can reduce the number of http request we make if we batch these requests
         for (let i = 0; i < body.songs.length; i++) {
             const cur_song = body.songs[i];
             const { data: s_data, error: s_err } = await supabase
                 .from('songs')
-                .upsert({
-                    song_id: cur_song.song_id, 
-                    artist: cur_song.artist, 
-                    duration_sec: cur_song.duration_sec,
-                    title: cur_song.title,
-                    cover_url: cur_song.cover_url,
-                    preview_url: cur_song.preview_url
-                });
+                .upsert(cur_song);
 
             const { data: ps_data, error: ps_err } = await supabase
                 .from('playlists_songs')
@@ -94,10 +88,19 @@ export async function POST(req: Request) {
             }
         }
 
-        return new Response('Happy happy times', {
+        let new_playlist: ITunesPlaylist = {
+            id: p_data.playlist_id,
+            created_at: p_data.created_at,
+            user_id: p_data.uid,
+            name: p_data.name,
+            songs: body.songs
+
+        }
+
+        return new Response(JSON.stringify(new_playlist), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
-        })
+        });
     } catch (error) {
         console.error(error);
         return new Response('Unknown Server Error', {
