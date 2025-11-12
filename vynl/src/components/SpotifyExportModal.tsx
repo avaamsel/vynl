@@ -8,9 +8,11 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppButton from './AppButton';
 import * as WebBrowser from 'expo-web-browser';
 import {
@@ -36,6 +38,7 @@ export default function SpotifyExportModal({
   songs,
   onSuccess,
 }: SpotifyExportModalProps) {
+  const insets = useSafeAreaInsets();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
@@ -233,7 +236,7 @@ export default function SpotifyExportModal({
           activeOpacity={1}
           onPress={onClose}
         />
-        <View style={styles.modalContentWrapper}>
+        <View style={[styles.modalContentWrapper, { marginBottom: insets.bottom }]}>
           <LinearGradient colors={['#F8F9FD', '#FFFFFF']} style={styles.modalContent}>
             <View style={styles.header}>
               <Text style={styles.title}>Export to Spotify</Text>
@@ -242,7 +245,12 @@ export default function SpotifyExportModal({
               </TouchableOpacity>
             </View>
 
-            <View style={styles.content}>
+            <ScrollView 
+              style={styles.content}
+              contentContainerStyle={styles.contentContainer}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
               {isCheckingAuth ? (
                 <View style={styles.centerContent}>
                   <ActivityIndicator size="large" color="#F28695" />
@@ -255,13 +263,15 @@ export default function SpotifyExportModal({
                   <Text style={styles.authDescription}>
                     Connect your Spotify account to export playlists and start listening!
                   </Text>
-                  <AppButton
-                    title="Connect Spotify"
-                    onPress={handleAuthenticate}
-                    backgroundColor="#1DB954"
-                    textColor="#FFFFFF"
-                    width="100%"
-                  />
+                  <View style={styles.buttonContainer}>
+                    <AppButton
+                      title="Connect Spotify"
+                      onPress={handleAuthenticate}
+                      backgroundColor="#1DB954"
+                      textColor="#FFFFFF"
+                      width="100%"
+                    />
+                  </View>
                 </View>
               ) : isExporting ? (
                 <View style={styles.exportSection}>
@@ -290,28 +300,32 @@ export default function SpotifyExportModal({
                   <Text style={styles.successText}>
                     Found {exportResult.tracksFound} out of {exportResult.tracksTotal} tracks
                   </Text>
-                  <AppButton
-                    title="Open in Spotify"
-                    onPress={() => {
-                      if (Platform.OS === 'web') {
-                        if (typeof window !== 'undefined') {
-                          window.open(exportResult.playlistUrl, '_blank');
+                  <View style={styles.buttonContainer}>
+                    <AppButton
+                      title="Open in Spotify"
+                      onPress={() => {
+                        if (Platform.OS === 'web') {
+                          if (typeof window !== 'undefined') {
+                            window.open(exportResult.playlistUrl, '_blank');
+                          }
+                        } else {
+                          Linking.openURL(exportResult.playlistUrl);
                         }
-                      } else {
-                        Linking.openURL(exportResult.playlistUrl);
-                      }
-                    }}
-                    backgroundColor="#1DB954"
-                    textColor="#FFFFFF"
-                    width="100%"
-                  />
-                  <AppButton
-                    title="Close"
-                    onPress={onClose}
-                    backgroundColor="#F28695"
-                    textColor="#FFFFFF"
-                    width="100%"
-                  />
+                      }}
+                      backgroundColor="#1DB954"
+                      textColor="#FFFFFF"
+                      width="100%"
+                    />
+                  </View>
+                  <View style={styles.buttonContainer}>
+                    <AppButton
+                      title="Close"
+                      onPress={onClose}
+                      backgroundColor="#F28695"
+                      textColor="#FFFFFF"
+                      width="100%"
+                    />
+                  </View>
                 </View>
               ) : (
                 <View style={styles.readySection}>
@@ -329,19 +343,21 @@ export default function SpotifyExportModal({
                       <Text style={styles.bold}>Songs:</Text> {songs.length}
                     </Text>
                   </View>
-                  <AppButton
-                    title="Export to Spotify"
-                    onPress={handleExport}
-                    backgroundColor="#1DB954"
-                    textColor="#FFFFFF"
-                    width="100%"
-                  />
+                  <View style={styles.buttonContainer}>
+                    <AppButton
+                      title="Export to Spotify"
+                      onPress={handleExport}
+                      backgroundColor="#1DB954"
+                      textColor="#FFFFFF"
+                      width="100%"
+                    />
+                  </View>
                   <TouchableOpacity onPress={handleDisconnect} style={styles.disconnectButton}>
                     <Text style={styles.disconnectText}>Disconnect Spotify</Text>
                   </TouchableOpacity>
                 </View>
               )}
-            </View>
+            </ScrollView>
           </LinearGradient>
         </View>
       </View>
@@ -359,20 +375,24 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',
-    maxHeight: '90%',
+    maxHeight: '80%', // Reduced to move modal higher up
     minHeight: 300,
   },
   modalContent: {
-    paddingTop: 20,
-    paddingBottom: 40,
+    paddingTop: 16,
+    paddingBottom: 16,
     paddingHorizontal: 24,
-    minHeight: 300,
+    maxHeight: '100%',
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
   },
   title: {
     fontSize: 24,
@@ -385,11 +405,17 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    maxHeight: '100%',
+  },
+  contentContainer: {
+    paddingBottom: 24,
+    flexGrow: 1,
   },
   centerContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: 30,
+    minHeight: 200,
   },
   statusText: {
     marginTop: 16,
@@ -398,10 +424,10 @@ const styles = StyleSheet.create({
   },
   authSection: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 16,
   },
   spotifyIcon: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   authTitle: {
     fontSize: 22,
@@ -413,21 +439,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6F7A88',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
     lineHeight: 20,
+    paddingHorizontal: 8,
   },
   exportSection: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 16,
   },
   loader: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   exportStatus: {
     fontSize: 16,
     color: '#001133',
-    marginBottom: 16,
+    marginBottom: 12,
     textAlign: 'center',
+    paddingHorizontal: 8,
   },
   progressBar: {
     width: '100%',
@@ -448,10 +476,10 @@ const styles = StyleSheet.create({
   },
   successSection: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 16,
   },
   successIcon: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   successTitle: {
     fontSize: 22,
@@ -462,12 +490,13 @@ const styles = StyleSheet.create({
   successText: {
     fontSize: 14,
     color: '#6F7A88',
-    marginBottom: 24,
+    marginBottom: 20,
     textAlign: 'center',
+    paddingHorizontal: 8,
   },
   readySection: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 12,
   },
   readyTitle: {
     fontSize: 22,
@@ -479,15 +508,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6F7A88',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
     lineHeight: 20,
+    paddingHorizontal: 8,
   },
   playlistInfo: {
     width: '100%',
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   playlistInfoText: {
     fontSize: 14,
@@ -497,9 +527,14 @@ const styles = StyleSheet.create({
   bold: {
     fontWeight: '700',
   },
+  buttonContainer: {
+    width: '100%',
+    marginBottom: 12,
+  },
   disconnectButton: {
-    marginTop: 16,
+    marginTop: 8,
     padding: 12,
+    width: '100%',
   },
   disconnectText: {
     fontSize: 14,

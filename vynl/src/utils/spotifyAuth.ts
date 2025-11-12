@@ -1,12 +1,63 @@
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import * as Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import base64 from 'base-64';
 import { storeSpotifyToken } from './spotify';
 
 // Complete the auth session
 WebBrowser.maybeCompleteAuthSession();
 
 const SPOTIFY_CLIENT_ID = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID || '';
+
+/**
+ * Simple base64 encoding for React Native
+ * This is a basic implementation that works without external libraries
+ */
+function manualBase64Encode(str: string): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+  let result = '';
+  let i = 0;
+  
+  while (i < str.length) {
+    const a = str.charCodeAt(i++);
+    const b = i < str.length ? str.charCodeAt(i++) : 0;
+    const c = i < str.length ? str.charCodeAt(i++) : 0;
+    
+    const bitmap = (a << 16) | (b << 8) | c;
+    
+    result += chars.charAt((bitmap >> 18) & 63);
+    result += chars.charAt((bitmap >> 12) & 63);
+    result += i - 2 < str.length ? chars.charAt((bitmap >> 6) & 63) : '=';
+    result += i - 1 < str.length ? chars.charAt(bitmap & 63) : '=';
+  }
+  
+  return result;
+}
+
+/**
+ * Base64 encode from Uint8Array
+ */
+function base64Encode(bytes: Uint8Array): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+  let result = '';
+  let i = 0;
+  
+  while (i < bytes.length) {
+    const a = bytes[i++];
+    const b = i < bytes.length ? bytes[i++] : 0;
+    const c = i < bytes.length ? bytes[i++] : 0;
+    
+    const bitmap = (a << 16) | (b << 8) | c;
+    
+    result += chars.charAt((bitmap >> 18) & 63);
+    result += chars.charAt((bitmap >> 12) & 63);
+    result += i - 2 < bytes.length ? chars.charAt((bitmap >> 6) & 63) : '=';
+    result += i - 1 < bytes.length ? chars.charAt(bitmap & 63) : '=';
+  }
+  
+  return result;
+}
 
 // Spotify OAuth scopes
 const SPOTIFY_SCOPES = [
@@ -91,32 +142,62 @@ export async function initiateSpotifyAuth(): Promise<string | void> {
 }
 
 /**
- * Exchange authorization code for access token
- * Uses backend API route for security
+ * Get the development server URL for API routes
  */
-async function exchangeCodeForToken(code: string, redirectUri: string): Promise<void> {
+function getApiBaseUrl(): string | null {
+  // First, try environment variable
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // For web, use relative URL
+  if (Platform.OS === 'web') {
+    return null; // Will use relative URL
+  }
+
+  // For mobile, try to get from Expo Constants
   try {
-    // Use backend API route to exchange code for token
-    // This keeps the client secret secure
-    let apiUrl = '/api/spotify/token';
-    
-    if (Platform.OS !== 'web') {
-      // For mobile with Expo Router, API routes are available via the dev server
-      // In development, try to use the Expo dev server
-      // You may need to configure EXPO_PUBLIC_API_URL for your setup
-      const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL;
-      if (apiBaseUrl) {
-        apiUrl = `${apiBaseUrl}/api/spotify/token`;
-      } else {
-        // Fallback: Try to construct from Expo constants if available
-        // Note: This may not work in all environments
-        // For production, you should set EXPO_PUBLIC_API_URL
-        console.warn('EXPO_PUBLIC_API_URL not set. Token exchange may fail on mobile.');
-        // Try localhost as fallback (works in development with Expo)
-        apiUrl = 'http://localhost:8081/api/spotify/token';
-      }
+    const debuggerHost = Constants.expoConfig?.hostUri || Constants.expoConfig?.extra?.hostUri;
+    if (debuggerHost) {
+      // Extract hostname and port
+      const host = debuggerHost.split(':')[0];
+      const port = debuggerHost.split(':')[1] || '8081';
+      return `http://${host}:${port}`;
     }
 
+    // Try using the manifest URL
+    if (Constants.manifest?.debuggerHost) {
+      const host = Constants.manifest.debuggerHost.split(':')[0];
+      return `http://${host}:8081`;
+    }
+
+    // Fallback: try to use the local network IP
+    // This is a common pattern for Expo development
+    if (__DEV__) {
+      console.warn('Could not determine API URL from Expo Constants. Falling back to client-side token exchange.');
+    }
+  } catch (error) {
+    console.error('Error getting API URL from Constants:', error);
+  }
+
+  return null;
+}
+
+/**
+ * Exchange authorization code for access token
+ * Tries backend API route first, falls back to client-side for development
+ */
+async function exchangeCodeForToken(code: string, redirectUri: string): Promise<void> {
+  const apiBaseUrl = getApiBaseUrl();
+  let apiUrl = '/api/spotify/token';
+  
+  if (apiBaseUrl) {
+    apiUrl = `${apiBaseUrl}/api/spotify/token`;
+  }
+
+  // Try backend API route first
+  try {
+    console.log('Attempting token exchange via API route:', apiUrl);
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -128,21 +209,108 @@ async function exchangeCodeForToken(code: string, redirectUri: string): Promise<
       }),
     });
 
-    if (!response.ok) {
+    if (response.ok) {
+      const data = await response.json();
+      await storeSpotifyToken(data.access_token, data.refresh_token, data.expires_in);
+      console.log('Token exchange successful via API route');
+      return;
+    } else {
       const errorText = await response.text();
-      console.error('Token exchange error:', errorText);
-      throw new Error('Failed to exchange code for token. Please make sure the backend API is running and configured with Spotify credentials. For mobile, you may need to set EXPO_PUBLIC_API_URL in your environment variables.');
+      console.error('API route returned error:', response.status, errorText);
+      // Fall through to client-side exchange
     }
-
-    const data = await response.json();
-    await storeSpotifyToken(data.access_token, data.refresh_token, data.expires_in);
   } catch (error: any) {
-    console.error('Error exchanging code for token:', error);
-    // Provide more helpful error message
-    if (error.message?.includes('Failed to fetch') || error.message?.includes('Network request failed')) {
-      throw new Error('Could not connect to the server. Make sure your development server is running and EXPO_PUBLIC_API_URL is configured correctly.');
+    console.warn('API route failed, trying client-side exchange:', error.message);
+    // Fall through to client-side exchange for development
+  }
+
+  // Fallback: Client-side token exchange (for development only)
+  // WARNING: This exposes the client secret in the app bundle
+  // Only use this in development, never in production
+  if (__DEV__) {
+    try {
+      // For development, we need EXPO_PUBLIC_ prefix to access in client
+      const clientSecret = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET;
+      
+      if (!clientSecret) {
+        throw new Error(
+          'EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET not found in environment variables. ' +
+          'For development, add EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET to your .env file. ' +
+          'NOTE: This exposes the secret in the app - ONLY use for development, never in production builds!'
+        );
+      }
+
+      console.warn('⚠️ Using client-side token exchange (DEVELOPMENT ONLY - not secure for production)');
+      
+      // Verify we have the credentials
+      if (!SPOTIFY_CLIENT_ID || !clientSecret) {
+        throw new Error('Missing Spotify credentials. Check EXPO_PUBLIC_SPOTIFY_CLIENT_ID and EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET');
+      }
+      
+      // Trim any whitespace that might have been accidentally added
+      const trimmedClientId = SPOTIFY_CLIENT_ID.trim();
+      const trimmedClientSecret = clientSecret.trim();
+      
+      // Create base64 encoded credentials
+      // Use base-64 library for reliable cross-platform encoding
+      const credentialsString = `${trimmedClientId}:${trimmedClientSecret}`;
+      const credentials = base64.encode(credentialsString);
+      
+      console.log('Debug: Client ID (first 10 chars):', trimmedClientId.substring(0, 10) + '...');
+      console.log('Debug: Client Secret (first 10 chars):', trimmedClientSecret.substring(0, 10) + '...');
+      console.log('Debug: Client ID length:', trimmedClientId.length);
+      console.log('Debug: Client Secret length:', trimmedClientSecret.length);
+      
+      const response = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: `Basic ${credentials}`,
+        },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+        }).toString(),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Client-side token exchange error:', response.status, errorText);
+        
+        // Provide more helpful error message for invalid client secret
+        if (response.status === 400 && errorText.includes('invalid_client')) {
+          throw new Error(
+            'Invalid client secret. Please verify:\n' +
+            '1. EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET in your .env file matches the secret in Spotify Developer Dashboard\n' +
+            '2. The Client ID and Client Secret belong to the same Spotify app\n' +
+            '3. You have restarted your dev server after updating .env\n' +
+            '4. There are no extra spaces or quotes in your .env file\n' +
+            `\nCurrent Client ID: ${trimmedClientId.substring(0, 10)}... (length: ${trimmedClientId.length})\n` +
+            `Current Client Secret: ${trimmedClientSecret.substring(0, 10)}... (length: ${trimmedClientSecret.length})`
+          );
+        }
+        
+        throw new Error(`Failed to exchange token (${response.status}): ${errorText}`);
+      }
+
+      const data = await response.json();
+      await storeSpotifyToken(data.access_token, data.refresh_token, data.expires_in);
+      console.log('✅ Token exchange successful via client-side (development)');
+      return;
+    } catch (error: any) {
+      console.error('Client-side token exchange failed:', error);
+      throw new Error(
+        `Token exchange failed: ${error.message || 'Please check your Spotify credentials and network connection.'}`
+      );
     }
-    throw error;
+  } else {
+    // Production: Must use backend API
+    throw new Error(
+      'Could not connect to the API server for token exchange. ' +
+      'In production, you must set up a backend server with the /api/spotify/token endpoint. ' +
+      'Set EXPO_PUBLIC_API_URL to your production API URL.'
+    );
   }
 }
 

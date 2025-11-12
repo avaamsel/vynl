@@ -1,5 +1,37 @@
 # Troubleshooting Spotify Export
 
+## Fixed: Token Exchange Error
+
+**Error**: `Could not connect to the server. Make sure your development server is running and EXPO_PUBLIC_API_URL is configured correctly.`
+
+**Solution**: This has been fixed! The app now:
+1. First tries to use the backend API route (if accessible)
+2. Falls back to client-side token exchange for development (when API route is not accessible)
+
+### What was changed:
+- Added fallback to client-side token exchange for development
+- Added base64 encoding that works in React Native
+- Added `EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET` to your `.env` file
+
+### Next Steps:
+1. **Restart your Expo dev server** to pick up the new environment variable:
+   ```bash
+   # Stop the server (Ctrl+C)
+   npx expo start -c  # -c clears cache
+   ```
+
+2. **Test the authentication again** - it should now work!
+
+### Important Security Note:
+⚠️ **DEVELOPMENT ONLY**: The `EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET` is exposed in your app bundle. This is fine for development, but **NEVER use this in production**. For production, you must:
+- Remove `EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET` from your `.env`
+- Set up a proper backend server with the `/api/spotify/token` endpoint
+- Set `EXPO_PUBLIC_API_URL` to your production API URL
+
+---
+
+## Other Issues
+
 If the "Export to Spotify" button doesn't do anything when clicked, try the following:
 
 ## Quick Debug Steps
