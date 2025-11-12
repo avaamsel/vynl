@@ -131,7 +131,6 @@ export default function Swiping() {
       const success = await putSong(songs[i]);
       if (!success) {
         console.error('Failed to save song:', songs[i].title, error);
-        // optionally break or continue depending on your needs
       } else {
         console.log('Saved song:', songs[i].title);
       }
@@ -154,6 +153,7 @@ export default function Swiping() {
     saveAllSongs();
   }, []);
   //TODO : create a playlist
+
 
   const params = { playlistId: "2", mode: "add", playlistName: "test", s1: null, s2: null};
 

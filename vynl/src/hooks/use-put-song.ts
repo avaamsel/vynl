@@ -18,12 +18,15 @@ export function usePutSong(): UsePutSongResult {
     try {
       const res = await fetch('/api/song', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 
+          'Authorization' : 'Bearer ' + process.env.EXPO_PUBLIC_AUTH_TOKEN_TEST_PURPOSE_ONLY,
+        },
         body: JSON.stringify(song),
       });
 
       if (!res.ok) {
         const text = await res.text();
+        console.log("res not ok : ", res);
         setError(text || 'Failed to save song');
         setLoading(false);
         return false;

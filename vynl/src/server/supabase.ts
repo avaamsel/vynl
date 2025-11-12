@@ -7,6 +7,7 @@ const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_KEY!;
 export async function createSupabaseClient(req: Request): Promise<SupabaseClient<Database> | Response> {
     const auth = req.headers.get('Authorization');
     if (!auth || auth.split(" ").length < 2) {
+        console.log("missing auth header : ", auth);
         return new Response('Missing Authorization Header', {
             status: 403
         });
