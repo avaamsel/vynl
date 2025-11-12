@@ -116,7 +116,7 @@ npx expo start
 
 **Platform-Specific Testing:**
 * **Mobile (iOS/Android):** Use the ``Expo Go`` app on your physical device or emulator
-* **Web:** Web preview is currently **not supposed** due to localStorage compatibility issues. Testing should be done on mobile platform only. 
+* **Web:** Web preview is currently **not supported** due to localStorage compatibility issues. Testing should be done on mobile platform only. 
 
 If you encounter connection problems or can’t be on the same wifi, run 
 
