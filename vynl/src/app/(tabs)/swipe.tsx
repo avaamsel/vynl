@@ -10,6 +10,7 @@ import { savePlaylist, updatePlaylist, getPlaylist, type Song as PlaylistSong } 
 import AppButton from '@/src/components/AppButton';
 import { usePutSong } from '@/src/hooks/use-put-song';
 import { ITunesPlaylist, ITunesSong } from '@/src/types';
+import { useCreatePlaylist } from '@/src/hooks/use-create-playlist';
 
 
 type Song = { id: string; title: string; artist: string; artwork: string };
@@ -124,7 +125,7 @@ export default function Swiping() {
   const [playlistSaved, setPlaylistSaved] = useState(false);
   
   //First we add the selected songs to the database
-  const { loading, error, putSong } = usePutSong();
+/*   const { loading, error, putSong } = usePutSong();
 
   const saveSongs = async (songs: ITunesSong[]) => {
     for (let i = 0; i < songs.length; i++) {
@@ -151,7 +152,7 @@ export default function Swiping() {
     };
 
     saveAllSongs();
-  }, []);
+  }, []); */
   //TODO : create a playlist
 
 

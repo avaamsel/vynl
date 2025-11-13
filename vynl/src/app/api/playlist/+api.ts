@@ -41,6 +41,7 @@ export async function POST(req: Request) {
         const supabase = await createSupabaseClient(req);
 
         if (supabase instanceof Response) {
+            console.log("Client creation failed : ", supabase);
             return supabase
         }
 
@@ -50,6 +51,7 @@ export async function POST(req: Request) {
             typeof body.user_id !== "string" ||
             !Array.isArray(body.songs)
         ) {
+            console.log("Invalid body");
             return new Response("Invalid body: expected { user_id, name, songs[] }", {
                 status: 400
             });
@@ -86,7 +88,11 @@ export async function POST(req: Request) {
                     song_id: cur_song.song_id
                 });
 
-            if (ps_err || s_err || !isSongData(s_data) || !isPlaylistSong(ps_data)) {
+            if (ps_err || s_err) {
+                console.log("Failed to insert songs/playlist_song in database");
+                console.log("PS err : ", ps_err);
+                console.log("s_err", s_err);
+
                 return new Response('Failed to insert songs into database', {
                     status: 400
                 });

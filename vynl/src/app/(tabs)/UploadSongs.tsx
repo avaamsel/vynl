@@ -9,24 +9,14 @@ import { useRouter } from 'expo-router'; // ← navigation
 import { Ionicons } from '@expo/vector-icons';
 import { useSongSearch } from '@/src/hooks/use-song-search';
 import { ITunesSong, ITunesPlaylist } from '@/src/types';
-
-
-const SONGS = [
-  { id: '1',  title: 'Super Shy', artist: 'NewJeans', artwork: 'https://i.scdn.co/image/ab67616d00001e023d98a0ae7c78a3a9babaf8af' },
-  { id: '2',  title: 'Espresso', artist: 'Sabrina Carpenter', artwork: 'https://upload.wikimedia.org/wikipedia/en/7/71/Espresso_-_Sabrina_Carpenter.png' },
-  { id: '3',  title: 'Snooze', artist: 'SZA', artwork: 'https://m.media-amazon.com/images/I/91BazzuLE+L._UF350,350_QL50_.jpg' },
-  { id: '4',  title: 'The Adults Are Talking', artist: 'The Strokes', artwork: 'https://pics.filmaffinity.com/the_strokes_the_adults_are_talking-770338151-mmed.jpg' },
-  { id: '5',  title: 'First Person Shooter (feat. J. Cole)', artist: 'Drake', artwork: 'https://m.media-amazon.com/images/I/41bNY36ilJL._UXNaN_FMjpg_QL85_.jpg' },
-  { id: '6',  title: 'Rush', artist: 'Troye Sivan', artwork: 'https://upload.wikimedia.org/wikipedia/en/b/b4/Troye_Sivan_-_Rush.png' },
-  { id: '7',  title: 'TQG', artist: 'KAROL G & Shakira', artwork: 'https://i.scdn.co/image/ab67616d0000b27382de1ca074ae63cb18fce335' },
-  { id: '8',  title: 'Calm Down', artist: 'Rema', artwork: 'https://upload.wikimedia.org/wikipedia/en/b/b1/Rema_-_Calm_Down.png' },
-  { id: '9',  title: 'Bags', artist: 'Clairo', artwork: 'https://i.scdn.co/image/ab67616d0000b27333ccb60f9b2785ef691b2fbc' },
-  { id: '10', title: 'Hot Girl (Bodies Bodies Bodies)', artist: 'Charli XCX', artwork: 'https://i1.sndcdn.com/artworks-19CTU1x0lsAE-0-t500x500.jpg' },
-];
+import { useCreatePlaylist } from '@/src/hooks/use-create-playlist';
 
 export default function UploadSongs() {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<ITunesSong[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const { loading: savingPlaylistLoading, error: playlistError, createPlaylist } = useCreatePlaylist();
+
   const router = useRouter();
 
   const { results: filtered, loading, error } = useSongSearch(query);
@@ -46,11 +36,31 @@ export default function UploadSongs() {
   const ready = selected.length === 2;
 
   // Navigate to swipe.tsx with the two picks
-  const goSwiping = () => {
+  const goSwiping = async () => {
     if (!ready) return;
-    // pass as simple params (s1, s2). Access in swipe.tsx via useLocalSearchParams()
-    router.push({ pathname: '/swipe', params: {songs: JSON.stringify(selected)}});
+
+    setIsSaving(true);
+
+    const ok = await createPlaylist(
+      "My Playlist",
+      "86170e56-b3e2-4ea3-a663-12c94e531bd9",
+      selected
+    );
+
+    if (!ok) {
+      console.error("Playlist creation failed:", playlistError);
+      setIsSaving(false);
+      return;
+    }
+
+    router.push({
+      pathname: '/swipe',
+      params: { songs: JSON.stringify(selected) }
+    });
+
+    setIsSaving(false);
   };
+
 
   return (
     <LinearGradient colors={['#F1CCA6', '#F28695']} start={{x:0,y:0}} end={{x:0,y:1}} style={{ flex: 1 }}>
