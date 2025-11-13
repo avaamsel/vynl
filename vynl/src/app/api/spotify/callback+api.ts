@@ -16,14 +16,7 @@ export async function GET(req: Request) {
       return Response.redirect('/?spotify_error=no_code', 303);
     }
 
-    // Store the code in a way that the client can retrieve it
-    // For a more robust solution, you might want to use sessions or temporary storage
-    // For now, we'll redirect back with the code and let the client handle it
     const redirectUri = url.searchParams.get('state') || '/';
-    
-    // In a production app, you'd exchange the code for a token here on the server
-    // and then redirect with a session token or store it server-side
-    // For now, we'll redirect to a callback handler page
     return Response.redirect(`/?spotify_code=${code}&redirect_uri=${encodeURIComponent(redirectUri)}`, 303);
   } catch (error) {
     console.error('Error in Spotify callback:', error);

@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     }
 
     const clientId = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID;
-    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET; // Server-side only
+    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
       return Response.json(

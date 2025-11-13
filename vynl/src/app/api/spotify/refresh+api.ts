@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     }
 
     const clientId = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID;
-    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET; // Server-side only
+    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
       return Response.json(
@@ -50,7 +50,6 @@ export async function POST(req: Request) {
     return Response.json({
       access_token: tokenData.access_token,
       expires_in: tokenData.expires_in,
-      // Refresh token is only provided if it was rotated
       refresh_token: tokenData.refresh_token || refresh_token,
     });
   } catch (error) {
