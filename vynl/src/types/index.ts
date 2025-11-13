@@ -11,7 +11,7 @@ export interface User {
 export type Song = songs_data;
 
 export interface LastFmSong {
-  mbid: number;
+  mbid: number;  // Only for Last FM songs, ITunes does not use it
   title: string;
   artist: string;
   duration_sec: number | null;
