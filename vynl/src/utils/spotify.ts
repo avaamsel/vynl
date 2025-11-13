@@ -98,12 +98,10 @@ async function refreshSpotifyToken(refreshToken: string): Promise<string> {
     let apiUrl = '/api/spotify/refresh';
     
     if (Platform.OS !== 'web') {
-      // For mobile with Expo Router, API routes are available via the dev server
       const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL;
       if (apiBaseUrl) {
         apiUrl = `${apiBaseUrl}/api/spotify/refresh`;
       } else {
-        // Fallback for development
         apiUrl = 'http://localhost:8081/api/spotify/refresh';
       }
     }
@@ -127,9 +125,8 @@ async function refreshSpotifyToken(refreshToken: string): Promise<string> {
     return data.access_token;
   } catch (error) {
     console.error('Error refreshing token via API:', error);
+    
     // Fallback to direct API call if backend route doesn't exist
-    // Note: This requires the client secret, which should NOT be exposed in production
-    // This is a fallback for development only
     console.warn('Falling back to direct token refresh (not recommended for production)');
     
     const response = await fetch('https://accounts.spotify.com/api/token', {

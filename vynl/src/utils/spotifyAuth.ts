@@ -5,7 +5,6 @@ import { Platform } from 'react-native';
 import base64 from 'base-64';
 import { storeSpotifyToken } from './spotify';
 
-// Complete the auth session
 WebBrowser.maybeCompleteAuthSession();
 
 const SPOTIFY_CLIENT_ID = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID || '';
@@ -70,13 +69,12 @@ const SPOTIFY_SCOPES = [
 // Redirect URI - needs to match what's configured in Spotify app settings
 const getRedirectUri = () => {
   if (Platform.OS === 'web') {
-    // For web, use the current origin
     if (typeof window !== 'undefined') {
       return `${window.location.origin}/api/spotify/callback`;
     }
     return 'http://localhost:8081/api/spotify/callback';
   }
-  // For mobile, use Expo's proxy
+
   return AuthSession.makeRedirectUri();
 };
 
@@ -91,7 +89,6 @@ export async function initiateSpotifyAuth(): Promise<string | void> {
   const redirectUri = getRedirectUri();
 
   if (Platform.OS === 'web') {
-    // Web OAuth flow - redirect to Spotify
     const authUrl = `https://accounts.spotify.com/authorize?${new URLSearchParams({
       client_id: SPOTIFY_CLIENT_ID,
       response_type: 'code',
@@ -102,14 +99,13 @@ export async function initiateSpotifyAuth(): Promise<string | void> {
     
     return authUrl;
   } else {
-    // Mobile OAuth flow using Expo AuthSession
     try {
       const request = new AuthSession.AuthRequest({
         clientId: SPOTIFY_CLIENT_ID,
         scopes: SPOTIFY_SCOPES.split(' '),
         responseType: AuthSession.ResponseType.Code,
         redirectUri: redirectUri,
-        usePKCE: false, // Spotify doesn't require PKCE
+        usePKCE: false,
       });
 
       const discovery = {
@@ -145,17 +141,14 @@ export async function initiateSpotifyAuth(): Promise<string | void> {
  * Get the development server URL for API routes
  */
 function getApiBaseUrl(): string | null {
-  // First, try environment variable
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
 
-  // For web, use relative URL
   if (Platform.OS === 'web') {
     return null; // Will use relative URL
   }
 
-  // For mobile, try to get from Expo Constants
   try {
     const debuggerHost = Constants.expoConfig?.hostUri || Constants.expoConfig?.extra?.hostUri;
     if (debuggerHost) {
@@ -171,8 +164,6 @@ function getApiBaseUrl(): string | null {
       return `http://${host}:8081`;
     }
 
-    // Fallback: try to use the local network IP
-    // This is a common pattern for Expo development
     if (__DEV__) {
       console.warn('Could not determine API URL from Expo Constants. Falling back to client-side token exchange.');
     }
@@ -217,16 +208,11 @@ async function exchangeCodeForToken(code: string, redirectUri: string): Promise<
     } else {
       const errorText = await response.text();
       console.error('API route returned error:', response.status, errorText);
-      // Fall through to client-side exchange
     }
   } catch (error: any) {
     console.warn('API route failed, trying client-side exchange:', error.message);
-    // Fall through to client-side exchange for development
   }
 
-  // Fallback: Client-side token exchange (for development only)
-  // WARNING: This exposes the client secret in the app bundle
-  // Only use this in development, never in production
   if (__DEV__) {
     try {
       // For development, we need EXPO_PUBLIC_ prefix to access in client
@@ -240,7 +226,7 @@ async function exchangeCodeForToken(code: string, redirectUri: string): Promise<
         );
       }
 
-      console.warn('⚠️ Using client-side token exchange (DEVELOPMENT ONLY - not secure for production)');
+      console.warn('Using client-side token exchange (DEVELOPMENT ONLY - not secure for production)');
       
       // Verify we have the credentials
       if (!SPOTIFY_CLIENT_ID || !clientSecret) {
@@ -278,7 +264,6 @@ async function exchangeCodeForToken(code: string, redirectUri: string): Promise<
         const errorText = await response.text();
         console.error('Client-side token exchange error:', response.status, errorText);
         
-        // Provide more helpful error message for invalid client secret
         if (response.status === 400 && errorText.includes('invalid_client')) {
           throw new Error(
             'Invalid client secret. Please verify:\n' +
@@ -296,7 +281,7 @@ async function exchangeCodeForToken(code: string, redirectUri: string): Promise<
 
       const data = await response.json();
       await storeSpotifyToken(data.access_token, data.refresh_token, data.expires_in);
-      console.log('✅ Token exchange successful via client-side (development)');
+      console.log('Token exchange successful via client-side (development)');
       return;
     } catch (error: any) {
       console.error('Client-side token exchange failed:', error);
@@ -305,7 +290,6 @@ async function exchangeCodeForToken(code: string, redirectUri: string): Promise<
       );
     }
   } else {
-    // Production: Must use backend API
     throw new Error(
       'Could not connect to the API server for token exchange. ' +
       'In production, you must set up a backend server with the /api/spotify/token endpoint. ' +

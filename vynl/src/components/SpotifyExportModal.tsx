@@ -74,7 +74,7 @@ export default function SpotifyExportModal({
       console.log('Modal visible, checking Spotify auth...');
       if (isMounted) {
         setIsCheckingAuth(true);
-        setIsAuthenticated(false); // Default to false
+        setIsAuthenticated(false);
       }
       
       try {
@@ -86,7 +86,6 @@ export default function SpotifyExportModal({
         }
       } catch (error: any) {
         console.error('Error checking Spotify auth:', error);
-        // Don't block the modal if auth check fails - just assume not authenticated
         if (isMounted) {
           setIsAuthenticated(false);
           setIsCheckingAuth(false);
@@ -94,7 +93,6 @@ export default function SpotifyExportModal({
       }
     };
 
-    // Check auth immediately when modal becomes visible
     checkAuth();
     
     return () => {
@@ -134,8 +132,6 @@ export default function SpotifyExportModal({
       } else {
         // Mobile OAuth flow
         await initiateSpotifyAuth();
-        // The auth session will handle the flow
-        // Check auth status after a delay
         setTimeout(async () => {
           try {
             const authenticated = await isSpotifyAuthenticated();
@@ -218,9 +214,6 @@ export default function SpotifyExportModal({
   };
 
   console.log('SpotifyExportModal render - visible:', visible, 'isCheckingAuth:', isCheckingAuth, 'isAuthenticated:', isAuthenticated, 'playlistName:', playlistName, 'songs:', songs.length);
-
-  // Always render the Modal component, but control visibility with the `visible` prop
-  // This ensures React Native's Modal is properly mounted
 
   return (
     <Modal
@@ -375,7 +368,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',
-    maxHeight: '80%', // Reduced to move modal higher up
+    maxHeight: '80%',
     minHeight: 300,
   },
   modalContent: {
