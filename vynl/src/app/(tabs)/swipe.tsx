@@ -161,7 +161,7 @@ export default function Swiping() {
   }, []); */
   //TODO : create a playlist
 
-  const numberOfRecommendedSongs = 15;
+  const numberOfRecommendedSongs = 10;
 
   useEffect(() => {
     const fetchRecommendations = async () => {
@@ -379,7 +379,12 @@ export default function Swiping() {
     const currentIndex = indexRef.current;
     const currentSong = recommendedSongs[currentIndex];
     
-    if (!currentSong) return;
+    if (!currentSong) {
+      console.log("recommendedSongs : ", recommendedSongs);
+      console.log("currentIndex : ", currentIndex);
+      console.log("!currentSong");
+      return;
+    }
     
     console.log('Swiping', dir, 'song:', currentSong.song_id, currentSong.title, 'at index:', currentIndex);
     
@@ -400,7 +405,7 @@ export default function Swiping() {
       requestAnimationFrame(() => setIndex(i => i + 1));
       setPlaying(true);
     });
-  }, []);
+  }, [recommendedSongs]);
 
   const pan = useMemo(
     () =>
@@ -553,7 +558,7 @@ export default function Swiping() {
               removeClippedSubviews
             >
               <View style={styles.media}>
-                <VinylDisc spinning={playing} artwork={next?.cover_url || 'https://via.placeholder.com/150'} />
+                <VinylDisc spinning={playing} artwork={top?.cover_url || 'https://via.placeholder.com/150'} />
                 <Text numberOfLines={1} style={styles.song}>{top.title}</Text>
                 <Text numberOfLines={1} style={styles.artist}>{top.artist}</Text>
               </View>

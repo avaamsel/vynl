@@ -79,13 +79,15 @@ export class LastFmService {
         try {
             // Build query parameters (including api_key + format via your helper)
             const params = new URLSearchParams(
-            this.formatParams({
-                method: "track.getsimilar",
-                artist,
-                track,
-                limit,
-            })
+                this.formatParams({
+                    method: "track.getsimilar",
+                    artist,
+                    track,
+                    limit,
+                })
             );
+
+            console.log("searching : ", `${BASE_URL}?${params.toString()}`);
 
             const response = await fetch(`${BASE_URL}?${params.toString()}`);
             const data = await response.json();
