@@ -117,6 +117,7 @@ export default function Swiping() {
   const seedSongs: ITunesSong[] = JSON.parse(songs as string);
   const router = useRouter();
   const [index, setIndex] = useState(0);
+  const [addedSongs, setAddedSongs] = useState<ITunesSong[]>([]);
   const [liked, setLiked] = useState<ITunesSong[]>([]);
   const [passed, setPassed] = useState<ITunesSong[]>([]);
   const [playing, setPlaying] = useState(true);
@@ -239,6 +240,7 @@ export default function Swiping() {
   // Reset state function
   const resetState = useCallback((preservePlaylistName = false) => {
     setIndex(0);
+    setAddedSongs(seedSongs);
     setLiked([]);
     setPassed([]);
     setSwipeHistory([]);
@@ -263,6 +265,7 @@ export default function Swiping() {
   }, []);
 
   // Load session state on mount or when params change
+  //TODO : maybe delete
   useEffect(() => {
     const loadSession = async () => {
       try {
@@ -325,6 +328,7 @@ export default function Swiping() {
           const session = {
             seedSongs,
             index,
+            addedSongs,
             liked,
             passed,
             swipeHistory,
@@ -336,7 +340,7 @@ export default function Swiping() {
       };
       saveSession();
     }
-  }, [index, liked, passed, swipeHistory, isLoading, seedSongs]);
+  }, [index, liked, passed, swipeHistory, isLoading, seedSongs, addedSongs]);
 
   const top = recommendedSongs[index];
   const next = recommendedSongs[index + 1];
@@ -396,6 +400,8 @@ export default function Swiping() {
       
       if (dir === 'right') {
         setLiked(arr => [...arr, currentSong]);
+        setAddedSongs(arr => [...arr, currentSong])
+        updatePlaylist(newPlaylist.id, addedSongs);
       } else {
         setPassed(arr => [...arr, currentSong]);
       }
@@ -429,6 +435,7 @@ export default function Swiping() {
     // Remove from liked or passed
     if (lastSwipe.direction === 'right') {
       setLiked(arr => arr.filter(id => id.song_id !== lastSwipe.songId));
+      setAddedSongs(arr => arr.filter(id => id.song_id !== lastSwipe.songId));
     } else {
       setPassed(arr => arr.filter(id => id.song_id !== lastSwipe.songId));
     }
@@ -460,9 +467,6 @@ export default function Swiping() {
     
     setIsSaving(true);
     try {
-      // Convert liked song IDs to Song objects
-      const likedSongs = liked;
-
       if (newPlaylist.id) {
         // Add songs to existing playlist
         const existingPlaylist = await getPlaylist(newPlaylist.id);
