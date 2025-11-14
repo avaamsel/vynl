@@ -4,7 +4,7 @@ import { ITunesSong, ITunesPlaylist } from '@/src/types';
 type UseCreatePlaylistResult = {
   updateLoading: boolean;
   updateError: string | null;
-  updatePlaylist: (playlist_id: number, songs: ITunesSong[]) => Promise<ITunesPlaylist | null>;
+  updatePlaylist: (playlist_id: number, songs: ITunesSong[], newName: string) => Promise<ITunesPlaylist | null>;
 };
 
 export function useUpdatePlaylist(): UseCreatePlaylistResult {
@@ -12,7 +12,7 @@ export function useUpdatePlaylist(): UseCreatePlaylistResult {
   const [updateError, setError] = useState<string | null>(null);
 
   const updatePlaylist = useCallback(
-    async (playlist_id: number, songs: ITunesSong[]): Promise<ITunesPlaylist | null> => {
+    async (playlist_id: number, songs: ITunesSong[], newName: string): Promise<ITunesPlaylist | null> => {
       setLoading(true);
       setError(null);
 
@@ -23,7 +23,7 @@ export function useUpdatePlaylist(): UseCreatePlaylistResult {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + process.env.EXPO_PUBLIC_AUTH_TOKEN_TEST_PURPOSE_ONLY,
           },
-          body: JSON.stringify({ songs }),
+          body: JSON.stringify({ songs, newName }),
         });
 
         if (!res.ok) {

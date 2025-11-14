@@ -364,6 +364,7 @@ export default function Swiping() {
     });
   }, [index]);
 
+
   // swipe gestures
   const rotateCard = position.x.interpolate({
     inputRange: [-width / 2, 0, width / 2],
@@ -400,8 +401,7 @@ export default function Swiping() {
       
       if (dir === 'right') {
         setLiked(arr => [...arr, currentSong]);
-        setAddedSongs(arr => [...arr, currentSong])
-        updatePlaylist(newPlaylist.id, addedSongs);
+        setAddedSongs(arr => [...arr, currentSong]);
       } else {
         setPassed(arr => [...arr, currentSong]);
       }
@@ -412,6 +412,20 @@ export default function Swiping() {
       setPlaying(true);
     });
   }, [recommendedSongs]);
+
+  useEffect(() => {
+    if (addedSongs.length > 0) {
+      console.log("Update");
+      updatePlaylist(newPlaylist.id, addedSongs, newPlaylist.name);
+    }
+  }, [addedSongs]);
+
+  useEffect(() => {
+    if (addedSongs.length > 0) {
+      console.log("Update name");
+      updatePlaylist(newPlaylist.id, addedSongs, playlistName);
+    }
+  }, [playlistName]);
 
   const pan = useMemo(
     () =>
