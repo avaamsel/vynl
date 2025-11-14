@@ -47,6 +47,7 @@ const LoginPage: React.FC = () => {
         setErrors((prev) => ({ ...prev, password: error.message || 'Login failed' }));
       }
       const session = data.session;
+      console.log(session?.access_token);
       if (session?.access_token) {
         const searchResults = await fetchSongs("Charger", 5);
 
