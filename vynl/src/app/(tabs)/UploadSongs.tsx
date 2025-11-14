@@ -41,13 +41,13 @@ export default function UploadSongs() {
 
     setIsSaving(true);
 
-    const ok = await createPlaylist(
+    const playlist = await createPlaylist(
       "My Playlist",
       "86170e56-b3e2-4ea3-a663-12c94e531bd9",
       selected
     );
 
-    if (!ok) {
+    if (!playlist) {
       console.error("Playlist creation failed:", playlistError);
       setIsSaving(false);
       return;
@@ -55,7 +55,8 @@ export default function UploadSongs() {
 
     router.push({
       pathname: '/swipe',
-      params: { songs: JSON.stringify(selected) }
+      //TODO : remove songs
+      params: { songs: JSON.stringify(selected), playlist: JSON.stringify(playlist) }
     });
 
     setIsSaving(false);

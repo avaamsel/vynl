@@ -105,7 +105,6 @@ export async function POST(req: Request) {
             user_id: p_data.uid,
             name: p_data.name,
             songs: body.songs
-
         }
 
         return new Response(JSON.stringify(new_playlist), {

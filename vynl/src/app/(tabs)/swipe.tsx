@@ -6,11 +6,12 @@ import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { savePlaylist, updatePlaylist, getPlaylist, type Song as PlaylistSong } from '@/src/utils/playlistStorage';
+import { savePlaylist, updatePlaylist, getPlaylist } from '@/src/utils/playlistStorage';
 import AppButton from '@/src/components/AppButton';
 import { usePutSong } from '@/src/hooks/use-put-song';
 import { ITunesPlaylist, ITunesSong } from '@/src/types';
 import { useCreatePlaylist } from '@/src/hooks/use-create-playlist';
+import { useUpdatePlaylist } from '@/src/hooks/use-update-playlist';
 
 
 type Song = { id: string; title: string; artist: string; artwork: string };
@@ -105,24 +106,29 @@ function VinylDisc({ spinning, artwork }: { spinning: boolean; artwork: string }
 const SWIPE_SESSION_KEY = '@vynl:swipe_session';
 
 type SwipeHistory = {
-  songId: string;
+  songId: number;
   direction: 'left' | 'right';
   index: number;
 };
 
 export default function Swiping() {
-  const { songs } = useLocalSearchParams();
-  const selectedSongs: ITunesSong[] = JSON.parse(songs as string);
+  const { songs, playlist, mode } = useLocalSearchParams();
+  const newPlaylist: ITunesPlaylist = JSON.parse(playlist as string);
+  const seedSongs: ITunesSong[] = JSON.parse(songs as string);
   const router = useRouter();
   const [index, setIndex] = useState(0);
-  const [liked, setLiked] = useState<string[]>([]);
-  const [passed, setPassed] = useState<string[]>([]);
+  const [liked, setLiked] = useState<ITunesSong[]>([]);
+  const [passed, setPassed] = useState<ITunesSong[]>([]);
   const [playing, setPlaying] = useState(true);
   const [swipeHistory, setSwipeHistory] = useState<SwipeHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [playlistName, setPlaylistName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [playlistSaved, setPlaylistSaved] = useState(false);
+  const { updateLoading, updateError, updatePlaylist } = useUpdatePlaylist();
+  const [gettingSimilar, setGettingSimilar] = useState(false);
+  const [recommendedSongs, setRecommendations] = useState<ITunesSong[]>([]);
+
   
   //First we add the selected songs to the database
 /*   const { loading, error, putSong } = usePutSong();
@@ -155,17 +161,57 @@ export default function Swiping() {
   }, []); */
   //TODO : create a playlist
 
+  const numberOfRecommendedSongs = 15;
 
-  const params = { playlistId: "2", mode: "add", playlistName: "test", s1: null, s2: null};
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        setGettingSimilar(true);
 
-  const playlistId = params.playlistId as string | undefined;
-  const isAddingMode = params.mode === 'add' && !!playlistId;
+        const res = await fetch(`/api/playlist/recommendation/${encodeURIComponent(newPlaylist.id)}?amount=${numberOfRecommendedSongs}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + process.env.EXPO_PUBLIC_AUTH_TOKEN_TEST_PURPOSE_ONLY,
+          },
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          console.error(text || 'Failed to fetch similar songs');
+          return;
+        }
+
+        const result = await res.json();
+
+        //TODO : check if bad result ?
+
+        setRecommendations(result);
+
+      } catch (err: any) {
+        console.error('Error updating playlist:', err.message || err);
+      } finally {
+        setGettingSimilar(false);
+      }
+    };
+
+    fetchRecommendations();
+  }, []);
+
+  //OLD VERSION HARDCODED
+
+
+  //const params = { playlistId: "2", mode: "add", playlistName: "test", s1: null, s2: null};
+
+  //const playlistId = params.playlistId as string | undefined;
+  const isAddingMode = mode === 'add' && newPlaylist.id;
   
   const position = useRef(new Animated.ValueXY()).current;
   const cardOpacity = useRef(new Animated.Value(1)).current;
   
   // Load playlist name if in add mode
-  useEffect(() => {
+  //TODO : always in add mode, playlist.name exists
+/*   useEffect(() => {
     const loadPlaylistName = async () => {
       if (isAddingMode && playlistId) {
         try {
@@ -186,8 +232,10 @@ export default function Swiping() {
     };
     
     loadPlaylistName();
-  }, [isAddingMode, playlistId, params.playlistName]);
+  }, [isAddingMode, playlistId, params.playlistName]); */
 
+
+  //TODO : on peut garder pour le moment
   // Reset state function
   const resetState = useCallback((preservePlaylistName = false) => {
     setIndex(0);
@@ -204,6 +252,7 @@ export default function Swiping() {
     cardOpacity.setValue(1);
   }, [position, cardOpacity]);
 
+  // TODO : voir si on garde async storage
   // Clear session from storage
   const clearSession = useCallback(async () => {
     try {
@@ -218,7 +267,9 @@ export default function Swiping() {
     const loadSession = async () => {
       try {
         // If no seed songs provided, reset everything
-        if (!params.s1 || !params.s2) {
+
+        //TODO : diffrent check si les songs sont pas vides
+        if (seedSongs.length == 0) {
           await clearSession();
           resetState();
           setIsLoading(false);
@@ -229,7 +280,7 @@ export default function Swiping() {
         if (savedSession) {
           const session = JSON.parse(savedSession);
           // Only restore if we have the same seed songs
-          if (session.s1 === params.s1 && session.s2 === params.s2) {
+          if (session.seedSongs === seedSongs) {
             setIndex(session.index || 0);
             setLiked(session.liked || []);
             setPassed(session.passed || []);
@@ -252,27 +303,27 @@ export default function Swiping() {
     };
     
     loadSession();
-  }, [params.s1, params.s2, resetState, clearSession]);
+  }, [resetState, clearSession]);
 
   // Clear session when component comes into focus without params (user navigated back)
+  //TODO : ??
   useFocusEffect(
     useCallback(() => {
-      if (!params.s1 || !params.s2) {
+      if (seedSongs.length == 0) {
         // No seed songs, clear session and reset state
         clearSession();
         resetState();
       }
-    }, [params.s1, params.s2, clearSession, resetState])
+    }, [clearSession, resetState])
   );
 
   // Save session state whenever it changes (only if we have seed songs)
   useEffect(() => {
-    if (!isLoading && params.s1 && params.s2) {
+    if (!isLoading && seedSongs.length > 0) {
       const saveSession = async () => {
         try {
           const session = {
-            s1: params.s1,
-            s2: params.s2,
+            seedSongs,
             index,
             liked,
             passed,
@@ -285,16 +336,21 @@ export default function Swiping() {
       };
       saveSession();
     }
-  }, [index, liked, passed, swipeHistory, isLoading, params.s1, params.s2]);
+  }, [index, liked, passed, swipeHistory, isLoading, seedSongs]);
 
-  const top = SONGS[index];
-  const next = SONGS[index + 1];
-  const finished = index >= SONGS.length;
+  const top = recommendedSongs[index];
+  const next = recommendedSongs[index + 1];
+  const finished = index >= recommendedSongs.length;
 
   useEffect(() => {
-    if (top) Image.prefetch(top.artwork).catch(() => {});
-    if (next) Image.prefetch(next.artwork).catch(() => {});
-  }, [index]);
+    if (top?.cover_url) {
+      Image.prefetch(top.cover_url).catch(() => {});
+    }
+    if (next?.cover_url) {
+      Image.prefetch(next.cover_url).catch(() => {});
+    }
+  }, [index, top, next]);
+
 
   // fade in the new top card on index change
   useEffect(() => {
@@ -321,26 +377,22 @@ export default function Swiping() {
   const swipe = useCallback((dir: 'left' | 'right', vy: number) => {
     // Get current index from ref to ensure we have the latest value
     const currentIndex = indexRef.current;
-    const currentSong = SONGS[currentIndex];
+    const currentSong = recommendedSongs[currentIndex];
     
     if (!currentSong) return;
     
-    console.log('Swiping', dir, 'song:', currentSong.id, currentSong.title, 'at index:', currentIndex);
+    console.log('Swiping', dir, 'song:', currentSong.song_id, currentSong.title, 'at index:', currentIndex);
     
     const toX = dir === 'right' ? width * 1.3 : -width * 1.3;
     Haptics.selectionAsync();
     Animated.timing(position, { toValue: { x: toX, y: vy * 16 }, duration: 220, useNativeDriver: true }).start(() => {
       // Add to history for undo functionality
-      setSwipeHistory(prev => [...prev, { songId: currentSong.id, direction: dir, index: currentIndex }]);
+      setSwipeHistory(prev => [...prev, { songId: currentSong.song_id, direction: dir, index: currentIndex }]);
       
       if (dir === 'right') {
-        setLiked(arr => {
-          const newArr = [...arr, currentSong.id];
-          console.log('Liked songs after swipe:', newArr);
-          return newArr;
-        });
+        setLiked(arr => [...arr, currentSong]);
       } else {
-        setPassed(arr => [...arr, currentSong.id]);
+        setPassed(arr => [...arr, currentSong]);
       }
       
       // reset transform then advance next frame to avoid one-frame ghost
@@ -371,9 +423,9 @@ export default function Swiping() {
     
     // Remove from liked or passed
     if (lastSwipe.direction === 'right') {
-      setLiked(arr => arr.filter(id => id !== lastSwipe.songId));
+      setLiked(arr => arr.filter(id => id.song_id !== lastSwipe.songId));
     } else {
-      setPassed(arr => arr.filter(id => id !== lastSwipe.songId));
+      setPassed(arr => arr.filter(id => id.song_id !== lastSwipe.songId));
     }
     
     // Reset card position and opacity
@@ -398,52 +450,28 @@ export default function Swiping() {
   const programmatic = (dir: 'left' | 'right') => swipe(dir, 0);
 
   const handleSavePlaylist = async () => {
-    if (isAddingMode) {
-      // Adding to existing playlist - no name needed
-      if (isSaving || !playlistId) return;
-    } else {
-      // Creating new playlist - name required
-      if (!playlistName.trim() || isSaving) return;
-    }
+    if (isSaving || !newPlaylist.id) return;
+    
     
     setIsSaving(true);
     try {
       // Convert liked song IDs to Song objects
-      const likedSongs: PlaylistSong[] = liked
-        .map(songId => {
-          const song = SONGS.find(s => s.id === songId);
-          return song ? {
-            id: song.id,
-            title: song.title,
-            artist: song.artist,
-            artwork: song.artwork,
-          } : null;
-        })
-        .filter((song): song is PlaylistSong => song !== null);
+      const likedSongs = liked;
 
-      if (isAddingMode && playlistId) {
+      if (newPlaylist.id) {
         // Add songs to existing playlist
-        const existingPlaylist = await getPlaylist(playlistId);
+        const existingPlaylist = await getPlaylist(newPlaylist.id);
         if (existingPlaylist) {
           // Merge songs, avoiding duplicates
-          const existingSongIds = new Set(existingPlaylist.songs.map(s => s.id));
-          const newSongs = likedSongs.filter(s => !existingSongIds.has(s.id));
-          const updatedSongs = [...existingPlaylist.songs, ...newSongs];
-          await updatePlaylist(playlistId, { songs: updatedSongs });
+          const existingSongIds = new Set(existingPlaylist.songs.map(s => s.song_id));
+          //const newSongs = likedSongs.filter(s => !existingSongIds.has(s.id));
+          //const updatedSongs = [...existingPlaylist.songs, ...newSongs];
+          //await updatePlaylist(playlistId, { songs: updatedSongs });
           // Ensure playlist name is set from the loaded playlist
           if (!playlistName || playlistName !== existingPlaylist.name) {
             setPlaylistName(existingPlaylist.name);
           }
         }
-      } else {
-        // Create new playlist
-        const playlist = {
-          id: `playlist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          name: playlistName.trim(),
-          songs: likedSongs,
-          createdAt: Date.now(),
-        };
-        await savePlaylist(playlist);
       }
 
       setPlaylistSaved(true);
@@ -459,7 +487,7 @@ export default function Swiping() {
   };
 
   // Don't render until session is loaded
-  if (isLoading) {
+  if (isLoading || gettingSimilar) {
     return (
       <LinearGradient colors={['#F8F9FD', '#FFFFFF']} style={{ flex: 1 }}>
         <SafeAreaView style={styles.wrap}>
@@ -487,7 +515,7 @@ export default function Swiping() {
 
 
         <Text style={styles.counter}>
-          {Math.min(index + 1, SONGS.length)}/{SONGS.length}
+          {Math.min(index + 1, recommendedSongs.length)}/{recommendedSongs.length}
         </Text>
 
         {/* Home Button */}
@@ -501,9 +529,9 @@ export default function Swiping() {
         <View style={styles.deck}>
           {/* next card behind for depth */}
           {next && (
-            <View key={next.id} style={[styles.card, styles.cardUnder]}>
+            <View key={next.song_id} style={[styles.card, styles.cardUnder]}>
               <View style={styles.media}>
-                <VinylDisc spinning={false} artwork={next.artwork} />
+                <VinylDisc spinning={false} artwork={next?.cover_url || 'https://via.placeholder.com/150'} />
                 <Text numberOfLines={1} style={styles.song}>{next.title}</Text>
                 <Text numberOfLines={1} style={styles.artist}>{next.artist}</Text>
               </View>
@@ -512,7 +540,7 @@ export default function Swiping() {
 
           {!finished && top && (
             <Animated.View
-              key={top.id}
+              key={top.song_id}
               style={[
                 styles.card,
                 {
@@ -525,7 +553,7 @@ export default function Swiping() {
               removeClippedSubviews
             >
               <View style={styles.media}>
-                <VinylDisc spinning={playing} artwork={top.artwork} />
+                <VinylDisc spinning={playing} artwork={next?.cover_url || 'https://via.placeholder.com/150'} />
                 <Text numberOfLines={1} style={styles.song}>{top.title}</Text>
                 <Text numberOfLines={1} style={styles.artist}>{top.artist}</Text>
               </View>
@@ -597,12 +625,11 @@ export default function Swiping() {
                     nestedScrollEnabled
                     showsVerticalScrollIndicator={false}
                   >
-                    {liked.map((songId, idx) => {
-                      const song = SONGS.find(s => s.id === songId);
+                    {liked.map((song, idx) => {
                       return song ? (
-                        <View key={`${songId}-${idx}`} style={styles.songPreviewItem}>
+                        <View key={`${song.song_id}-${idx}`} style={styles.songPreviewItem}>
                           <Image
-                            source={{ uri: song.artwork }}
+                            source={{ uri: song?.cover_url || 'https://via.placeholder.com/150' }}
                             style={styles.previewArtwork}
                             contentFit="cover"
                           />
@@ -645,7 +672,7 @@ export default function Swiping() {
                       resetState(true);
                       router.push({
                         pathname: '/(tabs)/playlist-detail',
-                        params: { id: playlistId }
+                        params: { id: newPlaylist.id }
                       });
                     }}
                     backgroundColor="#F28695"
