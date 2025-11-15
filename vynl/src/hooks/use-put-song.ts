@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { ITunesSong } from '@/src/types';
+import { useAuth } from '../context/auth-context';
 
 type UsePutSongResult = {
   loading: boolean;
@@ -10,7 +11,8 @@ type UsePutSongResult = {
 export function usePutSong(): UsePutSongResult {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const { authToken } = useAuth();
+  
   const putSong = useCallback(async (song: ITunesSong) => {
     setLoading(true);
     setError(null);
@@ -19,7 +21,7 @@ export function usePutSong(): UsePutSongResult {
       const res = await fetch('/api/song', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 
-          'Authorization' : 'Bearer ' + process.env.EXPO_PUBLIC_AUTH_TOKEN_TEST_PURPOSE_ONLY,
+          'Authorization' : 'Bearer ' + authToken,
         },
         body: JSON.stringify(song),
       });

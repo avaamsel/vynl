@@ -12,9 +12,7 @@ import { usePutSong } from '@/src/hooks/use-put-song';
 import { ITunesPlaylist, ITunesSong } from '@/src/types';
 import { useCreatePlaylist } from '@/src/hooks/use-create-playlist';
 import { useUpdatePlaylist } from '@/src/hooks/use-update-playlist';
-
-
-type Song = { id: string; title: string; artist: string; artwork: string };
+import { useAuth } from '@/src/context/auth-context';
 
 const { width, height } = Dimensions.get('window');
 const DISC_SIZE = Math.min(width * 0.78, 320);
@@ -22,19 +20,6 @@ const LABEL_SIZE = DISC_SIZE * 0.38;   // center label with artwork
 const HOLE_SIZE  = DISC_SIZE * 0.04;
 const SWIPE_THRESHOLD = width * 0.28;
 const ROTATION = 12;
-
-const SONGS: Song[] = [
-  { id: '1',  title: 'SUPER SHY', artist: 'NEW JEANS', artwork: 'https://i.scdn.co/image/ab67616d00001e023d98a0ae7c78a3a9babaf8af' },
-  { id: '2',  title: 'ESPRESSO', artist: 'SABRINA CARPENTER', artwork: 'https://upload.wikimedia.org/wikipedia/en/7/71/Espresso_-_Sabrina_Carpenter.png' },
-  { id: '3',  title: 'SNOOZE', artist: 'SZA', artwork: 'https://m.media-amazon.com/images/I/91BazzuLE+L._UF350,350_QL50_.jpg' },
-  { id: '4',  title: 'THE ADULTS ARE TALKING', artist: 'THE STROKES', artwork: 'https://pics.filmaffinity.com/the_strokes_the_adults_are_talking-770338151-mmed.jpg' },
-  { id: '5',  title: 'FIRST PERSON SHOOTER', artist: 'DRAKE', artwork: 'https://m.media-amazon.com/images/I/41bNY36ilJL._UXNaN_FMjpg_QL85_.jpg' },
-  { id: '6',  title: 'RUSH', artist: 'TROYE SIVAN', artwork: 'https://upload.wikimedia.org/wikipedia/en/b/b4/Troye_Sivan_-_Rush.png' },
-  { id: '7',  title: 'TQG', artist: 'KAROL G & SHAKIRA', artwork: 'https://i.scdn.co/image/ab67616d0000b27382de1ca074ae63cb18fce335' },
-  { id: '8',  title: 'CALM DOWN', artist: 'REMA', artwork: 'https://upload.wikimedia.org/wikipedia/en/b/b1/Rema_-_Calm_Down.png' },
-  { id: '9',  title: 'BAGS', artist: 'CLAIRO', artwork: 'https://i.scdn.co/image/ab67616d0000b27333ccb60f9b2785ef691b2fbc' },
-  { id: '10', title: 'HOT GIRL', artist: 'CHARLI XCX', artwork: 'https://i1.sndcdn.com/artworks-19CTU1x0lsAE-0-t500x500.jpg' },
-];
 
 const BLUR = 'L5H2EC=PM+yV0g-mq.wG9c010J}I';
 
@@ -129,6 +114,7 @@ export default function Swiping() {
   const { updateLoading, updateError, updatePlaylist } = useUpdatePlaylist();
   const [gettingSimilar, setGettingSimilar] = useState(false);
   const [recommendedSongs, setRecommendations] = useState<ITunesSong[]>([]);
+  const { authToken } = useAuth();
 
   
   //First we add the selected songs to the database
@@ -173,7 +159,7 @@ export default function Swiping() {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + process.env.EXPO_PUBLIC_AUTH_TOKEN_TEST_PURPOSE_ONLY,
+            'Authorization': 'Bearer ' + authToken,
           },
         });
 

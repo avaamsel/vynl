@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import AppButton from '@/src/components/AppButton';
 import {
-  SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView
+  SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -10,12 +10,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSongSearch } from '@/src/hooks/use-song-search';
 import { ITunesSong, ITunesPlaylist } from '@/src/types';
 import { useCreatePlaylist } from '@/src/hooks/use-create-playlist';
+import { useAuth } from '@/src/context/auth-context';
+import { supabase } from '@/src/utils/supabase';
+
 
 export default function UploadSongs() {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<ITunesSong[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const { loading: savingPlaylistLoading, error: playlistError, createPlaylist } = useCreatePlaylist();
+  const { authToken, loading: authLoading} = useAuth();
 
   const router = useRouter();
 
@@ -23,7 +27,6 @@ export default function UploadSongs() {
 
   //TODO : dif between liked and selected songs ? 
   const likedSongs = useMemo(() => {
-    console.log("Selected : " + selected);
     if (!selected.length) return [];
     return selected;
   }, [selected, filtered]);
@@ -37,13 +40,17 @@ export default function UploadSongs() {
 
   // Navigate to swipe.tsx with the two picks
   const goSwiping = async () => {
-    if (!ready) return;
+    console.log("Go swipping");
+    if (!ready || authLoading || !authToken) return;
 
     setIsSaving(true);
 
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not logged in");
+
     const playlist = await createPlaylist(
       "My Playlist",
-      "86170e56-b3e2-4ea3-a663-12c94e531bd9",
+      user.id,
       selected
     );
 
@@ -165,7 +172,7 @@ export default function UploadSongs() {
         <View style={s.cta}>
             <AppButton
               title={ready ? 'Start Swiping' : `Pick ${2 - selected.length} more`}
-              disabled={!ready}
+              disabled={!ready || authLoading || isSaving}
               onPress={goSwiping}
               backgroundColor="#FFFFFF"
               textColor="#000000"
@@ -235,4 +242,15 @@ const s = StyleSheet.create({
   dotOn: { backgroundColor: '#2F2F2F' },
   check: { color: 'white', fontWeight: '800' },
   cta: { position: 'absolute', left: 30, right: 30, bottom: 100 },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

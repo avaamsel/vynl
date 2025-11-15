@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 import { ITunesSong, ITunesPlaylist } from '@/src/types';
+import { useAuth } from '../context/auth-context';
+
 
 type UseCreatePlaylistResult = {
   loading: boolean;
@@ -10,9 +12,16 @@ type UseCreatePlaylistResult = {
 export function useCreatePlaylist(): UseCreatePlaylistResult {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { authToken, loading: authLoading } = useAuth();
 
   const createPlaylist = useCallback(
     async (name: string, user_id: string, songs: ITunesSong[]): Promise<ITunesPlaylist | null> => {
+
+      if (authLoading || !authToken) {
+        setError('Auth token not ready yet');
+        return null;
+      }
+
       setLoading(true);
       setError(null);
 
@@ -21,7 +30,7 @@ export function useCreatePlaylist(): UseCreatePlaylistResult {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + process.env.EXPO_PUBLIC_AUTH_TOKEN_TEST_PURPOSE_ONLY,
+            'Authorization': 'Bearer ' + authToken,
           },
           body: JSON.stringify({ name, user_id, songs }),
         });
@@ -44,7 +53,7 @@ export function useCreatePlaylist(): UseCreatePlaylistResult {
         setLoading(false);
       }
     },
-    []
+    [authToken, authLoading]
   );
 
   return { loading, error, createPlaylist };
