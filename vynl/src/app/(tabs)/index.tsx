@@ -58,11 +58,11 @@ export default function DashboardScreen() {
 
           {/* Create New Playlist Button */}
           <View style={styles.buttonContainer}>
-            <View style={styles.playlistButton}>
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => router.push('/(tabs)/UploadSongs')}
-              >
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => router.push('/(tabs)/UploadSongs')}
+            >
+              <View style={styles.playlistButton}>
                 <LinearGradient
                   colors={['#FF6B9D', '#FF8C42']}
                   start={{ x: 0, y: 0 }}
@@ -71,12 +71,12 @@ export default function DashboardScreen() {
                 >
                   <Text style={styles.plusSign}>+</Text>
                 </LinearGradient>
-              </TouchableOpacity>
-              <View style={styles.buttonTextContainer}>
-                <Text style={styles.buttonTitle}>Create New Playlist</Text>
-                <Text style={styles.buttonSubtitle}>Start discovering your music</Text>
+                <View style={styles.buttonTextContainer}>
+                  <Text style={styles.buttonTitle}>Create New Playlist</Text>
+                  <Text style={styles.buttonSubtitle}>Start discovering your music</Text>
+                </View>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </SafeAreaView>
