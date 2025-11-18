@@ -3,46 +3,29 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image as ExpoImage } from 'expo-image';
-import { getPlaylists, deletePlaylist, type Playlist } from '@/src/utils/playlistStorage';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { useUser } from '@/src/hooks/use-user';
+import { useUserPlaylists } from '@/src/hooks/use-playlist-for-user';
 
 export default function PlaylistsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, loading: authLoading } = useUser();
+  const uid = user?.id;
   
+  const { playlists, loading: playlistLoading, error } = useUserPlaylists(uid ?? null);
+
   // Calculate bottom padding: tab bar height (90) + safe area bottom + extra padding
   // Tab bar is absolutely positioned at bottom, height 90px with paddingBottom 20px
   // We need enough space so content doesn't scroll under the tab bar
   // Using a larger fixed value to ensure content stays above the nav bar
   const bottomPadding = Math.max(90 + insets.bottom + 50, 150);
 
-  const loadPlaylists = useCallback(async () => {
+
+  const handleDelete = async (playlistId: number) => {
     try {
-      const loaded = await getPlaylists();
-      // Sort by creation date, newest first
-      loaded.sort((a, b) => b.createdAt - a.createdAt);
-      setPlaylists(loaded);
-    } catch (error) {
-      console.error('Error loading playlists:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadPlaylists();
-    }, [loadPlaylists])
-  );
-
-
-  const handleDelete = async (playlistId: string) => {
-    try {
-      await deletePlaylist(playlistId);
-      loadPlaylists();
+      //TODO : implement
     } catch (error) {
       console.error('Error deleting playlist:', error);
     }
@@ -60,7 +43,7 @@ export default function PlaylistsScreen() {
           <Text style={styles.title}>My Playlists</Text>
         </View>
 
-        {isLoading ? (
+        {authLoading || playlistLoading ? (
           <View style={styles.centerContent}>
             <Text style={styles.loadingText}>Loading...</Text>
           </View>
@@ -77,27 +60,27 @@ export default function PlaylistsScreen() {
             showsVerticalScrollIndicator={false}
             contentInsetAdjustmentBehavior="automatic"
           >
-            {playlists.map((playlist) => (
+            {playlists.map((p) => (
               <TouchableOpacity
-                key={playlist.id}
+                key={p.id}
                 style={styles.playlistCard}
                 onPress={() => router.push({
                   pathname: '/(tabs)/playlist-detail',
-                  params: { id: playlist.id }
+                  params: { id: p.id }
                 })}
                 activeOpacity={0.7}
               >
                 <View style={styles.playlistHeader}>
                   <View style={styles.playlistInfo}>
-                    <Text style={styles.playlistName} numberOfLines={1}>{playlist.name}</Text>
+                    <Text style={styles.playlistName} numberOfLines={1}>{p.name}</Text>
                     <Text style={styles.playlistMeta}>
-                      {playlist.songs.length} song{playlist.songs.length !== 1 ? 's' : ''} · {formatDate(playlist.createdAt)}
+                      {(p.songs ?? []).length} song{(p.songs ?? []).length !== 1 ? 's' : ''} · {new Date(p.created_at).toLocaleDateString()}
                     </Text>
                   </View>
                   <TouchableOpacity
                     onPress={(e) => {
                       e.stopPropagation();
-                      handleDelete(playlist.id);
+                      handleDelete(p.id);
                     }}
                     style={styles.deleteButton}
                   >
@@ -105,12 +88,12 @@ export default function PlaylistsScreen() {
                   </TouchableOpacity>
                 </View>
 
-                {playlist.songs.length > 0 && (
+                {(p.songs ?? []).length > 0 && (
                   <View style={styles.songsContainer}>
-                    {playlist.songs.slice(0, 3).map((song, idx) => (
-                      <View key={`${playlist.id}-${song.id}-${idx}`} style={styles.songItem}>
+                    {(p.songs ?? []).slice(0, 3).map((song, idx) => (
+                      <View key={`${song.song_id}`} style={styles.songItem}>
                         <ExpoImage
-                          source={{ uri: song.artwork }}
+                          source={{ uri: song?.cover_url || 'https://via.placeholder.com/150'}}
                           style={styles.songArtwork}
                           contentFit="cover"
                         />
@@ -120,8 +103,8 @@ export default function PlaylistsScreen() {
                         </View>
                       </View>
                     ))}
-                    {playlist.songs.length > 3 && (
-                      <Text style={styles.moreSongs}>+{playlist.songs.length - 3} more</Text>
+                    {(p.songs ?? []).length > 3 && (
+                      <Text style={styles.moreSongs}>+{(p.songs ?? []).length - 3} more</Text>
                     )}
                   </View>
                 )}
@@ -135,6 +118,7 @@ export default function PlaylistsScreen() {
 }
 
 const styles = StyleSheet.create({
+  wrap: { flex: 1, paddingHorizontal: 18 },
   container: {
     flex: 1,
   },

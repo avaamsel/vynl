@@ -1,3 +1,4 @@
+import { getPlaylistFromDatabase } from "@/src/server/dataDeserialization";
 import { createSupabaseClient } from "@/src/server/supabase";
 import { isITunesPlaylist, ITunesPlaylist } from "@/src/types";
 import { isPlaylistData, isPlaylistSong, isSongData } from "@/src/types/database";
@@ -11,17 +12,37 @@ export async function GET(req: Request) {
             return supabase
         }
 
-        const { data, error } = await supabase
-            .from('playlists')
-            .select('*')
+        const { searchParams } = new URL(req.url);
+        const uid = searchParams.get("uid");
+
+        let data, error;
+
+        if (!uid) {
+            ({ data, error } = await supabase
+                .from('playlists')
+                .select('*'));
+        } else {
+            ({ data, error } = await supabase
+                .from('playlists')
+                .select('*')
+                .eq('uid', uid));
+        }
 
         if (error) {
             console.log("Error fetching playlists:", error);
             return new Response(JSON.stringify({ error: error.message }), { status: 404 })
         }
 
-        console.log("Fetched playlists:", data);
-        return new Response(JSON.stringify(data), {
+        if (!data) return new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+
+        const playlistsOrResponses = await Promise.all(
+            data.map(d => getPlaylistFromDatabase(String(d.playlist_id), supabase))
+        );
+
+        const errorResponse = playlistsOrResponses.find(p => p instanceof Response);
+        if (errorResponse) return errorResponse;
+
+        return new Response(JSON.stringify(playlistsOrResponses), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
         })
