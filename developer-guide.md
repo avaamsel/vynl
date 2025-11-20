@@ -33,11 +33,11 @@ vynl/                  # Project root
 ├── .expo/             # Expo-managed metadata and caches (do not edit manually)
 ├── node_modules/      # Installed dependencies managed by npm
 ├── vynl/              # Primary application source    
-│   └── app/           # Screens adn routing using Expo router
+│   └── app/           # Screens and routing using Expo router
 │   └── assets/
 │       └──images/     # Application images and icons
 │       └──fonts/      # Application fonts
-│   └── components/    # Resuable UI components
+│   └── components/    # Reusable UI components
 │   └── constants/     # Shared constants such as colors, spacing, route names
 │   └── hooks/         # Custom React hooks and client-side logic
 │   └── scripts/       # Local automation scripts and developer utilities
