@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
+import { Database } from '../types/database.types';
 
 if (!process.env.EXPO_PUBLIC_SUPABASE_URL) {
   throw new Error('Missing EXPO_PUBLIC_SUPABASE_URL');
@@ -16,11 +17,11 @@ const storage = Platform.OS === 'web'
   ? localStorage 
   : AsyncStorage;
 
-export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabasePublishableKey, {
   auth: {
     storage: storage,
     autoRefreshToken: true,
-    persistSession: true,
+    persistSession: Platform.OS !== 'web',
     detectSessionInUrl: Platform.OS === 'web',
   },
 })
