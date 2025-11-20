@@ -15,7 +15,9 @@ export async function deserializePlaylist(playlist_data: playlist_data, supabase
                 song_id,
                 title,
                 artist,
-                duration_sec
+                duration_sec,
+                cover_url,
+                preview_url
             )`)
         .eq("playlist_id", playlist_data.playlist_id)
         .order("position", { ascending: true });
@@ -84,6 +86,7 @@ export async function getPlaylistFromDatabase(id: string, supabase: SupabaseClie
             status: 500
         });
     }
+    console.log("Deserialised playlist 1st song : ", deserializedPlaylist.songs[0]);
     return deserializedPlaylist;
 }
 

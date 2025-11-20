@@ -36,6 +36,7 @@ export default function PlaylistsScreen() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+
   return (
     <LinearGradient colors={['#F8F9FD', '#FFFFFF']} style={{ flex: 1 }}>
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -93,7 +94,7 @@ export default function PlaylistsScreen() {
                     {(p.songs ?? []).slice(0, 3).map((song, idx) => (
                       <View key={`${song.song_id}`} style={styles.songItem}>
                         <ExpoImage
-                          source={{ uri: song?.cover_url || 'https://via.placeholder.com/150'}}
+                          source={{ uri: song?.cover_url || 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Cat_November_2010-1a.jpg/960px-Cat_November_2010-1a.jpg'}}
                           style={styles.songArtwork}
                           contentFit="cover"
                         />

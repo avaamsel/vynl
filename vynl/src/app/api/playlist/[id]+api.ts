@@ -6,6 +6,7 @@ import { isITunesPlaylist } from "@/src/types";
 // GET "api/playlist"
 export async function GET(req: Request, { id }: Record<string, string>) {
     try {
+        console.log("In the GET");
         const supabase = await createSupabaseClient(req);
 
         // If given an error response return it
@@ -13,12 +14,13 @@ export async function GET(req: Request, { id }: Record<string, string>) {
             return supabase
         }
 
-        const playlist = getPlaylistFromDatabase(id, supabase);
+        const playlist = await getPlaylistFromDatabase(id, supabase);
         
         // If given an error response from playlist method
         if (playlist instanceof Response) {
             return playlist;
         }
+        console.log("Playlist : ", playlist);
 
         return new Response(JSON.stringify(playlist), {
             status: 200,

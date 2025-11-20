@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ITunesPlaylist } from "../types";
+import { ITunesPlaylist, ITunesSong } from "../types";
 import { useAuth } from "../context/auth-context";
 
 export function useUserPlaylists(uid: string | null) {
@@ -40,6 +40,7 @@ export function useUserPlaylists(uid: string | null) {
           songs: p.songs
         }));
 
+        //TODO : change order
         mapped.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
         setPlaylists(mapped);
@@ -53,6 +54,5 @@ export function useUserPlaylists(uid: string | null) {
     fetchPlaylists();
   }, [uid]);
 
-  console.log("Playlists : ", playlists);
   return { playlists, loading, error };
 }
