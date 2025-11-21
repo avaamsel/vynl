@@ -29,14 +29,10 @@ export async function createUser(adminClient: SupabaseClient, email: string, pas
     });
 
     return verified; // have inside the session
-    
-    
 }
 
-// Clears the test database of all data
+// Clears the test database of all data besides the auth table
 export async function clearDatabase(adminClient: SupabaseClient) {
-    await deleteAllUsers(adminClient);
-
     const { error: playlistError } = await adminClient
         .from('playlists')
         .delete()
@@ -82,7 +78,7 @@ export async function clearDatabase(adminClient: SupabaseClient) {
     }
 }
 
-async function deleteAllUsers(adminClient: SupabaseClient) {
+export async function deleteAllUsers(adminClient: SupabaseClient) {
     try {
         // Get all users (you might need pagination for a large number of users)
         const { data: users, error: listError } = await adminClient.auth.admin.listUsers();
