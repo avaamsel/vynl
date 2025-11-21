@@ -31,6 +31,6 @@ export async function createSupabaseClient(req: Request): Promise<SupabaseClient
 }
 
 // Used for testing only. Will provide FULL access to the database, bypassing RLS.
-export async function createSupabaseAdminClient(): Promise<SupabaseClient<Database>> {
+export function createSupabaseAdminClient(): SupabaseClient<Database> {
     return createClient<Database>(supabaseUrl, supabasePrivateKey);
 }
