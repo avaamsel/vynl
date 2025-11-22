@@ -37,7 +37,6 @@ describe('Test Backend', () => {
     });
 
     describe('Connected to Supabase', () => {
-
         beforeEach(async () => {
             await clearDatabase(adminClient)
         });
@@ -138,6 +137,48 @@ describe('Test Backend', () => {
             
             expect(error).toBeNull();
             expect(data?.uid).toBe(body.user_id);
+        });
+
+        test("Create Filled Playlist", async () => {
+            const empty_playlist = {
+                "id": 0, 
+                "name": "An empty playlist", 
+                "created_at": "", 
+                "user_id": user.id, 
+                "songs": [
+                    { song_id: 12, title: "test song", artist: "fake artist", preview_url: "example.com", cover_url: "example.com", duration_sec: 51 },
+                    { song_id: 42, title: "test song 2", artist: "abcd", preview_url: "test.com/abcd", cover_url: "test.com/abcd", duration_sec: 231 },
+                    { song_id: 42, title: "test song 3", artist: "xyz", preview_url: "test.com/xyz", cover_url: "test.com/xyz", duration_sec: 192 }
+                ]
+            }
+
+            const req = new Request("localhost:1234/api/playlist", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify(empty_playlist)
+            });
+            expect(req).not.toBeNull();
+
+            // Call post endpoint
+            const res = await POST_PLAYLIST(req);
+            const body = await res.json();
+            expect(isITunesPlaylist(body)).toBeTruthy();
+
+            const { data: playlist_data, error: playlist_error } = await adminClient
+                .from('playlists')
+                .select()
+                .eq('name', empty_playlist.name)
+                .single();
+            
+            expect(playlist_error).toBeNull();
+            expect(playlist_data?.uid).toBe(body.user_id);
+
+            const { data: songs_data, error: songs_error } = await adminClient
+                .from('songs')
+                .select();
         });
     });
 });
