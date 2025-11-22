@@ -277,6 +277,17 @@ export async function createSpotifyPlaylist(
 }
 
 /**
+ * Validate a Spotify track URI
+ */
+function isValidSpotifyUri(uri: string | null | undefined): boolean {
+  if (!uri || typeof uri !== 'string') {
+    return false;
+  }
+  // Spotify URIs should be in format: spotify:track:<track_id>
+  return uri.startsWith('spotify:track:') && uri.length > 14;
+}
+
+/**
  * Add tracks to a Spotify playlist
  */
 export async function addTracksToSpotifyPlaylist(
@@ -288,10 +299,27 @@ export async function addTracksToSpotifyPlaylist(
     throw new Error('Not authenticated with Spotify');
   }
 
+  // Filter out invalid URIs before processing
+  const validUris = trackUris.filter(uri => isValidSpotifyUri(uri));
+  
+  console.log(`Adding ${validUris.length} track URI(s) to playlist ${playlistId}:`);
+  validUris.forEach((uri, index) => {
+    console.log(`  [${index + 1}] ${uri}`);
+  });
+  
+  if (validUris.length === 0) {
+    throw new Error('No valid track URIs to add to playlist');
+  }
+
+  if (validUris.length < trackUris.length) {
+    const invalidCount = trackUris.length - validUris.length;
+    console.warn(`Filtered out ${invalidCount} invalid track URI(s)`);
+  }
+
   // Spotify API allows adding up to 100 tracks at once
   const chunks = [];
-  for (let i = 0; i < trackUris.length; i += 100) {
-    chunks.push(trackUris.slice(i, i + 100));
+  for (let i = 0; i < validUris.length; i += 100) {
+    chunks.push(validUris.slice(i, i + 100));
   }
 
   for (const chunk of chunks) {
@@ -314,7 +342,27 @@ export async function addTracksToSpotifyPlaylist(
         await clearSpotifyTokens();
         throw new Error('Spotify authentication expired');
       }
-      throw new Error('Failed to add tracks to Spotify playlist');
+      
+      // Try to get more detailed error information
+      let errorMessage = 'Failed to add tracks to Spotify playlist';
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error.message || errorMessage;
+          // If it's an INVALID_URI error, provide more helpful context
+          if (errorData.error.message?.includes('INVALID_URI') || 
+              errorData.error.message?.includes('invalid uri')) {
+            errorMessage = `Invalid track URI detected. Please try exporting again. The problematic track may have been filtered out automatically.`;
+            console.error('INVALID_URI error details:', errorData);
+            console.error('URIs that caused the error:', chunk);
+          }
+        }
+      } catch (e) {
+        // If we can't parse the error, use the default message
+        console.error('Failed to parse error response:', e);
+      }
+      
+      throw new Error(errorMessage);
     }
   }
 }
@@ -351,15 +399,19 @@ export async function exportPlaylistToSpotify(
         const searchQuery = `track:${song.title} artist:${song.artist}`;
         const results = await searchSpotifyTrack(searchQuery, 1);
         
-        if (results.length > 0) {
+        if (results.length > 0 && results[0].uri && isValidSpotifyUri(results[0].uri)) {
+          console.log(`Found URI for "${song.title}" by ${song.artist}: ${results[0].uri}`);
           trackUris.push(results[0].uri);
           tracksFound++;
         } else {
           // Try with just the title
           const titleOnlyResults = await searchSpotifyTrack(song.title, 1);
-          if (titleOnlyResults.length > 0) {
+          if (titleOnlyResults.length > 0 && titleOnlyResults[0].uri && isValidSpotifyUri(titleOnlyResults[0].uri)) {
+            console.log(`Found URI for "${song.title}" by ${song.artist}: ${titleOnlyResults[0].uri}`);
             trackUris.push(titleOnlyResults[0].uri);
             tracksFound++;
+          } else {
+            console.warn(`No valid URI found for "${song.title}" by ${song.artist}`);
           }
         }
       } catch (error) {

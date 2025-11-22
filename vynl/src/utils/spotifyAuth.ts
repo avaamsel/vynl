@@ -68,14 +68,25 @@ const SPOTIFY_SCOPES = [
 
 // Redirect URI - needs to match what's configured in Spotify app settings
 const getRedirectUri = () => {
+  let redirectUri: string;
+  
   if (Platform.OS === 'web') {
     if (typeof window !== 'undefined') {
-      return `${window.location.origin}/api/spotify/callback`;
+      redirectUri = `${window.location.origin}/api/spotify/callback`;
+    } else {
+      redirectUri = 'http://localhost:8081/api/spotify/callback';
     }
-    return 'http://localhost:8081/api/spotify/callback';
+  } else {
+    redirectUri = AuthSession.makeRedirectUri();
   }
-
-  return AuthSession.makeRedirectUri();
+  
+  console.log(`[Spotify Auth] Generated redirect URI: ${redirectUri}`);
+  console.log(`[Spotify Auth] Platform: ${Platform.OS}`);
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    console.log(`[Spotify Auth] Window location origin: ${window.location.origin}`);
+  }
+  
+  return redirectUri;
 };
 
 /**
@@ -87,6 +98,9 @@ export async function initiateSpotifyAuth(): Promise<string | void> {
   }
 
   const redirectUri = getRedirectUri();
+  
+  console.log(`[Spotify Auth] Starting OAuth flow with redirect URI: ${redirectUri}`);
+  console.log(`[Spotify Auth] Make sure this redirect URI is added to your Spotify app settings at: https://developer.spotify.com/dashboard`);
 
   if (Platform.OS === 'web') {
     const authUrl = `https://accounts.spotify.com/authorize?${new URLSearchParams({
@@ -97,6 +111,7 @@ export async function initiateSpotifyAuth(): Promise<string | void> {
       show_dialog: 'true',
     })}`;
     
+    console.log(`[Spotify Auth] Generated auth URL: ${authUrl}`);
     return authUrl;
   } else {
     try {
@@ -126,12 +141,29 @@ export async function initiateSpotifyAuth(): Promise<string | void> {
           throw new Error('No authorization code received');
         }
       } else if (result.type === 'error') {
-        throw new Error(result.error?.message || 'Authentication failed');
+        const errorMsg = result.error?.message || 'Authentication failed';
+        console.error(`[Spotify Auth] OAuth error: ${errorMsg}`);
+        if (errorMsg.includes('redirect_uri') || errorMsg.includes('redirect URI')) {
+          console.error(`[Spotify Auth] Redirect URI mismatch!`);
+          console.error(`[Spotify Auth] The redirect URI being used is: ${redirectUri}`);
+          console.error(`[Spotify Auth] Please ensure this exact URI is added in your Spotify app settings:`);
+          console.error(`[Spotify Auth] 1. Go to https://developer.spotify.com/dashboard`);
+          console.error(`[Spotify Auth] 2. Select your app`);
+          console.error(`[Spotify Auth] 3. Click "Edit Settings"`);
+          console.error(`[Spotify Auth] 4. Add "${redirectUri}" to the "Redirect URIs" list`);
+          console.error(`[Spotify Auth] 5. Save changes`);
+        }
+        throw new Error(errorMsg);
       } else {
         throw new Error('Authentication cancelled');
       }
     } catch (error: any) {
-      console.error('Error in Spotify auth:', error);
+      console.error('[Spotify Auth] Error in Spotify auth:', error);
+      if (error.message?.includes('redirect_uri') || error.message?.includes('redirect URI') || error.message?.includes('invalid_client')) {
+        console.error(`[Spotify Auth] Redirect URI error detected!`);
+        console.error(`[Spotify Auth] The redirect URI being used is: ${redirectUri}`);
+        console.error(`[Spotify Auth] Please check your Spotify app settings and ensure this redirect URI is configured.`);
+      }
       throw error;
     }
   }
