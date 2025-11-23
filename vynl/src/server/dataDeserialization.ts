@@ -15,7 +15,9 @@ export async function deserializePlaylist(playlist_data: playlist_data, supabase
                 song_id,
                 title,
                 artist,
-                duration_sec
+                duration_sec,
+                cover_url,
+                preview_url
             )`)
         .eq("playlist_id", playlist_data.playlist_id)
         .order("position", { ascending: true });

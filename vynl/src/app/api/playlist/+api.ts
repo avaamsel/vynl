@@ -1,3 +1,4 @@
+import { deserializePlaylist } from "@/src/server/dataDeserialization";
 import { createSupabaseClient } from "@/src/server/supabase";
 import { isITunesPlaylist, ITunesPlaylist } from "@/src/types";
 import { isPlaylistData, isPlaylistSong, isSongData } from "@/src/types/database";
@@ -20,8 +21,14 @@ export async function GET(req: Request) {
             return new Response(JSON.stringify({ error: error.message }), { status: 404 })
         }
 
-        console.log("Fetched playlists:", data);
-        return new Response(JSON.stringify(data), {
+        let playlists = [];
+        for (let i = 0; i < data.length; i++) {
+            let playlist = await deserializePlaylist(data[i], supabase);
+            playlists.push(playlist);
+        }
+
+
+        return new Response(JSON.stringify(playlists), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
         })
