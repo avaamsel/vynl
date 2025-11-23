@@ -4,6 +4,7 @@ import { clear } from "console";
 import { POST, POST as POST_PLAYLIST } from "@/src/app/api/playlist/+api";
 import { isITunesPlaylist } from "@/src/types";
 import { Session, User } from "@supabase/supabase-js";
+import { emitTypingEvents } from "@testing-library/react-native/build/user-event/type/type";
 
 describe('Test Backend', () => {
     const adminClient = createSupabaseAdminClient();
@@ -14,7 +15,9 @@ describe('Test Backend', () => {
     let session: Session;
 
     beforeAll(async () => {
-        const user_data = await createUser(adminClient, 'test@test.com', '123456');
+        await clearDatabase(adminClient);
+        await deleteAllUsers(adminClient);
+        const user_data = await createUser('test@test.com', '123456');
         if (user_data == null || user_data.user == null || user_data.session == null) {
             console.error('Error creating user');
             return;
@@ -100,11 +103,10 @@ describe('Test Backend', () => {
 
     describe("Testing Endpoint: POST 'api/playlist'", () => {
         beforeEach(async () => {
-            await clearDatabase(adminClient)
+            await clearDatabase(adminClient);
         });
 
         test("Create Empty Playlist", async () => {
-
             const empty_playlist = {
                 "id": 0, 
                 "name": "An empty playlist", 
@@ -128,7 +130,7 @@ describe('Test Backend', () => {
             const res = await POST_PLAYLIST(req);
             const body = await res.json();
             expect(isITunesPlaylist(body)).toBeTruthy();
-
+            
             const { data, error } = await adminClient
                 .from('playlists')
                 .select()
@@ -144,11 +146,11 @@ describe('Test Backend', () => {
                 "id": 0, 
                 "name": "An empty playlist", 
                 "created_at": "", 
-                "user_id": user.id, 
+                "user_id": user.id,
                 "songs": [
                     { song_id: 12, title: "test song", artist: "fake artist", preview_url: "example.com", cover_url: "example.com", duration_sec: 51 },
                     { song_id: 42, title: "test song 2", artist: "abcd", preview_url: "test.com/abcd", cover_url: "test.com/abcd", duration_sec: 231 },
-                    { song_id: 42, title: "test song 3", artist: "xyz", preview_url: "test.com/xyz", cover_url: "test.com/xyz", duration_sec: 192 }
+                    { song_id: 52, title: "test song 3", artist: "xyz", preview_url: "test.com/xyz", cover_url: "test.com/xyz", duration_sec: 192 }
                 ]
             }
 
@@ -179,6 +181,16 @@ describe('Test Backend', () => {
             const { data: songs_data, error: songs_error } = await adminClient
                 .from('songs')
                 .select();
+
+            expect(songs_data).toBeDefined();
+            expect(songs_error).toBeNull();
+            for (let i = 0; i < songs_data!.length; i++) {
+                let database_song = songs_data![i];
+                let original_song = empty_playlist.songs.find(
+                    song => song.song_id == database_song.song_id
+                );
+                expect(database_song).toStrictEqual(original_song);
+            }
         });
     });
 });

@@ -81,7 +81,12 @@ export async function POST(req: Request) {
                     song_id: cur_song.song_id
                 });
 
-            if (ps_err || s_err || !isSongData(s_data) || !isPlaylistSong(ps_data)) {
+            if (ps_err || s_err) {
+                console.log(ps_err);
+                console.log(s_err);
+                console.log(s_data);
+                console.log(ps_data);
+
                 return new Response('Failed to insert songs into database', {
                     status: 400
                 });

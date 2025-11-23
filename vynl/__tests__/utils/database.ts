@@ -1,8 +1,11 @@
 import { createSupabaseAdminClient } from "@/src/server/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
 
-export async function createUser(adminClient: SupabaseClient, email: string, password: string) {
-    const { data, error } = await adminClient.auth.admin.createUser({
+export async function createUser(email: string, password: string) {
+    // Must use a new supabase client since this one will inherit the user's
+    // session info, making its role now authenticated and not service role.
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase.auth.admin.createUser({
         email: email,
         password: password
     });
@@ -13,7 +16,7 @@ export async function createUser(adminClient: SupabaseClient, email: string, pas
         return;
     }
 
-    const { data: magicLink } = await adminClient.auth.admin.generateLink({
+    const { data: magicLink } = await supabase.auth.admin.generateLink({
         type: "magiclink",
         email: email,
     });
@@ -23,7 +26,7 @@ export async function createUser(adminClient: SupabaseClient, email: string, pas
     }
 
     // Verify OTP to create session
-    const { data: verified } = await adminClient.auth.verifyOtp({
+    const { data: verified } = await supabase.auth.verifyOtp({
         token_hash: magicLink.properties.hashed_token,
         type: 'email',
     });
@@ -33,11 +36,22 @@ export async function createUser(adminClient: SupabaseClient, email: string, pas
 
 // Clears the test database of all data besides the auth table
 export async function clearDatabase(adminClient: SupabaseClient) {
+    const { error: playlistSongError } = await adminClient
+        .from('playlists_songs')
+        .delete()
+        .neq('song_id', 0);
+    
+    if (playlistSongError) {
+        console.error('Error deleting playlists songs: ');
+        console.error(playlistSongError);
+        return;
+    }
+
     const { error: playlistError } = await adminClient
         .from('playlists')
         .delete()
-        .neq('name', '');
-    
+        .neq('playlist_id', 0);
+
     if (playlistError) {
         console.error('Error deleting playlist: ');
         console.error(playlistError)
@@ -52,17 +66,6 @@ export async function clearDatabase(adminClient: SupabaseClient) {
     if (songError) {
         console.error('Error deleting songs: ');
         console.error(songError);
-        return;
-    }
-    
-    const { error: playlistSongError } = await adminClient
-        .from('playlists_songs')
-        .delete()
-        .neq('song_id', 0);
-    
-    if (playlistSongError) {
-        console.error('Error deleting playlists songs: ');
-        console.error(playlistSongError);
         return;
     }
 
