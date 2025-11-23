@@ -9,8 +9,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "test": "jest --runInBand",
+    "test:watch": "jest --runInBand --watch",
+    "test:backend": "jest --runInBand -- Endpoint-test"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
