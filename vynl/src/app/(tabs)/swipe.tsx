@@ -13,6 +13,7 @@ import { ITunesPlaylist, ITunesSong } from '@/src/types';
 import { useCreatePlaylist } from '@/src/hooks/use-create-playlist';
 import { useUpdatePlaylist } from '@/src/hooks/use-update-playlist';
 import { useAuth } from '@/src/context/auth-context';
+import { Audio } from 'expo-av';
 
 const { width, height } = Dimensions.get('window');
 const DISC_SIZE = Math.min(width * 0.78, 320);
@@ -119,8 +120,24 @@ export default function Swiping() {
   const [gettingSimilar, setGettingSimilar] = useState(false);
   const [recommendedSongs, setRecommendations] = useState<ITunesSong[]>([]);
   const { authToken } = useAuth();
-  const [recomputeRecommendations, setRecomputeRecommendations] = useState(true);
+  const soundRef = useRef<Audio.Sound | null>(null);
 
+  //Configure audio on mount
+  useEffect(() => {
+    const configureAudio = async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+          shouldDuckAndroid: true,
+        });
+      } catch (e) {
+        console.error("Error configuring audio", e);
+      }
+    };
+    configureAudio();
+  }, []);
   
   //First we add the selected songs to the database
 /*   const { loading, error, putSong } = usePutSong();
@@ -387,6 +404,41 @@ export default function Swiping() {
   const next = recommendedSongs[index + 1];
   const finished = index >= recommendedSongs.length;
 
+  // Load and play preview when changing song
+  useEffect(() => {
+    const playPreview = async () => {
+      if (!top?.preview_url) return;
+
+      try {
+        if (soundRef.current) {
+          await soundRef.current.unloadAsync();
+          soundRef.current = null;
+        }
+
+        const { sound } = await Audio.Sound.createAsync(
+          { uri: top.preview_url },
+          { shouldPlay: playing, volume: 1.0 }
+        );
+
+        soundRef.current = sound;
+
+        if (playing) await sound.playAsync();
+      } catch (e) {
+        console.warn("Error loading preview", e);
+      }
+    };
+
+    playPreview();
+
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+    };
+  }, [index, top?.preview_url]);
+
+
   useEffect(() => {
     if (top?.cover_url) {
       Image.prefetch(top.cover_url).catch(() => {});
@@ -395,6 +447,17 @@ export default function Swiping() {
       Image.prefetch(next.cover_url).catch(() => {});
     }
   }, [index, top, next]);
+
+  // Play / Pause button effect
+  useEffect(() => {
+    const toggle = async () => {
+      if (!soundRef.current) return;
+      if (playing) await soundRef.current.playAsync();
+      else await soundRef.current.pauseAsync();
+    };
+    toggle();
+  }, [playing]);
+
 
 
   // fade in the new top card on index change
@@ -420,7 +483,7 @@ export default function Swiping() {
     indexRef.current = index;
   }, [index]);
 
-  const swipe = useCallback((dir: 'left' | 'right', vy: number) => {
+  const swipe = useCallback(async (dir: 'left' | 'right', vy: number) => {
     // Get current index from ref to ensure we have the latest value
     const currentIndex = indexRef.current;
     const currentSong = recommendedSongs[currentIndex];
@@ -430,6 +493,10 @@ export default function Swiping() {
       console.log("currentIndex : ", currentIndex);
       console.log("!currentSong");
       return;
+    }
+
+    if (soundRef.current) {
+      await soundRef.current.stopAsync().catch(() => {});
     }
     
     const toX = dir === 'right' ? width * 1.3 : -width * 1.3;
