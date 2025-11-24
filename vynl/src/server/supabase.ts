@@ -15,6 +15,12 @@ export async function createSupabaseClient(req: Request): Promise<SupabaseClient
     }
     const access_token = auth.split(" ")[1];
     
+    if (access_token.split(".").length != 3) {
+        return new Response('Malformed Authorization Header', {
+            status: 403
+        });
+    }
+
     const supabase = createClient<Database>(
         supabaseUrl,
         supabasePublishableKey,
