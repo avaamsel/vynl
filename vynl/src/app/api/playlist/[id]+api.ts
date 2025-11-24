@@ -13,7 +13,7 @@ export async function GET(req: Request, { id }: Record<string, string>) {
             return supabase
         }
 
-        const playlist = getPlaylistFromDatabase(id, supabase);
+        const playlist = await getPlaylistFromDatabase(id, supabase);
         
         // If given an error response from playlist method
         if (playlist instanceof Response) {

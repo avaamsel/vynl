@@ -107,7 +107,43 @@ describe('Test Backend', () => {
             await clearDatabase(adminClient);
         });
 
-        test("Create Empty Playlist", async () => {
+        test('Missing access token', async () => {
+            const empty_playlist = {
+                "id": 0, 
+                "name": "An empty playlist", 
+                "created_at": "", 
+                "user_id": user.id, 
+                "songs": [
+                ]
+            }
+
+            const req1 = new Request("localhost:1234/api/playlist", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(empty_playlist)
+            });
+
+            // Call post endpoint with no token, expect an error
+            const res1 = await POST_PLAYLIST(req1);
+            expect(res1.ok).not.toBeTruthy();
+
+            const req2 = new Request("localhost:1234/api/playlist", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer NotToken`,
+                },
+                body: JSON.stringify(empty_playlist)
+            });
+
+            // Call post endpoint with wrong token, expect an error
+            const res2 = await POST_PLAYLIST(req2);
+            expect(res2.ok).not.toBeTruthy();
+        });
+
+        test("Create empty playlist", async () => {
             const empty_playlist = {
                 "id": 0, 
                 "name": "An empty playlist", 
@@ -129,7 +165,7 @@ describe('Test Backend', () => {
             expect(data?.uid).toBe(body.user_id);
         });
 
-        test("Create Filled Playlist", async () => {
+        test("Create filled playlist", async () => {
             const filled_playlist = {
                 "id": 0, 
                 "name": "An empty playlist", 
@@ -174,7 +210,32 @@ describe('Test Backend', () => {
             await clearDatabase(adminClient);
         });
 
-        test('Get No Playlist', async () => {
+        test('Missing access token', async () => {
+            const req1 = new Request("localhost:1234/api/playlist", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                }
+            });
+
+            // Call get endpoint with no token, expect an error
+            const res1 = await GET_PLAYLISTS(req1);
+            expect(res1.ok).not.toBeTruthy();
+
+            const req2 = new Request("localhost:1234/api/playlist", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer NotToken`,
+                }
+            });
+
+            // Call get endpoint with wrong token, expect an error
+            const res2 = await GET_PLAYLISTS(req2);
+            expect(res2.ok).not.toBeTruthy();
+        });
+
+        test('Get no playlist', async () => {
             const req = new Request("localhost:1234/api/playlist", {
                 method: "GET",
                 headers: {
@@ -189,7 +250,7 @@ describe('Test Backend', () => {
             expect(body).toStrictEqual([]);
         });
 
-        test('Get One Playlist', async () => {
+        test('Get one playlist', async () => {
             const filled_playlist = {
                 "id": 0, 
                 "name": "An empty playlist", 
@@ -222,7 +283,7 @@ describe('Test Backend', () => {
             expect(body2[0]).toStrictEqual(body1);
         });
 
-        test('Get Two Playlist', async () => {
+        test('Get two playlist', async () => {
             const playlist1 = {
                 "id": 0, 
                 "name": "Favorites", 
@@ -271,13 +332,38 @@ describe('Test Backend', () => {
         });
     });
 
-    describe("Endpoint: GET 'api/playlist/:id'", async () => {
+    describe("Endpoint: GET 'api/playlist/:id'", () => {
         beforeEach(async () => {
             await clearDatabase(adminClient);
         });
 
-        test('Error: Get Nonexisting Playlist', async () => {
-            const req = new Request("localhost:1234/api/playlist", {
+        test('Missing access token', async () => {
+            const req1 = new Request("localhost:1234/api/playlist/21", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                }
+            });
+
+            // Call get endpoint, expect an error
+            const res1 = await GET_PLAYLIST(req1, { id:"21" });
+            expect(res1.ok).not.toBeTruthy();
+
+            const req2 = new Request("localhost:1234/api/playlist/21", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer NotToken`,
+                }
+            });
+
+            // Call get endpoint, expect an error
+            const res2 = await GET_PLAYLIST(req2, { id:"21" });
+            expect(res2.ok).not.toBeTruthy();
+        });
+
+        test('Get nonexisting playlist', async () => {
+            const req = new Request("localhost:1234/api/playlist/21", {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -285,14 +371,13 @@ describe('Test Backend', () => {
                 }
             });
 
-            // Call get endpoint
-            const res = await GET_PLAYLISTS(req);
-            const body = await res.json();
-            expect(body).toStrictEqual([]);
+            // Call get endpoint, expect an error
+            const res = await GET_PLAYLIST(req, { id:"21" });
+            expect(res.ok).not.toBeTruthy();
         });
 
-        test('Get One Playlist', async () => {
-            const filled_playlist = {
+        test('Add one playlist then get playlist', async () => {
+            const playlist = {
                 "id": 0, 
                 "name": "An empty playlist", 
                 "created_at": "", 
@@ -304,9 +389,9 @@ describe('Test Backend', () => {
                 ]
             }
 
-            const body1 = await addPlaylist(filled_playlist, session.access_token);
+            const body1 = await addPlaylist(playlist, session.access_token);
 
-            const req2 = new Request("localhost:1234/api/playlist", {
+            const req2 = new Request("localhost:1234/api/playlist/" + body1.id, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -315,16 +400,15 @@ describe('Test Backend', () => {
             });
             expect(req2).not.toBeNull();
 
-            const res2 = await GET_PLAYLISTS(req2);
+            const res2 = await GET_PLAYLIST(req2, { id:body1.id.toString() });
             const body2 = await res2.json();
-            expect(body2.length).toBe(1);
-            expect(isITunesPlaylist(body2[0])).toBeTruthy();
+            expect(isITunesPlaylist(body2)).toBeTruthy();
             
             // Our playlists should be the same
-            expect(body2[0]).toStrictEqual(body1);
+            expect(body2).toStrictEqual(body1);
         });
 
-        test('Get Two Playlist', async () => {
+        test('Add two playlist then get a playlist', async () => {
             const playlist1 = {
                 "id": 0, 
                 "name": "Favorites", 
@@ -349,27 +433,24 @@ describe('Test Backend', () => {
                 ]
             }
 
-            const body1 = await addPlaylist(playlist1, session.access_token);
-            const body2 = await addPlaylist(playlist2, session.access_token);
+            /// Add playlist to database
+            const created_playlist1 = await addPlaylist(playlist1, session.access_token);
+            const created_playlist2 = await addPlaylist(playlist2, session.access_token);
 
-            const req = new Request("localhost:1234/api/playlist", {
+            const req = new Request("localhost:1234/api/playlist/" + created_playlist1.id, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${session.access_token}`,
                 }
             });
-            expect(req).not.toBeNull();
 
-            const res = await GET_PLAYLISTS(req);
+            const res = await GET_PLAYLIST(req, { id:created_playlist1.id.toString() });
             const body = await res.json();
-            expect(body.length).toBe(2);
-            expect(isITunesPlaylist(body[0])).toBeTruthy();
-            expect(isITunesPlaylist(body[1])).toBeTruthy();
+            expect(isITunesPlaylist(body)).toBeTruthy();
             
             // Our playlists should be the same
-            expect(body[0]).toStrictEqual(body1);
-            expect(body[1]).toStrictEqual(body2);
+            expect(body).toStrictEqual(created_playlist1);
         });
     });
     
