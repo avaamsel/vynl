@@ -52,7 +52,6 @@ export async function GET(req: Request, { id }: Record<string, string>) {
             try {
                 const result = await fetchSongs(`${s.title} ${s.artist}`, 1);
                 if (result && result.length >= 1) {
-                    console.log("Found equivalent for : ", s);
                     recommendations.push(result[0]);
                 } else {
                     console.log("Failed to find equivalent for : ", s);

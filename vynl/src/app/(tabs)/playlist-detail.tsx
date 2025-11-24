@@ -41,12 +41,13 @@ export default function PlaylistDetailScreen() {
 
   const handleAddSongs = () => {
     if (!playlist) return;
+    console.log("add : ", playlist.songs);
     router.push({
       pathname: '/(tabs)/swipe',
       params: { 
-        playlistId: playlist.id,
-        playlistName: playlist.name,
-        mode: 'add'
+        songs: JSON.stringify(playlist.songs), 
+        playlist: JSON.stringify(playlist),
+        mode: 'add' 
       }
     });
   };
@@ -108,7 +109,6 @@ export default function PlaylistDetailScreen() {
 
   if (playlist) {
     console.log(error);
-    console.log(playlist);
   }
 
   return (

@@ -14,14 +14,22 @@ export default function PlaylistsScreen() {
   const { user, loading: authLoading } = useUser();
   const uid = user?.id;
   
-  const { playlists, loading: playlistLoading, error } = useUserPlaylists(uid ?? null);
+  const { playlists, loading: playlistLoading, error, refetch } = useUserPlaylists(uid ?? null);
 
   // Calculate bottom padding: tab bar height (90) + safe area bottom + extra padding
   // Tab bar is absolutely positioned at bottom, height 90px with paddingBottom 20px
   // We need enough space so content doesn't scroll under the tab bar
   // Using a larger fixed value to ensure content stays above the nav bar
   const bottomPadding = Math.max(90 + insets.bottom + 50, 150);
-
+  
+  useFocusEffect(
+    useCallback(() => {
+      if (refetch && uid) {
+        console.log("Screen focused, refreshing playlists...");
+        refetch();
+      }
+    }, [refetch, uid])
+  );
 
   const handleDelete = async (playlistId: number) => {
     try {

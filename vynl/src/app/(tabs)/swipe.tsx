@@ -98,8 +98,12 @@ type SwipeHistory = {
 
 export default function Swiping() {
   const { songs, playlist, mode } = useLocalSearchParams();
-  const newPlaylist: ITunesPlaylist = JSON.parse(playlist as string);
-  const seedSongs: ITunesSong[] = JSON.parse(songs as string);
+  const newPlaylist: ITunesPlaylist = useMemo(() => 
+      playlist ? JSON.parse(playlist as string) : null, 
+    [playlist]);
+  const seedSongs: ITunesSong[] = useMemo(() => 
+      songs ? JSON.parse(songs as string) : [],
+    [songs]);
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [addedSongs, setAddedSongs] = useState<ITunesSong[]>([]);
@@ -115,6 +119,7 @@ export default function Swiping() {
   const [gettingSimilar, setGettingSimilar] = useState(false);
   const [recommendedSongs, setRecommendations] = useState<ITunesSong[]>([]);
   const { authToken } = useAuth();
+  const [recomputeRecommendations, setRecomputeRecommendations] = useState(true);
 
   
   //First we add the selected songs to the database
@@ -148,12 +153,15 @@ export default function Swiping() {
   }, []); */
   //TODO : create a playlist
 
-  const numberOfRecommendedSongs = 10;
+  const numberOfRecommendedSongs = 6;
 
-  useEffect(() => {
+/*   useEffect(() => {
     const fetchRecommendations = async () => {
       try {
         setGettingSimilar(true);
+        setRecomputeRecommendations(false);
+
+        console.log("Fetching similar for seed songs : ", newPlaylist.songs)
 
         const res = await fetch(`/api/playlist/recommendation/${encodeURIComponent(newPlaylist.id)}?amount=${numberOfRecommendedSongs}`, {
           method: 'GET',
@@ -182,8 +190,42 @@ export default function Swiping() {
       }
     };
 
-    fetchRecommendations();
-  }, []);
+    if (recomputeRecommendations) fetchRecommendations();
+  }, [newPlaylist.id, authToken, recomputeRecommendations]); */
+
+  const fetchRecommendations = useCallback(async () => {
+    try {
+      setGettingSimilar(true);
+      console.log("Fetching similar for seed songs:", newPlaylist.songs);
+
+      const res = await fetch(`/api/playlist/recommendation/${encodeURIComponent(newPlaylist.id)}?amount=${numberOfRecommendedSongs}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + authToken,
+        },
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error(text || 'Failed to fetch similar songs');
+        return;
+      }
+
+      const result = await res.json();
+      setRecommendations(result);
+    } catch (err: any) {
+      console.error('Error updating playlist:', err.message || err);
+    } finally {
+      setGettingSimilar(false);
+    }
+  }, [newPlaylist?.id, authToken, newPlaylist?.songs]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchRecommendations();
+    }, [fetchRecommendations])
+  );
 
   //OLD VERSION HARDCODED
 
@@ -226,7 +268,7 @@ export default function Swiping() {
   // Reset state function
   const resetState = useCallback((preservePlaylistName = false) => {
     setIndex(0);
-    setAddedSongs(seedSongs);
+    setAddedSongs([]);
     setLiked([]);
     setPassed([]);
     setSwipeHistory([]);
@@ -243,10 +285,13 @@ export default function Swiping() {
   // TODO : voir si on garde async storage
   // Clear session from storage
   const clearSession = useCallback(async () => {
+    console.log("CLEARING DATA...");
     try {
       await AsyncStorage.removeItem(SWIPE_SESSION_KEY);
     } catch (error) {
       console.error('Error clearing session:', error);
+    } finally {
+      console.log("DATA CLEARED !");
     }
   }, []);
 
@@ -254,11 +299,13 @@ export default function Swiping() {
   //TODO : maybe delete
   useEffect(() => {
     const loadSession = async () => {
+      console.log("LOADING SESSION...");
       try {
         // If no seed songs provided, reset everything
 
         //TODO : diffrent check si les songs sont pas vides
         if (seedSongs.length == 0) {
+          console.log("NO SEED SONG");
           await clearSession();
           resetState();
           setIsLoading(false);
@@ -267,9 +314,13 @@ export default function Swiping() {
 
         const savedSession = await AsyncStorage.getItem(SWIPE_SESSION_KEY);
         if (savedSession) {
+          console.log("SAVED STATE");
           const session = JSON.parse(savedSession);
+
+          const isSameSession = JSON.stringify(session.seedSongs) === JSON.stringify(seedSongs);
+          console.log("Same session : ", isSameSession);
           // Only restore if we have the same seed songs
-          if (session.seedSongs === seedSongs) {
+          if (isSameSession) {
             setIndex(session.index || 0);
             setLiked(session.liked || []);
             setPassed(session.passed || []);
@@ -280,6 +331,7 @@ export default function Swiping() {
             resetState();
           }
         } else {
+          console.log("NO SAVED STATE");
           // No saved session, start fresh
           resetState();
         }
@@ -292,17 +344,20 @@ export default function Swiping() {
     };
     
     loadSession();
-  }, [resetState, clearSession]);
+  }, [resetState, clearSession, songs]);
 
   // Clear session when component comes into focus without params (user navigated back)
   //TODO : ??
   useFocusEffect(
     useCallback(() => {
-      if (seedSongs.length == 0) {
-        // No seed songs, clear session and reset state
-        clearSession();
-        resetState();
-      }
+      const handleFocus = async () => {
+        if (seedSongs.length == 0) {
+          await clearSession();
+          resetState();
+        }
+        };
+
+      handleFocus();
     }, [clearSession, resetState])
   );
 
@@ -377,8 +432,6 @@ export default function Swiping() {
       return;
     }
     
-    console.log('Swiping', dir, 'song:', currentSong.song_id, currentSong.title, 'at index:', currentIndex);
-    
     const toX = dir === 'right' ? width * 1.3 : -width * 1.3;
     Haptics.selectionAsync();
     Animated.timing(position, { toValue: { x: toX, y: vy * 16 }, duration: 220, useNativeDriver: true }).start(() => {
@@ -399,19 +452,17 @@ export default function Swiping() {
     });
   }, [recommendedSongs]);
 
-  useEffect(() => {
+/*   useEffect(() => {
     if (addedSongs.length > 0) {
-      console.log("Update");
       updatePlaylist(newPlaylist.id, addedSongs, newPlaylist.name);
     }
   }, [addedSongs]);
 
   useEffect(() => {
     if (addedSongs.length > 0) {
-      console.log("Update name");
       updatePlaylist(newPlaylist.id, addedSongs, playlistName);
     }
-  }, [playlistName]);
+  }, [playlistName]); */
 
   const pan = useMemo(
     () =>
@@ -467,7 +518,11 @@ export default function Swiping() {
     
     setIsSaving(true);
     try {
-      if (newPlaylist.id) {
+      const allSongs = [...seedSongs, ...addedSongs];
+      console.log("Updating playlist ", newPlaylist.id, ", new name : '", playlistName,"' , added songs : ", allSongs);
+      if (isAddingMode) await updatePlaylist(newPlaylist.id, allSongs, newPlaylist.name);
+      else await updatePlaylist(newPlaylist.id, allSongs, playlistName);
+/*       if (newPlaylist.id) {
         // Add songs to existing playlist
         const existingPlaylist = await getPlaylist(newPlaylist.id);
         if (existingPlaylist) {
@@ -481,7 +536,7 @@ export default function Swiping() {
             setPlaylistName(existingPlaylist.name);
           }
         }
-      }
+      } */
 
       setPlaylistSaved(true);
       // Clear session after saving playlist
@@ -694,6 +749,7 @@ export default function Swiping() {
                       title="View Playlists"
                       onPress={async () => {
                         await clearSession();
+                        resetState();
                         router.push('/(tabs)/playlists');
                       }}
                       backgroundColor="#F28695"

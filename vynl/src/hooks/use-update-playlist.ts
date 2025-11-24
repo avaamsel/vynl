@@ -15,6 +15,7 @@ export function useUpdatePlaylist(): UseCreatePlaylistResult {
 
   const updatePlaylist = useCallback(
     async (playlist_id: number, songs: ITunesSong[], newName: string): Promise<ITunesPlaylist | null> => {
+      console.log("UPDATing...");
       setLoading(true);
       setError(null);
 

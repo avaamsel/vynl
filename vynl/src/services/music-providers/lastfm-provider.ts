@@ -87,8 +87,6 @@ export class LastFmService {
                 })
             );
 
-            console.log("searching : ", `${BASE_URL}?${params.toString()}`);
-
             const response = await fetch(`${BASE_URL}?${params.toString()}`);
             const data = await response.json();
 

@@ -86,7 +86,6 @@ export async function getPlaylistFromDatabase(id: string, supabase: SupabaseClie
             status: 500
         });
     }
-    console.log("Deserialised playlist 1st song : ", deserializedPlaylist.songs[0]);
     return deserializedPlaylist;
 }
 

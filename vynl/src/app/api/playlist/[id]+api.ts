@@ -6,7 +6,6 @@ import { isITunesPlaylist } from "@/src/types";
 // GET "api/playlist"
 export async function GET(req: Request, { id }: Record<string, string>) {
     try {
-        console.log("In the GET");
         const supabase = await createSupabaseClient(req);
 
         // If given an error response return it
@@ -20,7 +19,6 @@ export async function GET(req: Request, { id }: Record<string, string>) {
         if (playlist instanceof Response) {
             return playlist;
         }
-        console.log("Playlist : ", playlist);
 
         return new Response(JSON.stringify(playlist), {
             status: 200,
@@ -79,10 +77,6 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
                 status: 400
             });
         }
-
-        console.log("id : " + playlist_id);
-        console.log("name : " + old_playlist.name);
-        console.log("new name : " + newName);
 
 
         // Updating playlist object in database
@@ -144,9 +138,6 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             });
         }
 
-        
-
-        console.log("response good");
         return new Response(JSON.stringify(old_playlist), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
