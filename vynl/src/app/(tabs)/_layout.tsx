@@ -64,9 +64,8 @@ export default function TabLayout() {
         name="swipe"
         options={{
           title: 'Swipe',
-          tabBarIcon: ({ focused }) => (
-            <Ionicons name="swap-horizontal" size={22} color="#3b4f7d" />
-          ),
+          href: null,
+          tabBarStyle: { display: 'none' },
         }}
       />
       <Tabs.Screen

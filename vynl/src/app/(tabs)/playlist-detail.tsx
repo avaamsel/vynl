@@ -3,37 +3,19 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image as ExpoImage } from 'expo-image';
-import { getPlaylist, updatePlaylist, deletePlaylist, type Playlist } from '@/src/utils/playlistStorage';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import AppButton from '@/src/components/AppButton';
+import { ITunesPlaylist } from '@/src/types';
+import { usePlaylistWithID } from '@/src/hooks/use-playlist-with-id';
 
 export default function PlaylistDetailScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const playlistId = params.id as string;
-  const [playlist, setPlaylist] = useState<Playlist | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { playlist, loading, error } = usePlaylistWithID(playlistId);
 
-  const loadPlaylist = useCallback(async () => {
-    if (!playlistId) return;
-    try {
-      const loaded = await getPlaylist(playlistId);
-      setPlaylist(loaded);
-    } catch (error) {
-      console.error('Error loading playlist:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [playlistId]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadPlaylist();
-    }, [loadPlaylist])
-  );
-
-  const handleDeleteSong = async (songId: string) => {
+  const handleDeleteSong = async (songId: number) => {
     if (!playlist) return;
     
     Alert.alert(
@@ -46,9 +28,7 @@ export default function PlaylistDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const updatedSongs = playlist.songs.filter(s => s.id !== songId);
-              await updatePlaylist(playlistId, { songs: updatedSongs });
-              loadPlaylist();
+              console.log("Feature not implemented yet");
             } catch (error) {
               console.error('Error deleting song:', error);
               Alert.alert('Error', 'Failed to delete song');
@@ -61,12 +41,13 @@ export default function PlaylistDetailScreen() {
 
   const handleAddSongs = () => {
     if (!playlist) return;
+    console.log("add : ", playlist.songs);
     router.push({
       pathname: '/(tabs)/swipe',
       params: { 
-        playlistId: playlist.id,
-        playlistName: playlist.name,
-        mode: 'add'
+        songs: JSON.stringify(playlist.songs), 
+        playlist: JSON.stringify(playlist),
+        mode: 'add' 
       }
     });
   };
@@ -84,8 +65,7 @@ export default function PlaylistDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deletePlaylist(playlistId);
-              router.push('/(tabs)/playlists');
+              console.log("Plyalist not implemented yet");
             } catch (error) {
               console.error('Error deleting playlist:', error);
               Alert.alert('Error', 'Failed to delete playlist');
@@ -96,7 +76,7 @@ export default function PlaylistDetailScreen() {
     );
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <LinearGradient colors={['#F8F9FD', '#FFFFFF']} style={{ flex: 1 }}>
         <SafeAreaView style={styles.container}>
@@ -125,6 +105,10 @@ export default function PlaylistDetailScreen() {
         </SafeAreaView>
       </LinearGradient>
     );
+  }
+
+  if (playlist) {
+    console.log(error);
   }
 
   return (
@@ -158,9 +142,9 @@ export default function PlaylistDetailScreen() {
             </View>
           ) : (
             playlist.songs.map((song, idx) => (
-              <View key={`${song.id}-${idx}`} style={styles.songItem}>
+              <View key={`${song.song_id}-${idx}`} style={styles.songItem}>
                 <ExpoImage
-                  source={{ uri: song.artwork }}
+                  source={{ uri: song?.cover_url || 'https://via.placeholder.com/150' }}
                   style={styles.songArtwork}
                   contentFit="cover"
                 />
@@ -169,7 +153,7 @@ export default function PlaylistDetailScreen() {
                   <Text style={styles.songArtist} numberOfLines={1}>{song.artist}</Text>
                 </View>
                 <TouchableOpacity
-                  onPress={() => handleDeleteSong(song.id)}
+                  onPress={() => handleDeleteSong(song.song_id)}
                   style={styles.deleteSongButton}
                 >
                   <Ionicons name="trash-outline" size={20} color="#F28695" />

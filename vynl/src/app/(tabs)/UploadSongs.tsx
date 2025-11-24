@@ -1,67 +1,74 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import AppButton from '@/src/components/AppButton';
 import {
-  SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView
+  SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router'; // ← navigation
 import { Ionicons } from '@expo/vector-icons';
+import { useSongSearch } from '@/src/hooks/use-song-search';
+import { ITunesSong, ITunesPlaylist } from '@/src/types';
+import { useCreatePlaylist } from '@/src/hooks/use-create-playlist';
+import { useAuth } from '@/src/context/auth-context';
+import { supabase } from '@/src/utils/supabase';
 
-const SONGS = [
-  { id: '1',  title: 'Super Shy', artist: 'NewJeans', artwork: 'https://i.scdn.co/image/ab67616d00001e023d98a0ae7c78a3a9babaf8af' },
-  { id: '2',  title: 'Espresso', artist: 'Sabrina Carpenter', artwork: 'https://upload.wikimedia.org/wikipedia/en/7/71/Espresso_-_Sabrina_Carpenter.png' },
-  { id: '3',  title: 'Snooze', artist: 'SZA', artwork: 'https://m.media-amazon.com/images/I/91BazzuLE+L._UF350,350_QL50_.jpg' },
-  { id: '4',  title: 'The Adults Are Talking', artist: 'The Strokes', artwork: 'https://pics.filmaffinity.com/the_strokes_the_adults_are_talking-770338151-mmed.jpg' },
-  { id: '5',  title: 'First Person Shooter (feat. J. Cole)', artist: 'Drake', artwork: 'https://m.media-amazon.com/images/I/41bNY36ilJL._UXNaN_FMjpg_QL85_.jpg' },
-  { id: '6',  title: 'Rush', artist: 'Troye Sivan', artwork: 'https://upload.wikimedia.org/wikipedia/en/b/b4/Troye_Sivan_-_Rush.png' },
-  { id: '7',  title: 'TQG', artist: 'KAROL G & Shakira', artwork: 'https://i.scdn.co/image/ab67616d0000b27382de1ca074ae63cb18fce335' },
-  { id: '8',  title: 'Calm Down', artist: 'Rema', artwork: 'https://upload.wikimedia.org/wikipedia/en/b/b1/Rema_-_Calm_Down.png' },
-  { id: '9',  title: 'Bags', artist: 'Clairo', artwork: 'https://i.scdn.co/image/ab67616d0000b27333ccb60f9b2785ef691b2fbc' },
-  { id: '10', title: 'Hot Girl (Bodies Bodies Bodies)', artist: 'Charli XCX', artwork: 'https://i1.sndcdn.com/artworks-19CTU1x0lsAE-0-t500x500.jpg' },
-];
 
 export default function UploadSongs() {
   const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<ITunesSong[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const { loading: savingPlaylistLoading, error: playlistError, createPlaylist } = useCreatePlaylist();
+  const { authToken, loading: authLoading} = useAuth();
+
   const router = useRouter();
 
-  useEffect(() => {
-    SONGS.forEach(s => {
-      Image.prefetch(s.artwork).catch(e => {
-        console.warn('Prefetch failed for', s.title, e?.message ?? e);
-      });
-    });
-  }, []);
+  const { results: filtered, loading, error } = useSongSearch(query);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return SONGS.filter(
-      s =>
-        s.title.toLowerCase().includes(q) ||
-        s.artist.toLowerCase().includes(q)
-    );
-  }, [query]);
-
+  //TODO : dif between liked and selected songs ? 
   const likedSongs = useMemo(() => {
     if (!selected.length) return [];
-    return SONGS.filter(s => selected.includes(s.id));
-  }, [selected]);
+    return selected;
+  }, [selected, filtered]);
 
-  const toggle = (id: string) => {
-    if (selected.includes(id)) setSelected(selected.filter(x => x !== id));
-    else if (selected.length < 2) setSelected([...selected, id]);
+  const toggle = (song: ITunesSong) => {
+    if (selected.includes(song)) setSelected(selected.filter(x => x !== song));
+    else if (selected.length < 2) setSelected([...selected, song]);
   };
 
   const ready = selected.length === 2;
 
   // Navigate to swipe.tsx with the two picks
-  const goSwiping = () => {
-    if (!ready) return;
-    // pass as simple params (s1, s2). Access in swipe.tsx via useLocalSearchParams()
-    router.push({ pathname: '/swipe', params: { s1: selected[0], s2: selected[1] } });
+  const goSwiping = async () => {
+    console.log("Go swipping");
+    if (!ready || authLoading || !authToken) return;
+
+    setIsSaving(true);
+
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not logged in");
+
+    const playlist = await createPlaylist(
+      "My Playlist",
+      user.id,
+      selected
+    );
+
+    if (!playlist) {
+      console.error("Playlist creation failed:", playlistError);
+      setIsSaving(false);
+      return;
+    }
+
+    router.push({
+      pathname: '/swipe',
+      //TODO : remove songs
+      params: { songs: JSON.stringify(selected), playlist: JSON.stringify(playlist) }
+    });
+
+    setIsSaving(false);
   };
+
 
   return (
     <LinearGradient colors={['#F1CCA6', '#F28695']} start={{x:0,y:0}} end={{x:0,y:1}} style={{ flex: 1 }}>
@@ -90,6 +97,9 @@ export default function UploadSongs() {
               <Text style={s.likedTitle}>Liked</Text>
               <Text style={s.likedCount}>{selected.length}/2</Text>
             </View>
+            {loading && <Text style={{ textAlign: 'center', marginTop: 20 }}>Loading...</Text>}
+            {error && <Text style={{ textAlign: 'center', marginTop: 20, color: 'red' }}>{error}</Text>}
+
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -97,13 +107,13 @@ export default function UploadSongs() {
             >
               {likedSongs.map(item => (
                 <TouchableOpacity
-                  key={item.id}
-                  onPress={() => toggle(item.id)}
+                  key={item.song_id}
+                  onPress={() => toggle(item)}
                   activeOpacity={0.9}
                 >
                   <View style={s.likedChip}>
                     <Image
-                      source={{ uri: item.artwork }}
+                      source={{ uri: item.cover_url ?? BLUR_PLACEHOLDER }}
                       style={s.likedArt}
                       contentFit="cover"
                       transition={120}
@@ -133,12 +143,12 @@ export default function UploadSongs() {
             keyboardShouldPersistTaps="handled"
           >
             {filtered.map(item => {
-              const on = selected.includes(item.id);
+              const on = selected.includes(item);
               return (
-                <TouchableOpacity key={item.id} onPress={() => toggle(item.id)} activeOpacity={0.85}>
+                <TouchableOpacity key={item.song_id} onPress={() => toggle(item)} activeOpacity={0.85}>
                   <View style={[s.row, on && s.rowOn]}>
                     <Image
-                      source={{ uri: item.artwork }}
+                      source={{ uri: item.cover_url ?? BLUR_PLACEHOLDER }}
                       style={s.art}
                       contentFit="cover"
                       transition={150}
@@ -162,7 +172,7 @@ export default function UploadSongs() {
         <View style={s.cta}>
             <AppButton
               title={ready ? 'Start Swiping' : `Pick ${2 - selected.length} more`}
-              disabled={!ready}
+              disabled={!ready || authLoading || isSaving}
               onPress={goSwiping}
               backgroundColor="#FFFFFF"
               textColor="#000000"
@@ -232,4 +242,15 @@ const s = StyleSheet.create({
   dotOn: { backgroundColor: '#2F2F2F' },
   check: { color: 'white', fontWeight: '800' },
   cta: { position: 'absolute', left: 30, right: 30, bottom: 100 },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

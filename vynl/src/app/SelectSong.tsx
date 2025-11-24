@@ -33,7 +33,6 @@ export default function SelectSongScreen() {
 
   const handleDone = () => {
     // Navigate back or to playlist creation screen
-    console.log('Selected songs:', selectedSongs);
     router.back();
   };
 
