@@ -158,76 +158,7 @@ export default function Swiping() {
     }, [])
   );
 
-  //First we add the selected songs to the database
-/*   const { loading, error, putSong } = usePutSong();
-
-  const saveSongs = async (songs: ITunesSong[]) => {
-    for (let i = 0; i < songs.length; i++) {
-      const success = await putSong(songs[i]);
-      if (!success) {
-        console.error('Failed to save song:', songs[i].title, error);
-      } else {
-        console.log('Saved song:', songs[i].title);
-      }
-    }
-  };
-
-  useEffect(() => {
-    const saveAllSongs = async () => {
-      setIsSaving(true);
-      try {
-        await saveSongs(selectedSongs);
-        console.log("savedSongs in database");
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setIsSaving(false);
-      }
-    };
-
-    saveAllSongs();
-  }, []); */
-  //TODO : create a playlist
-
   const numberOfRecommendedSongs = 6;
-
-/*   useEffect(() => {
-    const fetchRecommendations = async () => {
-      try {
-        setGettingSimilar(true);
-        setRecomputeRecommendations(false);
-
-        console.log("Fetching similar for seed songs : ", newPlaylist.songs)
-
-        const res = await fetch(`/api/playlist/recommendation/${encodeURIComponent(newPlaylist.id)}?amount=${numberOfRecommendedSongs}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + authToken,
-          },
-        });
-
-        if (!res.ok) {
-          const text = await res.text();
-          console.error(text || 'Failed to fetch similar songs');
-          return;
-        }
-
-        const result = await res.json();
-
-        //TODO : check if bad result ?
-
-        setRecommendations(result);
-
-      } catch (err: any) {
-        console.error('Error updating playlist:', err.message || err);
-      } finally {
-        setGettingSimilar(false);
-      }
-    };
-
-    if (recomputeRecommendations) fetchRecommendations();
-  }, [newPlaylist.id, authToken, recomputeRecommendations]); */
 
   const fetchRecommendations = useCallback(async () => {
     try {
@@ -263,44 +194,11 @@ export default function Swiping() {
     }, [fetchRecommendations])
   );
 
-  //OLD VERSION HARDCODED
-
-
-  //const params = { playlistId: "2", mode: "add", playlistName: "test", s1: null, s2: null};
-
-  //const playlistId = params.playlistId as string | undefined;
   const isAddingMode = mode === 'add' && newPlaylist.id;
   
   const position = useRef(new Animated.ValueXY()).current;
   const cardOpacity = useRef(new Animated.Value(1)).current;
-  
-  // Load playlist name if in add mode
-  //TODO : always in add mode, playlist.name exists
-/*   useEffect(() => {
-    const loadPlaylistName = async () => {
-      if (isAddingMode && playlistId) {
-        try {
-          // Try to get from params first (faster)
-          if (params.playlistName) {
-            setPlaylistName(params.playlistName as string);
-          } else {
-            // Fallback: load from storage
-            const playlist = await getPlaylist(playlistId);
-            if (playlist) {
-              setPlaylistName(playlist.name);
-            }
-          }
-        } catch (error) {
-          console.error('Error loading playlist name:', error);
-        }
-      }
-    };
-    
-    loadPlaylistName();
-  }, [isAddingMode, playlistId, params.playlistName]); */
 
-
-  //TODO : on peut garder pour le moment
   // Reset state function
   const resetState = useCallback((preservePlaylistName = false) => {
     setIndex(0);
@@ -317,7 +215,7 @@ export default function Swiping() {
     cardOpacity.setValue(1);
   }, [position, cardOpacity]);
 
-  // TODO : voir si on garde async storage
+
   // Clear session from storage
   const clearSession = useCallback(async () => {
     console.log("CLEARING DATA...");
@@ -331,14 +229,12 @@ export default function Swiping() {
   }, []);
 
   // Load session state on mount or when params change
-  //TODO : maybe delete
   useEffect(() => {
     const loadSession = async () => {
       console.log("LOADING SESSION...");
       try {
         // If no seed songs provided, reset everything
 
-        //TODO : diffrent check si les songs sont pas vides
         if (seedSongs.length == 0) {
           console.log("NO SEED SONG");
           await clearSession();
@@ -382,7 +278,6 @@ export default function Swiping() {
   }, [resetState, clearSession, songs]);
 
   // Clear session when component comes into focus without params (user navigated back)
-  //TODO : ??
   useFocusEffect(
     useCallback(() => {
       const handleFocus = async () => {
@@ -422,42 +317,6 @@ export default function Swiping() {
   const next = recommendedSongs[index + 1];
   const finished = index >= recommendedSongs.length;
 
-/*   // Load and play preview when changing song
-  useEffect(() => {
-    if (index >= recommendedSongs.length || isLoading || gettingSimilar) return;
-    const playPreview = async () => {
-      if (!top?.preview_url) return;
-
-      try {
-        if (soundRef.current) {
-          await soundRef.current.unloadAsync();
-          soundRef.current = null;
-        }
-
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: top.preview_url },
-          { shouldPlay: playing, volume: 1.0 }
-        );
-
-        soundRef.current = sound;
-
-        if (playing) await sound.playAsync();
-      } catch (e) {
-        console.warn("Error loading preview", e);
-      }
-    };
-
-    playPreview();
-
-    return () => {
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
-        soundRef.current = null;
-      }
-    };
-  }, [index, top?.preview_url]); */
-
-
   useEffect(() => {
     console.log("Playing preview:", { active, url: top?.preview_url, playing });
     if (!top?.preview_url) return;
@@ -476,17 +335,6 @@ export default function Swiping() {
       Image.prefetch(next.cover_url).catch(() => {});
     }
   }, [index, top, next]);
-
-/*   // Play / Pause button effect
-  useEffect(() => {
-    const toggle = async () => {
-      if (!soundRef.current) return;
-      if (playing) await soundRef.current.playAsync();
-      else await soundRef.current.pauseAsync();
-    };
-    toggle();
-  }, [playing]); */
-
 
 
   // fade in the new top card on index change
@@ -554,18 +402,6 @@ export default function Swiping() {
     });
   }, [recommendedSongs]);
 
-/*   useEffect(() => {
-    if (addedSongs.length > 0) {
-      updatePlaylist(newPlaylist.id, addedSongs, newPlaylist.name);
-    }
-  }, [addedSongs]);
-
-  useEffect(() => {
-    if (addedSongs.length > 0) {
-      updatePlaylist(newPlaylist.id, addedSongs, playlistName);
-    }
-  }, [playlistName]); */
-
   const pan = useMemo(
     () =>
       PanResponder.create({
@@ -624,23 +460,9 @@ export default function Swiping() {
       console.log("Updating playlist ", newPlaylist.id, ", new name : '", playlistName,"' , added songs : ", allSongs);
       if (isAddingMode) await updatePlaylist(newPlaylist.id, allSongs, newPlaylist.name);
       else await updatePlaylist(newPlaylist.id, allSongs, playlistName);
-/*       if (newPlaylist.id) {
-        // Add songs to existing playlist
-        const existingPlaylist = await getPlaylist(newPlaylist.id);
-        if (existingPlaylist) {
-          // Merge songs, avoiding duplicates
-          const existingSongIds = new Set(existingPlaylist.songs.map(s => s.song_id));
-          //const newSongs = likedSongs.filter(s => !existingSongIds.has(s.id));
-          //const updatedSongs = [...existingPlaylist.songs, ...newSongs];
-          //await updatePlaylist(playlistId, { songs: updatedSongs });
-          // Ensure playlist name is set from the loaded playlist
-          if (!playlistName || playlistName !== existingPlaylist.name) {
-            setPlaylistName(existingPlaylist.name);
-          }
-        }
-      } */
 
       setPlaylistSaved(true);
+      
       // Clear session after saving playlist
       await clearSession();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
