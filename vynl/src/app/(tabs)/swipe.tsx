@@ -14,6 +14,7 @@ import { useCreatePlaylist } from '@/src/hooks/use-create-playlist';
 import { useUpdatePlaylist } from '@/src/hooks/use-update-playlist';
 import { useAuth } from '@/src/context/auth-context';
 import { Audio } from 'expo-av';
+import { useAudioPreview } from '@/src/hooks/use-audio-preview';
 
 const { width, height } = Dimensions.get('window');
 const DISC_SIZE = Math.min(width * 0.78, 320);
@@ -110,7 +111,6 @@ export default function Swiping() {
   const [addedSongs, setAddedSongs] = useState<ITunesSong[]>([]);
   const [liked, setLiked] = useState<ITunesSong[]>([]);
   const [passed, setPassed] = useState<ITunesSong[]>([]);
-  const [playing, setPlaying] = useState(true);
   const [swipeHistory, setSwipeHistory] = useState<SwipeHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [playlistName, setPlaylistName] = useState('');
@@ -120,7 +120,15 @@ export default function Swiping() {
   const [gettingSimilar, setGettingSimilar] = useState(false);
   const [recommendedSongs, setRecommendations] = useState<ITunesSong[]>([]);
   const { authToken } = useAuth();
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const {
+    playing,
+    setPlaying,
+    active,
+    setActive,
+    playPreview,
+    stopAll,
+  } = useAudioPreview();
+  //const soundRef = useRef<Audio.Sound | null>(null);
 
   //Configure audio on mount
   useEffect(() => {
@@ -139,6 +147,17 @@ export default function Swiping() {
     configureAudio();
   }, []);
   
+  useFocusEffect(
+    useCallback(() => {
+      setActive(true);
+
+      return () => {
+        setActive(false);
+        stopAll();
+      };
+    }, [])
+  );
+
   //First we add the selected songs to the database
 /*   const { loading, error, putSong } = usePutSong();
 
@@ -294,7 +313,6 @@ export default function Swiping() {
     }
     setPlaylistSaved(false);
     setIsSaving(false);
-    setPlaying(true);
     position.setValue({ x: 0, y: 0 });
     cardOpacity.setValue(1);
   }, [position, cardOpacity]);
@@ -404,8 +422,9 @@ export default function Swiping() {
   const next = recommendedSongs[index + 1];
   const finished = index >= recommendedSongs.length;
 
-  // Load and play preview when changing song
+/*   // Load and play preview when changing song
   useEffect(() => {
+    if (index >= recommendedSongs.length || isLoading || gettingSimilar) return;
     const playPreview = async () => {
       if (!top?.preview_url) return;
 
@@ -436,8 +455,18 @@ export default function Swiping() {
         soundRef.current = null;
       }
     };
-  }, [index, top?.preview_url]);
+  }, [index, top?.preview_url]); */
 
+
+  useEffect(() => {
+    console.log("Playing preview:", { active, url: top?.preview_url, playing });
+    if (!top?.preview_url) return;
+    if (!active) return;
+    if (index >= recommendedSongs.length) return; // finished
+    if (isLoading || gettingSimilar) return;
+
+    playPreview(top.preview_url);
+  }, [index, top?.preview_url, active, playPreview]);
 
   useEffect(() => {
     if (top?.cover_url) {
@@ -448,7 +477,7 @@ export default function Swiping() {
     }
   }, [index, top, next]);
 
-  // Play / Pause button effect
+/*   // Play / Pause button effect
   useEffect(() => {
     const toggle = async () => {
       if (!soundRef.current) return;
@@ -456,7 +485,7 @@ export default function Swiping() {
       else await soundRef.current.pauseAsync();
     };
     toggle();
-  }, [playing]);
+  }, [playing]); */
 
 
 
@@ -494,14 +523,11 @@ export default function Swiping() {
       console.log("!currentSong");
       return;
     }
-
-    if (soundRef.current) {
-      await soundRef.current.stopAsync().catch(() => {});
-    }
     
     const toX = dir === 'right' ? width * 1.3 : -width * 1.3;
     Haptics.selectionAsync();
-    Animated.timing(position, { toValue: { x: toX, y: vy * 16 }, duration: 220, useNativeDriver: true }).start(() => {
+
+    Animated.timing(position, { toValue: { x: toX, y: vy * 16 }, duration: 220, useNativeDriver: true }).start(async () => {
       // Add to history for undo functionality
       setSwipeHistory(prev => [...prev, { songId: currentSong.song_id, direction: dir, index: currentIndex }]);
       
@@ -514,8 +540,17 @@ export default function Swiping() {
       
       // reset transform then advance next frame to avoid one-frame ghost
       position.setValue({ x: 0, y: 0 });
-      requestAnimationFrame(() => setIndex(i => i + 1));
-      setPlaying(true);
+
+      await stopAll();
+
+      requestAnimationFrame(() => {
+        setIndex(i => {
+          const next = i + 1;
+          // only auto-start playing if there will be a card to show and screen is active
+          setPlaying(next < recommendedSongs.length && active);
+          return next;
+        });
+      });
     });
   }, [recommendedSongs]);
 
@@ -650,7 +685,10 @@ export default function Swiping() {
         </Text>
 
         {/* Home Button */}
-        <TouchableOpacity style={styles.topBtn} onPress={() => router.push('/')}>
+        <TouchableOpacity style={styles.topBtn} onPress={async () => {
+            await stopAll();
+            router.push('/')
+          }}>
           <Feather name="home" size={22} color="#F28695" />
         </TouchableOpacity>
       </View>
@@ -801,6 +839,7 @@ export default function Swiping() {
                       await clearSession();
                       // Don't reset playlist name when going back in add mode
                       resetState(true);
+                      await stopAll();
                       router.push({
                         pathname: '/(tabs)/playlist-detail',
                         params: { id: newPlaylist.id }
@@ -816,6 +855,8 @@ export default function Swiping() {
                       title="View Playlists"
                       onPress={async () => {
                         await clearSession();
+                        setActive(false);
+                        await stopAll();
                         resetState();
                         router.push('/(tabs)/playlists');
                       }}
