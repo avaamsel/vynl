@@ -72,7 +72,7 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
         const { data: p_data, error: p_err } = await supabase
             .from('playlists')
             .update({ name: new_playlist.name})
-            .eq('playlist_id', old_playlist.id)
+            .eq('playlist_id', Number(id))
             .select()
             .single();
         
