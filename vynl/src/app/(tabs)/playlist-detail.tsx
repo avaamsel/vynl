@@ -6,6 +6,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import AppButton from '@/src/components/AppButton';
+import SpotifyExportModal from '@/src/components/SpotifyExportModal';
 import { ITunesPlaylist } from '@/src/types';
 import { usePlaylistWithID } from '@/src/hooks/use-playlist-with-id';
 
@@ -13,6 +14,8 @@ export default function PlaylistDetailScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const playlistId = params.id as string;
+  
+  const [showExportModal, setShowExportModal] = useState(false);
   const { playlist, loading, error } = usePlaylistWithID(playlistId);
 
   const handleDeleteSong = async (songId: number) => {
@@ -53,7 +56,7 @@ export default function PlaylistDetailScreen() {
   };
 
   const handleDeletePlaylist = () => {
-    if (!playlist) return;
+    if (!playlist1) return;
     
     Alert.alert(
       'Delete Playlist',
@@ -171,7 +174,38 @@ export default function PlaylistDetailScreen() {
             textColor="#FFFFFF"
             width="100%"
           />
+          {playlist.songs.length > 0 && (
+            <AppButton
+              title="Export to Spotify"
+              onPress={() => {
+                console.log('Export button clicked, opening modal');
+                console.log('Current showExportModal state:', showExportModal);
+                console.log('Playlist:', playlist.name, 'Songs:', playlist.songs.length);
+                try {
+                  setShowExportModal(true);
+                  console.log('Modal state set to true');
+                } catch (error) {
+                  console.error('Error setting modal state:', error);
+                  Alert.alert('Error', 'Failed to open export modal. Check console for details.');
+                }
+              }}
+              backgroundColor="#1DB954"
+              textColor="#FFFFFF"
+              width="100%"
+            />
+          )}
         </View>
+
+        <SpotifyExportModal
+          visible={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          playlistName={playlist.name}
+          songs={playlist.songs.map(song => ({ title: song.title, artist: song.artist }))}
+          onSuccess={(playlistUrl) => {
+            setShowExportModal(false);
+            // Optionally show success message or navigate
+          }}
+        />
       </SafeAreaView>
     </LinearGradient>
   );
@@ -288,6 +322,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
     paddingBottom: 100,
+    gap: 12,
   },
 });
 

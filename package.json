@@ -21,5 +21,8 @@
     "@types/react": "^19.2.2",
     "@types/react-native": "^0.72.8",
     "typescript": "~5.9.2"
+  },
+  "overrides": {
+    "js-yaml": ">=4.1.1"
   }
 }
