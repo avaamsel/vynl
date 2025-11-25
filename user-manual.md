@@ -54,9 +54,12 @@ After all prerequisites have been installed and set up, you can start the applic
    1. To run the app locally on a simulator or device: 
    
    ```bash
-   npx expo start –tunnel
+   npx expo start
    ```
-
+   or if you are not on the same wifi: 
+   ```bash 
+   npx expo start --tunnel
+   ```
    >Note: This avoids the problem of needing both the phone and computer to use the same wifi
 
 3. This will launch the Expo Dev Tools in your browser. From there, you can:  
@@ -138,8 +141,10 @@ Your playlist will instantly update with your new additions.
 
 After creating a playlist, you are able to export it to Spotify\!
 
-### Troubleshooting
+### Troubleshooting/FAQs
 
+* **Getting Error: Missing EXPO_PUBLIC_SUPABASE_URL?** 
+You're likely missing the environmental variables file. Email Zack (zcrouse@uw.edu) to request the ``.env`` file 
 * **Songs not loading?** Check your internet connection.  
 * **Can’t save playlist?** Ensure you’re signed in to your account.  
 * **Recommendations off?** Update your liked songs to refine results.

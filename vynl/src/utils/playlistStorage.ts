@@ -1,25 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-export type Song = {
-  id: string;
-  title: string;
-  artist: string;
-  artwork: string;
-};
-
-export type Playlist = {
-  id: string;
-  name: string;
-  songs: Song[];
-  createdAt: number;
-};
+import { ITunesPlaylist, ITunesSong } from '../types';
 
 const PLAYLIST_STORAGE_KEY = '@vynl:playlists';
 
-export async function savePlaylist(playlist: Playlist): Promise<void> {
+export async function savePlaylist(playlist: ITunesPlaylist): Promise<void> {
   try {
     console.log('savePlaylist called with:', playlist.name, 'containing', playlist.songs.length, 'songs');
-    console.log('Song IDs:', playlist.songs.map(s => s.id));
+    console.log('Song IDs:', playlist.songs.map(s => s.song_id));
     const existing = await getPlaylists();
     const updated = [...existing, playlist];
     await AsyncStorage.setItem(PLAYLIST_STORAGE_KEY, JSON.stringify(updated));
@@ -30,14 +17,14 @@ export async function savePlaylist(playlist: Playlist): Promise<void> {
   }
 }
 
-export async function getPlaylists(): Promise<Playlist[]> {
+export async function getPlaylists(): Promise<ITunesPlaylist[]> {
   try {
     const data = await AsyncStorage.getItem(PLAYLIST_STORAGE_KEY);
     if (!data) return [];
     const playlists = JSON.parse(data);
-    playlists.forEach((p: Playlist) => {
+    playlists.forEach((p: ITunesPlaylist) => {
       console.log('Loaded playlist:', p.name, 'with', p.songs.length, 'songs');
-      console.log('Song IDs in loaded playlist:', p.songs.map((s: Song) => s.id));
+      console.log('Song IDs in loaded playlist:', p.songs.map((s: ITunesSong) => s.song_id));
     });
     return playlists;
   } catch (error) {
@@ -46,7 +33,7 @@ export async function getPlaylists(): Promise<Playlist[]> {
   }
 }
 
-export async function deletePlaylist(playlistId: string): Promise<void> {
+export async function deletePlaylist(playlistId: number): Promise<void> {
   try {
     const existing = await getPlaylists();
     const updated = existing.filter(p => p.id !== playlistId);
@@ -57,7 +44,7 @@ export async function deletePlaylist(playlistId: string): Promise<void> {
   }
 }
 
-export async function updatePlaylist(playlistId: string, updates: Partial<Playlist>): Promise<void> {
+export async function updatePlaylist(playlistId: number, updates: Partial<ITunesPlaylist>): Promise<void> {
   try {
     const existing = await getPlaylists();
     const updated = existing.map(p => {
@@ -73,7 +60,7 @@ export async function updatePlaylist(playlistId: string, updates: Partial<Playli
   }
 }
 
-export async function getPlaylist(playlistId: string): Promise<Playlist | null> {
+export async function getPlaylist(playlistId: number): Promise<ITunesPlaylist | null> {
   try {
     const playlists = await getPlaylists();
     return playlists.find(p => p.id === playlistId) || null;
