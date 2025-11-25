@@ -98,10 +98,7 @@ export default function DashboardScreen() {
             {/* Party Mode Button */}
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => {
-                // TODO: Add Party Mode navigation
-                console.log('Party Mode pressed');
-              }}
+              onPress={() => router.push('/(tabs)/PartyMode')}
             >
               <View style={styles.playlistButton}>
                 <LinearGradient
