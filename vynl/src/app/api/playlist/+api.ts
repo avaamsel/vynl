@@ -63,7 +63,7 @@ export async function POST(req: Request) {
         const supabase = await createSupabaseClient(req);
 
         if (supabase instanceof Response) {
-            console.log("Client creation failed : ", supabase);
+            console.log("Client creation failed : ", await supabase.text());
             return supabase
         }
 
