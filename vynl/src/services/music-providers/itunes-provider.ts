@@ -12,6 +12,20 @@ interface ITunesSearchResult {
     }>;
 }
 
+function encodeForITunes(str: string): string {
+  const trimmed = str.trim();
+
+  // Replace spaces with +
+  const withPluses = trimmed.replace(/ /g, '+');
+
+  return withPluses
+    .split('+')
+    .map(part => encodeURIComponent(part))
+    .join('+');
+}
+
+
+
 /**
  * Fetch songs from iTunes API based on search value and number of songs.
  * @param searchValue The search term for the song.
@@ -19,7 +33,7 @@ interface ITunesSearchResult {
  * @returns A promise that resolves to an array of song objects.
  */
 export async function fetchSongs(searchValue: string, numberOfSongs: number = 5): Promise<ITunesSong[]> {
-    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(searchValue)}&media=music&limit=${numberOfSongs}`;
+    const url = `https://itunes.apple.com/search?term=${encodeForITunes(searchValue)}&media=music&limit=${numberOfSongs}`;
     const response = await fetch(url);
     if (!response.ok) {
         throw new Error(`Network response was not ok: ${response.statusText}`);
