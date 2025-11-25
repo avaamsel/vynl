@@ -58,6 +58,20 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => (
             <Ionicons name="musical-notes" size={22} color="#3b4f7d" />
           ),
+          tabBarStyle: {
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 90,
+            backgroundColor: '#FFFFFF',
+            borderTopWidth: 0,
+            elevation: 0,
+            shadowOpacity: 0,
+            paddingHorizontal: 0,
+            paddingBottom: 20,
+            paddingTop: 10,
+          },
         }}
       />
       <Tabs.Screen
