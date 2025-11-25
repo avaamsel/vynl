@@ -13,7 +13,7 @@ Vynl allows users to quickly assemble vibe-consistent platform-neutral playlists
 * _Stretch:_ adding friends and seeing their build playlists
 
 ### current vynl status (updated for 11/04 demo release) :
-At the time of our demo release, Vynl is has a functional log in, where a user can log in or sign up and see any previously saved playlists they may have created. Vynl also has the "select songs" ability implemented where the user selects 5 songs that they want the playlist they're creating to be inspired by, as well as the animated left and right swiping features completed. When a user has gone through the 10 songs presented to them they can view their created playlist.
+At the time of our demo release, Vynl is has a functional log in, where a user can log in or sign up and see any previously saved playlists they may have created. Vynl also has the "select songs" ability implemented where the user selects two songs that they want the playlist they're creating to be inspired by, as well as the animated left and right swiping features completed. When a user has gone through the 10 songs presented to them they can view their created playlist.
 
 ## repository layout
 ```
