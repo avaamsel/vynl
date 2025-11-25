@@ -61,7 +61,6 @@ desktop.ini
 # Testing
 /coverage
 .nyc_output
-coverage/**/*
 
 # Specific to this project
 .temp/

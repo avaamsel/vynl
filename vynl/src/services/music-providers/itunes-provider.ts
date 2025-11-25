@@ -34,7 +34,7 @@ export async function fetchSongs(searchValue: string, numberOfSongs: number = 5)
             song_id: result.trackId,
             title: result.trackName,
             artist: result.artistName,
-            duration_sec: result.trackTimeMillis / 1000,
+            duration_sec: Math.round(result.trackTimeMillis / 1000),
             cover_url: result.artworkUrl100,
             preview_url: result.previewUrl
         }));

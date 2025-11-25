@@ -2,7 +2,7 @@
 **Contributors:** Vicky, Lillian  
 **Status:** Work in Progress (Some features under development)
 
-(Last Updated October 28, 2025\)
+(Last Updated Tues, Nov 11, 2025\)
 
 # **🎧 Vynl User Manual**
 
@@ -33,137 +33,15 @@ By choosing a few **seed songs**, Vynl recommends new tracks with similar energy
 * Social features (add friends, view shared playlists)  
 * Dashboard playlist stats
 
-## **2\. How to install the software**
+## **2. How to Install the Software**
 
-### **2.1 Prerequisites:**
-
-| Requirement | Version | Purpose |
-| ----- | ----- | ----- |
-| **Node.js** | 18+ | Required for React Native development |
-| **npm** | 9+ | Package manager |
-| **Expo CLI** | 6+ | Cross-platform framework for React Native |
-| **Git** | 2.40+ | Version control |
-| **Supabase Account** | — | Backend database & authentication (logging in and signing up) |
-| **iTunes API** | — | API access for searching songs and sound previews |
-| **Last.fm** | — | API access for music data and export |
-| **Expo Linear Gradient** | — | Background of the app is a gradient |
-| **Expo Go** | — | For mobile testing |
-
-### **2.2 Installation Steps:**
-
-Follow the steps below to install and configure all the tools required to run **Vynl** locally.
-
----
-
-### **Step 1 – Install Node.js and npm**
-
-> npm (Node Package Manager) comes bundled with Node.js, so you only need to install Node.
-
-```bash
-# Install Node.js (version 18)
-brew install node@18
-
-# Verify installation
-node -v
-npm -v
-```
-
-If you see an error about linking Node, run:
-
-```bash
-brew link \--force \--overwrite node@18
-```
-### **Step 2 - Install Expo CLI**
-
-Expo is the framework used to run and test Vynl on Android and iOS
-
-```bash
-# install expo 
-npm install \-g expo-cli
-# verify installation
-expo \--version
-```
-
-### **Step 3 - Set Up Git**
-Git is used for version control and cloning the repository.
-
-```bash
-# setup git 
-brew install git
-# verify Installation Version
-git \--version
-
-```
-### **Step 4 - Create a Supabase Account**
-
-Supabase provides authentication and database services for Vynl.
-
-1. Go to https://supabase.com  
-2. Create a free account and log in.  
-3. Click "New Project"  
-4. Choose a name, password, and database region.  
-5. Once it's created, go to Project Settings → API  
-6. Copy the following values:  
-   * Project URL  
-   * anon public key
-7. In your project root folder, create a ``.env`` file in your project root (if not already created), and add:
-
-```bash 
-EXPO\_PUBLIC\_SUPABASE\_KEY="your_supabase_url"
-EXPO\_PUBLIC\_SUPABASE\_URL="your_supabase_anon_key"
-EXPO\_PRIVATE\_SUPABASE\_KEY="your_supabase_service_role_key"
-```
-
->Note: Never commit .env files to GitHub — they are in .gitignore for this reason.
-
-### **Step 5 - Configure Music Data APIs**
-
-* If using public iTunes Search API: **no setup required**
-* If using **MusicKit**:
-
-  * Sign into your Apple Developer Account
-
-  * Create an **App Identifier** and generate a **developer token**
-
-  * Add to your `.env` file:
-
-``` bash 
-DEVELOPER_TOKEN="your_musickit_developer_token"
-MUSIC_USER_TOKEN="your_music_user_token"
-```
-
-* If using Last.fm:
-
-   * Go to: https://www.last.fm/api/account/create 
-   * Create an API account.
-
-> Note your API Key and Secret.
-
-Add to your .env file:
-``` bash 
-LASTFM\_API\_KEY="your\_lastfm\_api\_key"
-LASTFM\_API\_SECRET="your\_lastfm\_api\_secret"
-```
-
-### **Step 6 - Load Environment Variables**
-
-Once ``.env`` is set up, restart your dev server:
-
-```bash 
-npx expo start \--clear
-```
-### **Step 7 - Install Required Expo Dependencies**
-
-Vynl uses expo-linear-gradient for visual styling and gradients.
-```bash
-npm install expo-linear-gradient
-```
+Please refer to the [developer-guide.md ](https://github.com/avaamsel/vynl/blob/main/developer-guide.md) for detailed instructions.
 
 ## **3\. How to run the software**
 
 Vynl uses Expo and npm for development builds
 
-Download ``Expo Go`` from the App Store or Google Play.
+Download [Expo Go](https://apps.apple.com/us/app/expo-go/id982107779) from the App Store or Google Play.
 
 
 >Note: Expo Go  supports the latest version automatically
@@ -171,7 +49,7 @@ After all prerequisites have been installed and set up, you can start the applic
 
 1. Navigate to the project root  
    1. Open a terminal and go to the root of your repository:  
-      ```cd path/to/your/project``` 
+      ```cd ../vynl/vynl``` 
 2. Start the Expo development server  
    1. To run the app locally on a simulator or device: 
    
@@ -194,15 +72,17 @@ npx expo start \--clear
 
 ## **4\. How to use the software**
 
-### **Navigation Overview**
+### **Getting Started**
 
-Once you're logged in, the app provides a tab-based navigation system:
+1. **Open the App:** Launch the Music Playlist App on your device.
+2. **Sign In or Create an Account:** Save your preferences and playlists by creating a profile.
+3. **There are 4 tabs on the bottom: Home, Playlists, and Profile**
+4. **You are now at the Home page:** From here you can view your music stats and create a new playlist
+5. **Create New Playlist:** Choose songs you like to help the app learn your taste.
 
-* **Welcome page** – Entry point of the app. (work in progress)  
-* **Sign up/log in** – You will be directed here after the welcome page   
-* **Home (Dashboard)** – You will be directed here after logging in. You can create and view playlists.  
-* **Upload Songs** – Upload 5-10 seed songs to generate the song recommendations to swipe   
-* **Swipe** – Swipe through song recommendations to create a new playlist
+
+After this setup, the app will start recommending songs that match your preferences.
+
 
 ### **Signup & Login**
 
@@ -217,14 +97,54 @@ Once you're logged in, the app provides a tab-based navigation system:
 
 ### **Creating a Playlist**
 
-*Note: File upload functionality is currently UI-only. Backend upload storage & validation is Work in Progress.*
-
 1. From the Dashboard, tap "Create Playlist"  
-2. You will be taken to the Upload Page, where you can:  
-   * Upload music files  
-   * Submit to create a new playlist
+2. You will be taken to the Select Page, where you can:  
+   * Select up to two music songs by searching the music song and click on the circle to select
+      * To unselect a song, click on "x" by the song under the search bar or click the circle again 
+   * Click 'Confirm' to start swiping
 
-##  
+The app presents one song at a time for you to explore.
+* Swipe right ❤️ if you like a song.
+* Swipe left 👎 if you dislike it.
+* Tap a song for more details or a short preview before deciding.
+
+Each time you swipe right, the song is added to your new playlist.
+
+### Modifying a Playlist ###
+
+Your music taste changes — and your playlists can too\! The **Modify Playlist** feature allows you to **add** or **remove** songs. 
+
+#### Accessing the Playlist: ####
+
+1. There are 2 ways to view your playlists:  
+   * After creating a playlist, click **View Playlists**  
+   * Open the **Playlists** tab.  
+2. Select the playlist you want to modify.
+
+#### Removing Songs: ####
+
+1. Find the song you want to remove.  
+2. Tap the **trashcan icon** to remove songs.  
+3. The song will be deleted from the playlist.
+
+#### Adding Songs: ####
+
+1. Tap **Add Songs** to add more songs to the playlist.  
+2. Swipe left and right on the set of songs. 
+
+Your playlist will instantly update with your new additions.
+
+### Export Playlists (Work in Progress)
+
+After creating a playlist, you are able to export it to Spotify\!
+
+### Troubleshooting
+
+* **Songs not loading?** Check your internet connection.  
+* **Can’t save playlist?** Ensure you’re signed in to your account.  
+* **Recommendations off?** Update your liked songs to refine results.
+
+
 
 ## **5\. How to report a Bug**
 
@@ -251,4 +171,3 @@ All bugs are tracked via **GitHub Issues**:
 `New → In Progress → Ready for Review → Done`
 
 Bug reports automatically link to pull requests using `Fixes #<issue-number>`.
-

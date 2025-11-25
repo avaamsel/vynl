@@ -1,4 +1,4 @@
-import { LastFmService } from "../../services/music-providers/lastfm-provider.ts";
+import { LastFmService } from "../../services/music-providers/lastfm-provider";
 import { ITunesSong, LastFmSong } from "../../types/";
 
 // Helper to shuffle an array in-place

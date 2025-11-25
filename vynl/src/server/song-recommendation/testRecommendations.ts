@@ -1,7 +1,7 @@
 // When running with Node ESM/ts-node ESM the importer needs an explicit file
 // extension. Import the TS file directly so the ESM loader can resolve it.
-import { ITunesSong } from "@/src/types/index.ts";
-import { getRecommendationsForSongTable } from "./recommendationUtils.ts";
+import { ITunesSong } from "@/src/types/index";
+import { getRecommendationsForSongTable } from "./recommendationUtils";
 
 async function test() {
   const seedSongs: ITunesSong[] = [

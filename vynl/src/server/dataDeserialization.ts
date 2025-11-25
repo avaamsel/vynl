@@ -1,4 +1,4 @@
-import { Database } from "../types/database.types.ts";
+import { Database } from "../types/database.types";
 import { playlist_data } from "../types/database";
 import { ITunesPlaylist, ITunesSong } from "../types";
 import { SupabaseClient } from "@supabase/supabase-js";

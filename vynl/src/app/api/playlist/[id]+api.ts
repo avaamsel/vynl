@@ -1,7 +1,7 @@
 import { createSupabaseClient } from "@/src/server/supabase";
 import { getPlaylistFromDatabase } from "@/src/server/dataDeserialization";
 import { isPlaylistData, playlist_song } from "@/src/types/database";
-import { isITunesPlaylist } from "@/src/types";
+import { isITunesPlaylist, isITunesSong, isSongList } from "@/src/types";
 
 // GET "api/playlist"
 export async function GET(req: Request, { id }: Record<string, string>) {
@@ -35,62 +35,75 @@ export async function GET(req: Request, { id }: Record<string, string>) {
 // PUT "api/playlist"
 // Does not create a playlist, only updates
 export async function PUT(req: Request, { id }: Record<string, string>) {
+    if (!id) {
+        return new Response("Missing playlist ID", { status: 400 });
+    }
     try {
+        const playlist_id = parseInt(id);
+
+        if (playlist_id == undefined) {
+            console.log("Invalid Song ID:", id);
+            return new Response('Invalid Playlist ID', {
+                status: 400
+            });
+        }
+
         const body = await req.json();
         const supabase = await createSupabaseClient(req);
         // If given an error response return it
         if (supabase instanceof Response) {
             return supabase
         }
-        
-        if (!isITunesPlaylist(body)) {
-            return new Response('Invalid Body, Expected Playlist Object', {
-                status: 400
-            });
-        }
 
-        const new_playlist = body;
+        const songList = body.songs;
+        const newName = body.name;
         const old_playlist = await getPlaylistFromDatabase(id, supabase);
         
         // If given an error response from playlist method
         if (old_playlist instanceof Response) {
             return old_playlist;
         }
+        if (!isSongList(songList)) {
+            return new Response("Invalid body: expected { name, songs[] }", { status: 400 });
+        }
 
         // Upsert all song objects into the song table
         const { data: s_data, error: s_err } = await supabase
             .from('songs')
-            .upsert(new_playlist.songs)
+            .upsert(songList)
 
         if (s_err) {
+            console.log("s_err", s_err);
             return new Response('Failed to insert into database', {
                 status: 400
             });
         }
 
-        // Updating playlist object in database
-        const { data: p_data, error: p_err } = await supabase
-            .from('playlists')
-            .update({ name: new_playlist.name})
-            .eq('playlist_id', Number(id))
-            .select()
-            .single();
-        
-        if (p_err || !isPlaylistData(p_data)) {
-            return new Response('Failed to insert into database', {
-                status: 400
-            });
+        if (newName) {
+            // Updating playlist object in database
+            const { data: p_data, error: p_err } = await supabase
+                .from('playlists')
+                .update({ name: newName})
+                .eq('playlist_id', playlist_id)
+                .select()
+                .single();
+
+            if (p_err || !isPlaylistData(p_data)) {
+                console.log("p_data : ", p_err);
+                return new Response('Failed to insert into database', {
+                    status: 400
+                });
+            }
         }
 
         // Add or update new playlist songs
         const new_song_ids = new Set<number>();
-        //TODO : should be an ITunes Playlist no ?
         let new_playlist_songs: playlist_song[] = [];
-        for (let i = 0; i < new_playlist.songs.length; i++) {
-            new_song_ids.add(new_playlist.songs[i].song_id);
+        for (let i = 0; i < songList.length; i++) {
+            new_song_ids.add(songList[i].song_id);
             new_playlist_songs.push({
                 playlist_id: old_playlist.id,
-                song_id: new_playlist.songs[i].song_id,
+                song_id: songList[i].song_id,
                 position: i
             });
         }
@@ -100,6 +113,7 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             .select()
 
         if (nps_err) {
+            console.log("Failed to insert into database : ", nps_err);
             return new Response('Failed to insert into database', {
                 status: 400
             });
@@ -120,12 +134,11 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             .in('song_id', songs_to_remove)
 
         if (ops_err) {
+            console.log("Ops err", ops_err);
             return new Response('Failed to insert into database', {
                 status: 400
             });
         }
-
-        
 
         return new Response(JSON.stringify(old_playlist), {
             status: 200,

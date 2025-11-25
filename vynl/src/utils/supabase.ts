@@ -13,7 +13,9 @@ if (!process.env.EXPO_PUBLIC_SUPABASE_KEY) {
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_KEY;
 
-const storage = AsyncStorage;
+const storage = Platform.OS === 'web' 
+  ? localStorage 
+  : AsyncStorage;
 
 export const supabase = createClient<Database>(supabaseUrl, supabasePublishableKey, {
   auth: {

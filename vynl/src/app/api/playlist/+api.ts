@@ -12,13 +12,29 @@ export async function GET(req: Request) {
             return supabase
         }
 
-        const { data, error } = await supabase
-            .from('playlists')
-            .select('*')
+        const { searchParams } = new URL(req.url);
+        const uid = searchParams.get("uid");
+
+        let data, error;
+
+        if (!uid) {
+            ({ data, error } = await supabase
+                .from('playlists')
+                .select('*'));
+        } else {
+            ({ data, error } = await supabase
+                .from('playlists')
+                .select('*')
+                .eq('uid', uid));
+        }
 
         if (error) {
             console.log("Error fetching playlists:", error);
             return new Response(JSON.stringify({ error: error.message }), { status: 404 })
+        }
+
+        if (!data) {
+            return new Response(JSON.stringify([]), { status: 200 })
         }
 
         let playlists = [];
@@ -26,7 +42,6 @@ export async function GET(req: Request) {
             let playlist = await deserializePlaylist(data[i], supabase);
             playlists.push(playlist);
         }
-
 
         return new Response(JSON.stringify(playlists), {
             status: 200,
@@ -48,11 +63,18 @@ export async function POST(req: Request) {
         const supabase = await createSupabaseClient(req);
 
         if (supabase instanceof Response) {
+            console.log("Client creation failed : ", supabase);
             return supabase
         }
 
-        if (!isITunesPlaylist(body)) {
-            return new Response('Invalid Body, expected playlist object', {
+        if (
+            !body ||
+            typeof body.name !== "string" ||
+            typeof body.user_id !== "string" ||
+            !Array.isArray(body.songs)
+        ) {
+            console.log("Invalid body");
+            return new Response("Invalid body: expected { user_id, name, songs[] }", {
                 status: 400
             });
         }
@@ -89,10 +111,9 @@ export async function POST(req: Request) {
                 });
 
             if (ps_err || s_err) {
-                console.log(ps_err);
-                console.log(s_err);
-                console.log(s_data);
-                console.log(ps_data);
+                console.log("Failed to insert songs/playlist_song in database");
+                console.log("PS err : ", ps_err);
+                console.log("s_err", s_err);
 
                 return new Response('Failed to insert songs into database', {
                     status: 400
@@ -106,7 +127,6 @@ export async function POST(req: Request) {
             user_id: p_data.uid,
             name: p_data.name,
             songs: body.songs
-
         }
 
         return new Response(JSON.stringify(new_playlist), {
