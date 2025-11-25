@@ -33,9 +33,7 @@ export async function GET(req: Request) {
             return new Response(JSON.stringify({ error: error.message }), { status: 404 })
         }
 
-        if (!data) {
-            return new Response(JSON.stringify([]), { status: 200 })
-        }
+        if (!data) return new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
         let playlists = [];
         for (let i = 0; i < data.length; i++) {

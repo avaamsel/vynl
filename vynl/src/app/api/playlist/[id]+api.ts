@@ -61,6 +61,7 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
         
         // If given an error response from playlist method
         if (old_playlist instanceof Response) {
+            console.log("old playlist", old_playlist);
             return old_playlist;
         }
         if (!isSongList(songList)) {

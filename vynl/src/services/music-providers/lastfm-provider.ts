@@ -1,3 +1,5 @@
+import { ITunesSong, LastFmSong } from "@/src/types";
+
 const BASE_URL = "https://ws.audioscrobbler.com/2.0/";
 
 const LASTFM_API_KEY = process.env.EXPO_PUBLIC_LASTFM_API_KEY || "";
@@ -22,7 +24,7 @@ export class LastFmService {
      * Check if a specific track exists in Last.fm database.
      * Returns true if found, false otherwise.
      */
-    async trackExists(artist: string, track: string): Promise<boolean> {
+    async trackExists(artist: string, track: string): Promise<LastFmSong | null> {
         const params = new URLSearchParams({
             method: "track.getinfo",
             artist,
@@ -36,13 +38,19 @@ export class LastFmService {
             const data = await response.json();
 
             if (data?.track) {
-                return true;
+                const song: LastFmSong = {
+                    mbid: data.track.mbid,
+                    title: data.track.name,
+                    artist: data.track.artist.name,
+                    duration_sec: Math.floor(Number(data.track.duration) / 1000)
+                } 
+                return song;
             }
 
-            return false;
+            return null;
         } catch (error) {
             console.error("Error while checking track existence:", error);
-            return false;
+            return null;
         }
     }
 
