@@ -14,8 +14,7 @@ export default function PlaylistDetailScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const playlistId = params.id as string;
-  const [playlist, setPlaylist] = useState<Playlist | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  
   const [showExportModal, setShowExportModal] = useState(false);
   const { playlist, loading, error } = usePlaylistWithID(playlistId);
 
@@ -57,7 +56,7 @@ export default function PlaylistDetailScreen() {
   };
 
   const handleDeletePlaylist = () => {
-    if (!playlist) return;
+    if (!playlist1) return;
     
     Alert.alert(
       'Delete Playlist',
