@@ -8,6 +8,7 @@ import { EBGaramond_400Regular } from '@expo-google-fonts/eb-garamond';
 import { useRouter } from 'expo-router';
 import { useAuth } from "@/src/context/auth-context";
 import { useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 
 // Image assets
 const imgVinyl1 = require('@/assets/images/vinyl.png');
@@ -90,6 +91,30 @@ export default function DashboardScreen() {
                 <View style={styles.buttonTextContainer}>
                   <Text style={styles.buttonTitle}>Create New Playlist</Text>
                   <Text style={styles.buttonSubtitle}>Start discovering your music</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {/* Party Mode Button */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                // TODO: Add Party Mode navigation
+                console.log('Party Mode pressed');
+              }}
+            >
+              <View style={styles.playlistButton}>
+                <LinearGradient
+                  colors={['#FF6B9D', '#FF8C42']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.plusIconGradient}
+                >
+                  <Ionicons name="people" size={28} color="#FFFFFF" />
+                </LinearGradient>
+                <View style={styles.buttonTextContainer}>
+                  <Text style={styles.buttonTitle}>Party Mode</Text>
+                  <Text style={styles.buttonSubtitle}>Create a collaborative playlist</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -183,6 +208,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     alignItems: 'center',
     marginTop: 20,
+    gap: 16,
   },
   playlistButton: {
     backgroundColor: '#FFFFFF',
