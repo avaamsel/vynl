@@ -16,7 +16,14 @@ export default function PlaylistDetailScreen() {
   const playlistId = params.id as string;
   
   const [showExportModal, setShowExportModal] = useState(false);
-  const { playlist, loading, error } = usePlaylistWithID(playlistId);
+  const { playlist, loading, error, refetch } = usePlaylistWithID(playlistId);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
 
   const handleDeleteSong = async (songId: number) => {
     if (!playlist) return;
@@ -56,7 +63,7 @@ export default function PlaylistDetailScreen() {
   };
 
   const handleDeletePlaylist = () => {
-    if (!playlist1) return;
+    if (!playlist) return;
     
     Alert.alert(
       'Delete Playlist',
