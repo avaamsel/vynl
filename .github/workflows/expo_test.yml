@@ -23,4 +23,8 @@
             run: npm ci # Installs project dependencies (npm ci for clean install)
 
           - name: Run Jest Tests
+            env: # Set up enviroment secrets
+              EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+              EXPO_PUBLIC_SUPABASE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_KEY }}
+              EXPO_PRIVATE_SUPABASE_KEY: ${{ secrets.EXPO_PRIVATE_SUPABASE_KEY }}
             run: npm test # Executes the Jest tests (assuming 'test' script in package.json runs Jest)
