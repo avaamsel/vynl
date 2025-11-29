@@ -9,7 +9,8 @@
     "web": "npm --prefix ./vynl run web",
     "lint": "npm --prefix ./vynl run lint",
     "reset-project": "npm --prefix ./vynl run reset-project",
-    "install": "npm --prefix ./vynl install"
+    "install": "npm --prefix ./vynl install",
+    "test": "npm --prefix ./vynl run test"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
