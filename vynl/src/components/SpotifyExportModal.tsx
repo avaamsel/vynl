@@ -20,7 +20,7 @@ import {
   exportPlaylistToSpotify,
   clearSpotifyTokens,
 } from '@/src/utils/spotify';
-import { initiateSpotifyAuth, handleSpotifyCallback } from '@/src/utils/spotifyAuth';
+import { initiateSpotifyAuth, handleSpotifyCallback, handleSpotifyCallbackFromQuery } from '@/src/utils/spotifyAuth';
 import * as Linking from 'expo-linking';
 
 interface SpotifyExportModalProps {
@@ -100,6 +100,26 @@ export default function SpotifyExportModal({
     };
   }, [visible]);
 
+  // Handle OAuth callback on web (from query parameters)
+  useEffect(() => {
+    if (Platform.OS === 'web' && visible) {
+      const handleWebCallback = async () => {
+        try {
+          const success = await handleSpotifyCallbackFromQuery();
+          if (success) {
+            setIsAuthenticated(true);
+            setIsCheckingAuth(false);
+          }
+        } catch (error) {
+          console.error('Error handling web OAuth callback:', error);
+          // Don't show alert here as it might be called multiple times
+        }
+      };
+      
+      handleWebCallback();
+    }
+  }, [visible]);
+
   // Handle deep linking for OAuth callback (mobile)
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -143,6 +163,11 @@ export default function SpotifyExportModal({
       }
     } catch (error: any) {
       console.error('Error authenticating with Spotify:', error);
+      // Don't show alert for user cancellation - it's expected behavior
+      if (error.message?.includes('cancelled') || error.message?.includes('cancel')) {
+        console.log('User cancelled Spotify authentication');
+        return;
+      }
       Alert.alert('Error', error.message || 'Failed to authenticate with Spotify');
     }
   };

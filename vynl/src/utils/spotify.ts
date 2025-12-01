@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import base64 from 'base-64';
 
 const SPOTIFY_TOKEN_KEY = '@vynl:spotify_access_token';
 const SPOTIFY_REFRESH_TOKEN_KEY = '@vynl:spotify_refresh_token';
@@ -127,18 +128,32 @@ async function refreshSpotifyToken(refreshToken: string): Promise<string> {
     console.error('Error refreshing token via API:', error);
     
     // Fallback to direct API call if backend route doesn't exist
+    // Only works in development with client secret available
     console.warn('Falling back to direct token refresh (not recommended for production)');
+    
+    const clientId = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID || '';
+    const clientSecret = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET;
+    
+    if (!clientId || !clientSecret) {
+      throw new Error(
+        'Cannot refresh token: API route failed and client credentials not available. ' +
+        'Please ensure EXPO_PUBLIC_SPOTIFY_CLIENT_ID and EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET are set for development.'
+      );
+    }
+    
+    // Create Basic Auth header
+    const credentials = base64.encode(`${clientId}:${clientSecret}`);
     
     const response = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Basic ${credentials}`,
       },
       body: new URLSearchParams({
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
-        client_id: process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID || '',
-      }),
+      }).toString(),
     });
 
     if (!response.ok) {
@@ -235,6 +250,47 @@ export async function searchSpotifyTrack(
 }
 
 /**
+ * Get user's Spotify playlists
+ */
+export async function getUserSpotifyPlaylists(limit: number = 50): Promise<SpotifyPlaylist[]> {
+  const token = await getSpotifyToken();
+  if (!token) {
+    throw new Error('Not authenticated with Spotify');
+  }
+
+  const playlists: SpotifyPlaylist[] = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore && playlists.length < limit) {
+    const response = await fetch(
+      `https://api.spotify.com/v1/me/playlists?limit=50&offset=${offset}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        await clearSpotifyTokens();
+        throw new Error('Spotify authentication expired');
+      }
+      throw new Error('Failed to get Spotify playlists');
+    }
+
+    const data = await response.json();
+    playlists.push(...data.items);
+    
+    hasMore = data.items.length === 50 && playlists.length < limit;
+    offset += 50;
+  }
+
+  return playlists.slice(0, limit);
+}
+
+/**
  * Create a playlist on Spotify
  */
 export async function createSpotifyPlaylist(
@@ -277,6 +333,34 @@ export async function createSpotifyPlaylist(
 }
 
 /**
+ * Find an existing playlist by name or create a new one
+ * This ensures the same URI is generated for the same playlist name
+ */
+export async function findOrCreateSpotifyPlaylist(
+  name: string,
+  description?: string
+): Promise<SpotifyPlaylist> {
+  try {
+    // First, try to find an existing playlist with the same name
+    const playlists = await getUserSpotifyPlaylists(50);
+    const existingPlaylist = playlists.find(p => p.name === name);
+    
+    if (existingPlaylist) {
+      console.log(`Found existing playlist "${name}" with ID: ${existingPlaylist.id}`);
+      return existingPlaylist;
+    }
+    
+    // If not found, create a new one
+    console.log(`Creating new playlist "${name}"`);
+    return await createSpotifyPlaylist(name, description);
+  } catch (error) {
+    console.error('Error finding or creating playlist:', error);
+    // If getting playlists fails, try to create a new one
+    return await createSpotifyPlaylist(name, description);
+  }
+}
+
+/**
  * Validate a Spotify track URI
  */
 function isValidSpotifyUri(uri: string | null | undefined): boolean {
@@ -285,6 +369,171 @@ function isValidSpotifyUri(uri: string | null | undefined): boolean {
   }
   // Spotify URIs should be in format: spotify:track:<track_id>
   return uri.startsWith('spotify:track:') && uri.length > 14;
+}
+
+/**
+ * Get tracks from a Spotify playlist
+ */
+async function getPlaylistTracks(playlistId: string): Promise<Array<{ uri: string }>> {
+  const token = await getSpotifyToken();
+  if (!token) {
+    throw new Error('Not authenticated with Spotify');
+  }
+
+  const tracks: Array<{ uri: string }> = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const response = await fetch(
+      `https://api.spotify.com/v1/playlists/${playlistId}/tracks?offset=${offset}&limit=100`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        await clearSpotifyTokens();
+        throw new Error('Spotify authentication expired');
+      }
+      throw new Error('Failed to get playlist tracks');
+    }
+
+    const data = await response.json();
+    // Filter out null tracks (deleted tracks) and extract URIs
+    const items = data.items
+      .filter((item: any) => item.track !== null)
+      .map((item: any) => ({ uri: item.track.uri }))
+      .filter((item: any) => item.uri);
+    tracks.push(...items);
+    
+    hasMore = data.items.length === 100;
+    offset += 100;
+  }
+
+  return tracks;
+}
+
+/**
+ * Replace all tracks in a Spotify playlist
+ */
+async function replacePlaylistTracks(
+  playlistId: string,
+  trackUris: string[]
+): Promise<void> {
+  const token = await getSpotifyToken();
+  if (!token) {
+    throw new Error('Not authenticated with Spotify');
+  }
+
+  // Filter out invalid URIs before processing
+  const validUris = trackUris.filter(uri => isValidSpotifyUri(uri));
+  
+  if (validUris.length === 0) {
+    throw new Error('No valid track URIs to add to playlist');
+  }
+
+  if (validUris.length < trackUris.length) {
+    const invalidCount = trackUris.length - validUris.length;
+    console.warn(`Filtered out ${invalidCount} invalid track URI(s)`);
+  }
+
+  // First, get existing tracks to clear them
+  const existingTracks = await getPlaylistTracks(playlistId);
+  
+  // Clear existing tracks if any
+  if (existingTracks.length > 0) {
+    const existingUris = existingTracks.map(t => t.uri).filter(uri => uri);
+    
+    // Spotify API allows removing up to 100 tracks at once
+    const clearChunks = [];
+    for (let i = 0; i < existingUris.length; i += 100) {
+      clearChunks.push(existingUris.slice(i, i + 100));
+    }
+
+    for (const chunk of clearChunks) {
+      const response = await fetch(
+        `https://api.spotify.com/v1/playlists/${playlistId}/tracks`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            uris: chunk,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          await clearSpotifyTokens();
+          throw new Error('Spotify authentication expired');
+        }
+        console.warn('Failed to clear existing tracks, continuing anyway');
+      }
+    }
+  }
+
+  // Add new tracks
+  console.log(`Adding ${validUris.length} track URI(s) to playlist ${playlistId}:`);
+  validUris.forEach((uri, index) => {
+    console.log(`  [${index + 1}] ${uri}`);
+  });
+
+  // Spotify API allows adding up to 100 tracks at once
+  const chunks = [];
+  for (let i = 0; i < validUris.length; i += 100) {
+    chunks.push(validUris.slice(i, i + 100));
+  }
+
+  for (const chunk of chunks) {
+    const response = await fetch(
+      `https://api.spotify.com/v1/playlists/${playlistId}/tracks`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          uris: chunk,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        await clearSpotifyTokens();
+        throw new Error('Spotify authentication expired');
+      }
+      
+      // Try to get more detailed error information
+      let errorMessage = 'Failed to add tracks to Spotify playlist';
+      try {
+        const errorData = await response.json();
+        if (errorData.error) {
+          errorMessage = errorData.error.message || errorMessage;
+          // If it's an INVALID_URI error, provide more helpful context
+          if (errorData.error.message?.includes('INVALID_URI') || 
+              errorData.error.message?.includes('invalid uri')) {
+            errorMessage = `Invalid track URI detected. Please try exporting again. The problematic track may have been filtered out automatically.`;
+            console.error('INVALID_URI error details:', errorData);
+            console.error('URIs that caused the error:', chunk);
+          }
+        }
+      } catch (e) {
+        // If we can't parse the error, use the default message
+        console.error('Failed to parse error response:', e);
+      }
+      
+      throw new Error(errorMessage);
+    }
+  }
 }
 
 /**
@@ -371,8 +620,8 @@ export async function addTracksToSpotifyPlaylist(
  * Export a playlist to Spotify
  * This function handles the entire export process:
  * 1. Search for each song on Spotify
- * 2. Create a new playlist
- * 3. Add all found tracks to the playlist
+ * 2. Find existing playlist with same name or create a new one (ensures same URI)
+ * 3. Replace all tracks in the playlist with found tracks
  */
 export async function exportPlaylistToSpotify(
   playlistName: string,
@@ -427,20 +676,21 @@ export async function exportPlaylistToSpotify(
     onProgress?.({ 
       current: songs.length, 
       total: songs.length, 
-      status: 'Creating playlist...' 
+      status: 'Finding or creating playlist...' 
     });
 
-    // Create the playlist
-    const playlist = await createSpotifyPlaylist(playlistName);
+    // Find existing playlist with same name or create a new one
+    // This ensures the same URI is generated for the same playlist name
+    const playlist = await findOrCreateSpotifyPlaylist(playlistName);
 
     onProgress?.({ 
       current: songs.length, 
       total: songs.length, 
-      status: 'Adding tracks to playlist...' 
+      status: 'Updating playlist tracks...' 
     });
 
-    // Add tracks to the playlist
-    await addTracksToSpotifyPlaylist(playlist.id, trackUris);
+    // Replace all tracks in the playlist (clear existing and add new ones)
+    await replacePlaylistTracks(playlist.id, trackUris);
 
     return {
       playlistId: playlist.id,
