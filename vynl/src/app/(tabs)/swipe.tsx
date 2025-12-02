@@ -25,14 +25,14 @@ const ROTATION = 12;
 
 const BLUR = 'L5H2EC=PM+yV0g-mq.wG9c010J}I';
 
-// function PauseIcon() {
-//   return (
-//     <View style={{ flexDirection: 'row', gap: 6 }}>
-//       <View style={{ width: 8, height: 28, borderRadius: 2, backgroundColor: 'white' }} />
-//       <View style={{ width: 8, height: 28, borderRadius: 2, backgroundColor: 'white' }} />
-//     </View>
-//   );
-// }
+function PauseIcon() {
+  return (
+    <View style={{ flexDirection: 'row', gap: 6 }}>
+      <View style={{ width: 8, height: 28, borderRadius: 2, backgroundColor: 'white' }} />
+      <View style={{ width: 8, height: 28, borderRadius: 2, backgroundColor: 'white' }} />
+    </View>
+  );
+}
 
 /** Spinning vinyl disc with artwork label. Resets cleanly per track and never distorts. */
 function VinylDisc({ spinning, artwork }: { spinning: boolean; artwork: string }) {
