@@ -152,3 +152,7 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
         });
     }
 }
+
+export async function DELETE(req: Request, { id }: Record<string, string>) {
+    
+}

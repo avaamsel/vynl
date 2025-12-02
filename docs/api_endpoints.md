@@ -14,7 +14,7 @@ This documentation describes the API that serves the Vynl mobile app. The backen
 
 ## Playlist Endpoints
 
-### `GET 'api/playlist'`
+### `GET 'api/playlist?party=true/false'`
 
 **Description:** Get all the playlist for a user. Requires user's access token in header. Returns a list of playlist objects that contains a list of songs in order.
 
@@ -89,6 +89,8 @@ This documentation describes the API that serves the Vynl mobile app. The backen
 }
 ```
 
+### `DELETE 'api/playlist/:id`
+
 ### `PUT 'api/playlist/:id'`
 
 **Description:** Update a playlist with a new list of songs and/or a new name. Requires user's access token, a playlist id, and a playlist object in the body. Created at time, user id, and playlist id will not be updated even if passed object's differ. Returns the old playlist object in json of response.
@@ -134,6 +136,8 @@ This documentation describes the API that serves the Vynl mobile app. The backen
 }
 ```
 *Note: id was not updated in this example.*
+
+### `PUT 'api/playlist/add/:id'`
 
 ### `POST 'api/playlist'`
 
@@ -184,3 +188,11 @@ This documentation describes the API that serves the Vynl mobile app. The backen
 
 **Description:** Get a list of somg recommendation based on the songs in a given playlist that is owned by the user. Requires user's access token and playlist id. Optional query parameter `amount` to determine the amount of songs to return, defaults to 10 if not given.
 
+
+### `GET 'api/playlist/party/:code'`
+
+returns playlist object
+
+### `PUT 'api/playlist/party/toggle/:id`
+
+returns code
