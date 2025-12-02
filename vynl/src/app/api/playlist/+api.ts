@@ -1,4 +1,4 @@
-import { getPlaylistFromDatabase } from "@/src/server/dataDeserialization";
+import { deserializePlaylist } from "@/src/server/dataDeserialization";
 import { createSupabaseClient } from "@/src/server/supabase";
 import { isITunesPlaylist, ITunesPlaylist } from "@/src/types";
 import { isPlaylistData, isPlaylistSong, isSongData } from "@/src/types/database";
@@ -35,14 +35,13 @@ export async function GET(req: Request) {
 
         if (!data) return new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
-        const playlistsOrResponses = await Promise.all(
-            data.map(d => getPlaylistFromDatabase(String(d.playlist_id), supabase))
-        );
+        let playlists = [];
+        for (let i = 0; i < data.length; i++) {
+            let playlist = await deserializePlaylist(data[i], supabase);
+            playlists.push(playlist);
+        }
 
-        const errorResponse = playlistsOrResponses.find(p => p instanceof Response);
-        if (errorResponse) return errorResponse;
-
-        return new Response(JSON.stringify(playlistsOrResponses), {
+        return new Response(JSON.stringify(playlists), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
         })
@@ -62,7 +61,7 @@ export async function POST(req: Request) {
         const supabase = await createSupabaseClient(req);
 
         if (supabase instanceof Response) {
-            console.log("Client creation failed : ", supabase);
+            console.log("Client creation failed : ", await supabase.text());
             return supabase
         }
 

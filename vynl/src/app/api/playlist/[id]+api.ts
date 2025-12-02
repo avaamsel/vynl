@@ -1,7 +1,7 @@
 import { createSupabaseClient } from "@/src/server/supabase";
 import { getPlaylistFromDatabase } from "@/src/server/dataDeserialization";
 import { isPlaylistData, playlist_song } from "@/src/types/database";
-import { isITunesPlaylist } from "@/src/types";
+import { isITunesPlaylist, isITunesSong, isSongList } from "@/src/types";
 
 // GET "api/playlist"
 export async function GET(req: Request, { id }: Record<string, string>) {
@@ -52,18 +52,20 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
         const supabase = await createSupabaseClient(req);
         // If given an error response return it
         if (supabase instanceof Response) {
-            console.log("error : ", supabase);
             return supabase
         }
 
         const songList = body.songs;
-        const newName = body.newName;
+        const newName = body.name;
         const old_playlist = await getPlaylistFromDatabase(id, supabase);
         
         // If given an error response from playlist method
         if (old_playlist instanceof Response) {
             console.log("old playlist", old_playlist);
             return old_playlist;
+        }
+        if (!isSongList(songList)) {
+            return new Response("Invalid body: expected { name, songs[] }", { status: 400 });
         }
 
         // Upsert all song objects into the song table
@@ -78,20 +80,21 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             });
         }
 
+        if (newName) {
+            // Updating playlist object in database
+            const { data: p_data, error: p_err } = await supabase
+                .from('playlists')
+                .update({ name: newName})
+                .eq('playlist_id', playlist_id)
+                .select()
+                .single();
 
-        // Updating playlist object in database
-        const { data: p_data, error: p_err } = await supabase
-            .from('playlists')
-            .update({ name: newName})
-            .eq('playlist_id', playlist_id)
-            .select()
-            .single();
-        
-        if (p_err || !isPlaylistData(p_data)) {
-            console.log("p_data : ", p_err);
-            return new Response('Failed to insert into database', {
-                status: 400
-            });
+            if (p_err || !isPlaylistData(p_data)) {
+                console.log("p_data : ", p_err);
+                return new Response('Failed to insert into database', {
+                    status: 400
+                });
+            }
         }
 
         // Add or update new playlist songs

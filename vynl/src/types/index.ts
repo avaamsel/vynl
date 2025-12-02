@@ -86,6 +86,15 @@ export function isITunesPlaylist(obj: any): obj is ITunesPlaylist {
   );
 }
 
+export function isSongList(obj: any): obj is Array<ITunesSong> {
+return (
+  typeof obj === 'object' &&
+    obj !== null &&
+    Array.isArray(obj) &&
+    obj.every(isITunesSong)
+)
+}
+
 
 export async function iTunesSongToLastFMSong(itunesSong: ITunesSong): Promise<LastFmSong | Error> {
   if (!itunesSong) return new Error("Invalid iTunes Song");

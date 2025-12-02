@@ -18,7 +18,13 @@ export default function PlaylistDetailScreen() {
   
   const [showExportModal, setShowExportModal] = useState(false);
   const [showYouTubeModal, setShowYouTubeModal] = useState(false);
-  const { playlist, loading, error } = usePlaylistWithID(playlistId);
+  const { playlist, loading, error, refetch } = usePlaylistWithID(playlistId);
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   const handleDeleteSong = async (songId: number) => {
     if (!playlist) return;

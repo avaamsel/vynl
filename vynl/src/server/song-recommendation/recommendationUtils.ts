@@ -23,24 +23,38 @@ export async function getRecommendationsForSongTable(
   }
 
   // Check the songs all exist in the database 
-  const validSongs: ITunesSong[] = [];
+  const titleArtistPair: {title: string, artist: string}[] = [];
+
   for (const song of songTable) {
-    const exists = await lastFm.trackExists(song.artist, song.title);
-    if (exists) validSongs.push(song);
+    let exists = await lastFm.trackExists(song.artist, song.title);
+    if (exists) {
+      titleArtistPair.push({title: exists.title, artist: exists.artist});
+    }
+    else {
+      console.log("Track doesn't exactly match, searching for similar...");
+      
+      const tracks = await lastFm.searchTracks(song.title + song.artist)
+      if (tracks.length > 0) {
+        const first = tracks[0];
+        titleArtistPair.push({title: first.title, artist: first.artist});
+      } else {
+        console.log("No tracks found.");
+      }
+    }
   }
 
-  if (validSongs.length === 0) {
+  if (titleArtistPair.length === 0) {
     throw new Error("None of the provided songs exist in Last.fm database.");
   }
 
   const allRecommendations: LastFmSong[] = [];
-  for (const song of validSongs) {
+  for (const song of titleArtistPair) {
     const similar = await lastFm.getSimilarTracks(song.artist, song.title, 10);
     // Map Last.fm result to our Song type
     const mapped = similar.map((t: any) => ({
       artist: t.artist?.name ?? t.artist,
       title: t.name,
-      song_id: t.mbid, // Placeholder because we should put mbid which is a string
+      song_id: t.mbid,
       duration_sec: t.duration ? t.duration : null,
     }));
     allRecommendations.push(...mapped);

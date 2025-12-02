@@ -9,7 +9,8 @@
     "web": "npm --prefix ./vynl run web",
     "lint": "npm --prefix ./vynl run lint",
     "reset-project": "npm --prefix ./vynl run reset-project",
-    "install": "npm --prefix ./vynl install"
+    "install": "npm --prefix ./vynl install",
+    "test": "npm --prefix ./vynl run test"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",
@@ -19,7 +20,8 @@
   },
   "devDependencies": {
     "@types/react": "^19.2.2",
-    "@types/react-native": "^0.72.8"
+    "@types/react-native": "^0.72.8",
+    "typescript": "~5.9.2"
   },
   "overrides": {
     "js-yaml": ">=4.1.1"

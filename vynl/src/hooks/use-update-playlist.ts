@@ -14,7 +14,7 @@ export function useUpdatePlaylist(): UseCreatePlaylistResult {
   const { authToken } = useAuth();
 
   const updatePlaylist = useCallback(
-    async (playlist_id: number, songs: ITunesSong[], newName: string): Promise<ITunesPlaylist | null> => {
+    async (playlist_id: number, songs: ITunesSong[], name: string): Promise<ITunesPlaylist | null> => {
       console.log("UPDATing...");
       setLoading(true);
       setError(null);
@@ -26,7 +26,7 @@ export function useUpdatePlaylist(): UseCreatePlaylistResult {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + authToken,
           },
-          body: JSON.stringify({ songs, newName }),
+          body: JSON.stringify({ songs, name }),
         });
 
         if (!res.ok) {
