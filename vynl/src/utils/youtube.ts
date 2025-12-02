@@ -96,16 +96,46 @@ export async function isYouTubeAuthenticated(): Promise<boolean> {
 }
 
 async function refreshYouTubeToken(refreshToken: string): Promise<string> {
+  const clientId = process.env.EXPO_PUBLIC_YOUTUBE_CLIENT_ID || '';
+  const clientSecret = process.env.EXPO_PUBLIC_YOUTUBE_CLIENT_SECRET;
+
+  if (!clientId) {
+    throw new Error('YouTube OAuth Client ID is required to refresh token');
+  }
+
+  if (Platform.OS !== 'web') {
+    try {
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: refreshToken,
+          client_id: clientId,
+        }).toString(),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to refresh YouTube token: ${errorText}`);
+      }
+
+      const data = await response.json();
+      await storeYouTubeToken(data.access_token, data.refresh_token || refreshToken, data.expires_in);
+      return data.access_token;
+    } catch (error) {
+      console.error('Error refreshing YouTube token (mobile):', error);
+      throw error;
+    }
+  }
+
   try {
     let apiUrl = '/api/youtube/refresh';
-
-    if (Platform.OS !== 'web') {
-      const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL;
-      if (apiBaseUrl) {
-        apiUrl = `${apiBaseUrl}/api/youtube/refresh`;
-      } else {
-        apiUrl = 'http://localhost:8081/api/youtube/refresh';
-      }
+    const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL;
+    if (apiBaseUrl && !apiBaseUrl.includes('localhost')) {
+      apiUrl = `${apiBaseUrl}/api/youtube/refresh`;
     }
 
     const response = await fetch(apiUrl, {
@@ -118,39 +148,32 @@ async function refreshYouTubeToken(refreshToken: string): Promise<string> {
       }),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to refresh YouTube token');
+    if (response.ok) {
+      const data = await response.json();
+      await storeYouTubeToken(data.access_token, data.refresh_token || refreshToken, data.expires_in);
+      return data.access_token;
     }
-
-    const data = await response.json();
-    await storeYouTubeToken(data.access_token, data.refresh_token || refreshToken, data.expires_in);
-    return data.access_token;
   } catch (error) {
-    console.error('Error refreshing YouTube token via API:', error);
+    console.warn('API route refresh failed, trying direct refresh:', error);
+  }
 
-    const clientId = process.env.EXPO_PUBLIC_YOUTUBE_CLIENT_ID || '';
-    const clientSecret = process.env.EXPO_PUBLIC_YOUTUBE_CLIENT_SECRET;
+  try {
+    const bodyParams = new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: clientId,
+    });
 
-    if (!clientId || !clientSecret) {
-      throw new Error(
-        'Cannot refresh YouTube token: API route failed and client credentials not available.'
-      );
+    if (clientSecret) {
+      bodyParams.append('client_secret', clientSecret);
     }
-
-    const credentials = base64.encode(`${clientId}:${clientSecret}`);
 
     const response = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        Authorization: `Basic ${credentials}`,
       },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken,
-        client_id: clientId,
-        client_secret: clientSecret,
-      }).toString(),
+      body: bodyParams.toString(),
     });
 
     if (!response.ok) {
@@ -159,8 +182,11 @@ async function refreshYouTubeToken(refreshToken: string): Promise<string> {
     }
 
     const data = await response.json();
-    await storeYouTubeToken(data.access_token, refreshToken, data.expires_in);
+    await storeYouTubeToken(data.access_token, data.refresh_token || refreshToken, data.expires_in);
     return data.access_token;
+  } catch (error) {
+    console.error('Error refreshing YouTube token (direct):', error);
+    throw error;
   }
 }
 
@@ -209,7 +235,26 @@ async function youtubeFetch<T>(url: string, options: RequestInit = {}): Promise<
     throw new Error(errorMessage);
   }
 
-  return response.json();
+  if (options.method === 'DELETE' || response.status === 204) {
+    return {} as T;
+  }
+
+  // Check if response has content before parsing JSON
+  const contentType = response.headers.get('content-type');
+  const text = await response.text();
+  
+  if (!text || !contentType?.includes('application/json')) {
+    return {} as T;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch (error) {
+    if (response.ok) {
+      return {} as T;
+    }
+    throw error;
+  }
 }
 
 export async function searchYouTubeTrack(
@@ -317,6 +362,73 @@ export async function createYouTubePlaylist(
   return playlist;
 }
 
+export async function findExistingYouTubePlaylist(
+  name: string
+): Promise<YouTubePlaylist | null> {
+  try {
+    const channelId = await getUserYouTubeChannelId();
+    if (!channelId) {
+      return null;
+    }
+
+    const playlists = await getUserYouTubePlaylists(50);
+    const existing = playlists.find(
+      (playlist) => playlist.snippet?.title?.toLowerCase() === name.toLowerCase()
+    );
+
+    if (existing && existing.id) {
+      return existing;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error finding existing YouTube playlist:', error);
+    return null;
+  }
+}
+
+export async function createUniqueYouTubePlaylist(
+  baseName: string,
+  description?: string
+): Promise<YouTubePlaylist> {
+  const channelId = await getUserYouTubeChannelId();
+  if (!channelId) {
+    throw new Error(
+      'You need to create a YouTube channel before you can create playlists. ' +
+      'Please visit https://www.youtube.com/create_channel to create your channel, then try again.'
+    );
+  }
+
+  try {
+    const playlists = await getUserYouTubePlaylists(50);
+    const existingNames = new Set(
+      playlists.map((p) => p.snippet?.title?.toLowerCase() || '').filter(Boolean)
+    );
+
+    let uniqueName = baseName;
+    let counter = 1;
+
+    // Find a unique name by appending (1), (2), etc.
+    while (existingNames.has(uniqueName.toLowerCase())) {
+      uniqueName = `${baseName} (${counter})`;
+      counter++;
+    }
+
+    console.log(`Creating new YouTube playlist with unique name: "${uniqueName}"`);
+    const newPlaylist = await createYouTubePlaylist(uniqueName, description);
+    console.log('Created playlist with ID:', newPlaylist.id);
+    return newPlaylist;
+  } catch (error: any) {
+    if (error.message?.includes('channelNotFound') || error.message?.includes('Channel not found')) {
+      throw new Error(
+        'You need to create a YouTube channel before you can create playlists. ' +
+        'Please visit https://www.youtube.com/create_channel to create your channel, then try again.'
+      );
+    }
+    throw error;
+  }
+}
+
 export async function findOrCreateYouTubePlaylist(
   name: string,
   description?: string
@@ -385,36 +497,56 @@ async function getYouTubePlaylistItems(
   const items: Array<{ id: string; videoId?: string }> = [];
   let nextPageToken: string | undefined;
 
-  do {
-    const params = new URLSearchParams({
-      part: 'snippet',
-      playlistId,
-      maxResults: '50',
-    });
+  try {
+    do {
+      const params = new URLSearchParams({
+        part: 'snippet',
+        playlistId,
+        maxResults: '50',
+      });
 
-    if (nextPageToken) {
-      params.append('pageToken', nextPageToken);
+      if (nextPageToken) {
+        params.append('pageToken', nextPageToken);
+      }
+
+      const data = await youtubeFetch<{
+        items: Array<{
+          id: string;
+          snippet: {
+            resourceId?: { videoId?: string };
+          };
+        }>;
+        nextPageToken?: string;
+      }>(`https://www.googleapis.com/youtube/v3/playlistItems?${params.toString()}`);
+
+      items.push(
+        ...(data.items || []).map((item) => ({
+          id: item.id,
+          videoId: item.snippet?.resourceId?.videoId,
+        }))
+      );
+
+      nextPageToken = data.nextPageToken;
+    } while (nextPageToken);
+  } catch (error: any) {
+    const errorMessage = (error.message || '').toLowerCase();
+    const errorString = JSON.stringify(error).toLowerCase();
+    
+    if (
+      errorMessage.includes('cannot be found') ||
+      errorMessage.includes('not found') ||
+      errorMessage.includes('playlist identified') ||
+      errorMessage.includes('playlistid') ||
+      errorMessage.includes('playlist') && errorMessage.includes('found') ||
+      errorString.includes('cannot be found') ||
+      errorString.includes('playlist identified')
+    ) {
+      console.warn(`Playlist ${playlistId} not found when getting items (treating as empty)`);
+      return [];
     }
-
-    const data = await youtubeFetch<{
-      items: Array<{
-        id: string;
-        snippet: {
-          resourceId?: { videoId?: string };
-        };
-      }>;
-      nextPageToken?: string;
-    }>(`https://www.googleapis.com/youtube/v3/playlistItems?${params.toString()}`);
-
-    items.push(
-      ...(data.items || []).map((item) => ({
-        id: item.id,
-        videoId: item.snippet?.resourceId?.videoId,
-      }))
-    );
-
-    nextPageToken = data.nextPageToken;
-  } while (nextPageToken);
+    console.warn(`Error getting playlist items for ${playlistId}, treating as empty: ${error.message}`);
+    return [];
+  }
 
   return items;
 }
@@ -425,28 +557,65 @@ async function clearYouTubePlaylistItems(playlistId: string): Promise<void> {
   }
 
   try {
+    console.log(`Fetching items from playlist ${playlistId}...`);
     const items = await getYouTubePlaylistItems(playlistId);
+    console.log(`Found ${items.length} items to clear from playlist ${playlistId}`);
 
     if (items.length === 0) {
+      console.log(`Playlist ${playlistId} is already empty`);
       return;
     }
 
+    let deletedCount = 0;
+    let notFoundCount = 0;
     for (const item of items) {
-      if (!item.id) continue;
+      if (!item.id) {
+        console.warn('Skipping item without ID');
+        continue;
+      }
 
-      await youtubeFetch<{ status: string }>(
-        `https://www.googleapis.com/youtube/v3/playlistItems?id=${item.id}`,
-        {
-          method: 'DELETE',
+      try {
+        await youtubeFetch<{ status: string }>(
+          `https://www.googleapis.com/youtube/v3/playlistItems?id=${item.id}`,
+          {
+            method: 'DELETE',
+          }
+        );
+        deletedCount++;
+      } catch (deleteError: any) {
+        if (
+          deleteError.message?.includes('not found') ||
+          deleteError.message?.includes('cannot be found') ||
+          deleteError.message?.includes('Playlist item not found')
+        ) {
+          notFoundCount++;
+          console.log(`Playlist item ${item.id} already deleted or not found (treating as success)`);
+        } else {
+          console.error(`Failed to delete playlist item ${item.id}:`, deleteError);
         }
-      );
+      }
     }
+
+    const successCount = deletedCount + notFoundCount;
+    console.log(`Successfully processed ${successCount} of ${items.length} items from playlist ${playlistId} (${deletedCount} deleted, ${notFoundCount} already gone)`);
   } catch (error: any) {
-    if (error.message?.includes('cannot be found') || error.message?.includes('not found')) {
-      console.warn(`Playlist ${playlistId} not found when clearing items, will create fresh`);
+    const errorMessage = (error.message || '').toLowerCase();
+    const errorString = JSON.stringify(error).toLowerCase();
+    
+    if (
+      errorMessage.includes('cannot be found') ||
+      errorMessage.includes('not found') ||
+      errorMessage.includes('playlist identified') ||
+      errorMessage.includes('playlistid') ||
+      errorMessage.includes('playlist') && errorMessage.includes('found') ||
+      errorString.includes('cannot be found') ||
+      errorString.includes('playlist identified')
+    ) {
+      console.warn(`Playlist ${playlistId} not found when clearing items (treating as empty/cleared)`);
       return;
     }
-    throw error;
+    console.error(`Error clearing playlist items for ${playlistId}:`, error);
+    console.warn(`Warning: Error clearing playlist, but proceeding anyway: ${error.message}`);
   }
 }
 
@@ -456,8 +625,12 @@ async function addVideosToYouTubePlaylist(playlistId: string, videoIds: string[]
   }
 
   if (videoIds.length === 0) {
+    console.warn('No video IDs to add to playlist');
     return;
   }
+
+  let addedCount = 0;
+  let failedCount = 0;
 
   for (const videoId of videoIds) {
     if (!videoId) {
@@ -481,21 +654,42 @@ async function addVideosToYouTubePlaylist(playlistId: string, videoIds: string[]
           }),
         }
       );
+      addedCount++;
     } catch (error: any) {
-      if (error.message?.includes('cannot be found') || error.message?.includes('not found')) {
+      failedCount++;
+      const errorMessage = (error.message || '').toLowerCase();
+      
+      if (errorMessage.includes('cannot be found') || errorMessage.includes('not found')) {
+        console.error(`Playlist ${playlistId} not found when adding video ${videoId}`);
         throw new Error(
           `Playlist ${playlistId} not found. The playlist may have been deleted or you may not have access to it.`
         );
       }
-      throw error;
+      
+      console.error(`Failed to add video ${videoId} to playlist ${playlistId}:`, error.message);
     }
+  }
+
+  console.log(`Added ${addedCount} of ${videoIds.length} videos to playlist ${playlistId}`);
+  
+  if (addedCount === 0 && videoIds.length > 0) {
+    throw new Error(`Failed to add any videos to playlist ${playlistId}`);
+  }
+  
+  if (failedCount > 0) {
+    console.warn(`Warning: ${failedCount} videos failed to add to playlist ${playlistId}`);
   }
 }
 
 export async function exportPlaylistToYouTube(
   playlistName: string,
   songs: Array<{ title: string; artist: string }>,
-  onProgress?: (progress: { current: number; total: number; status: string }) => void
+  onProgress?: (progress: { current: number; total: number; status: string }) => void,
+  options?: {
+    useExistingPlaylist?: boolean;
+    existingPlaylistId?: string;
+    appendToExisting?: boolean;
+  }
 ): Promise<{ playlistId: string; playlistUrl: string; tracksFound: number; tracksTotal: number }> {
   try {
     if (songs.length === 0) {
@@ -548,25 +742,120 @@ export async function exportPlaylistToYouTube(
       status: 'Preparing playlist...',
     });
 
-    const playlist = await findOrCreateYouTubePlaylist(playlistName);
+    let playlist: YouTubePlaylist;
+    let isNewPlaylist = false;
+
+    if (options?.useExistingPlaylist && options?.existingPlaylistId) {
+      playlist = { id: options.existingPlaylistId, snippet: { title: playlistName } };
+      console.log(`Using existing playlist with ID: ${playlist.id}`);
+    } else if (options?.useExistingPlaylist) {
+      const existing = await findExistingYouTubePlaylist(playlistName);
+      if (!existing) {
+        throw new Error(`Playlist "${playlistName}" not found`);
+      }
+      playlist = existing;
+      console.log(`Found existing playlist with ID: ${playlist.id}`);
+    } else {
+      playlist = await createUniqueYouTubePlaylist(playlistName);
+      isNewPlaylist = true;
+      console.log(`Created new playlist with ID: ${playlist.id}, isNewPlaylist: ${isNewPlaylist}`);
+    }
 
     if (!playlist || !playlist.id) {
       throw new Error('Failed to create or find YouTube playlist: missing playlist ID');
     }
 
+    if (isNewPlaylist) {
+      console.log(`Skipping clear step for new playlist ${playlist.id}`);
+    } else if (!options?.appendToExisting) {
+      if (isNewPlaylist) {
+        console.warn(`WARNING: Attempted to clear new playlist ${playlist.id}, skipping clear step`);
+      } else {
+        onProgress?.({
+          current: songs.length,
+          total: songs.length,
+          status: 'Clearing existing playlist items...',
+        });
+
+        try {
+          console.log(`Clearing existing playlist ${playlist.id} before replacing...`);
+          await clearYouTubePlaylistItems(playlist.id);
+        
+          const remainingItems = await getYouTubePlaylistItems(playlist.id);
+          if (remainingItems.length > 0) {
+            console.warn(`Playlist ${playlist.id} still has ${remainingItems.length} items after clearing. Retrying...`);
+            await clearYouTubePlaylistItems(playlist.id);
+            const verifyItems = await getYouTubePlaylistItems(playlist.id);
+            if (verifyItems.length > 0) {
+              console.warn(`Warning: ${verifyItems.length} items still remain in playlist after clearing. New items will be added anyway.`);
+            } else {
+              console.log(`Successfully cleared playlist ${playlist.id} on retry`);
+            }
+          } else {
+            console.log(`Successfully cleared playlist ${playlist.id}`);
+          }
+        } catch (error: any) {
+          const errorMessage = (error.message || '').toLowerCase();
+          const errorString = JSON.stringify(error).toLowerCase();
+          
+          if (
+            errorMessage.includes('cannot be found') ||
+            errorMessage.includes('not found') ||
+            errorMessage.includes('playlist identified') ||
+            errorMessage.includes('playlistid') ||
+            errorMessage.includes('playlist') && errorMessage.includes('found') ||
+            errorString.includes('cannot be found') ||
+            errorString.includes('playlist identified')
+          ) {
+            console.warn(`Playlist ${playlist.id} not found when clearing (treating as empty, proceeding with export)`);
+          } else {
+            console.error('Error clearing playlist items:', error);
+            console.warn(`Warning: Could not clear playlist items: ${error.message}. Proceeding to add new items anyway.`);
+          }
+        }
+      }
+    }
+
+    if (isNewPlaylist) {
+      console.log(`Waiting for newly created playlist ${playlist.id} to be available...`);
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+    }
+
     onProgress?.({
       current: songs.length,
       total: songs.length,
-      status: 'Updating playlist items...',
+      status: options?.appendToExisting ? 'Adding to playlist...' : 'Adding new playlist items...',
     });
 
-    try {
-      await clearYouTubePlaylistItems(playlist.id);
-    } catch (error: any) {
-      console.warn('Could not clear playlist items, will add to existing items:', error.message);
+    let retries = isNewPlaylist ? 3 : 1;
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        await addVideosToYouTubePlaylist(playlist.id, videoIds);
+        lastError = null;
+        break; // Success, exit retry loop
+      } catch (error: any) {
+        lastError = error;
+        const errorMessage = (error.message || '').toLowerCase();
+        
+        if (
+          (errorMessage.includes('cannot be found') || errorMessage.includes('not found')) &&
+          attempt < retries
+        ) {
+          const waitTime = attempt * 2000; // Exponential backoff: 2s, 4s, 6s
+          console.warn(`Playlist ${playlist.id} not found on attempt ${attempt}, waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+        
+        throw error;
+      }
     }
-
-    await addVideosToYouTubePlaylist(playlist.id, videoIds);
+    
+    if (lastError) {
+      throw lastError;
+    }
 
     const playlistUrl = `https://music.youtube.com/playlist?list=${playlist.id}`;
 

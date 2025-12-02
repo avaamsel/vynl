@@ -19,6 +19,7 @@ import {
   isYouTubeAuthenticated,
   exportPlaylistToYouTube,
   clearYouTubeTokens,
+  findExistingYouTubePlaylist,
 } from '@/src/utils/youtube';
 import {
   initiateYouTubeAuth,
@@ -151,7 +152,7 @@ export default function YouTubeExportModal({
     }
   };
 
-  const handleExport = async () => {
+  const handleExport = async (useExisting: boolean = false, appendToExisting: boolean = false, existingPlaylistId?: string) => {
     if (songs.length === 0) {
       Alert.alert('Playlist is empty', 'Add a few songs before exporting.');
       return;
@@ -162,8 +163,15 @@ export default function YouTubeExportModal({
     setExportResult(null);
 
     try {
-      const result = await exportPlaylistToYouTube(playlistName, songs, (progress) =>
-        setExportProgress(progress)
+      const result = await exportPlaylistToYouTube(
+        playlistName,
+        songs,
+        (progress) => setExportProgress(progress),
+        {
+          useExistingPlaylist: useExisting,
+          existingPlaylistId: existingPlaylistId,
+          appendToExisting: appendToExisting,
+        }
       );
 
       setExportResult(result);
@@ -195,6 +203,49 @@ export default function YouTubeExportModal({
       setIsExporting(false);
       setExportProgress(null);
       Alert.alert('Error', error.message || 'Export failed. Please try again.');
+    }
+  };
+
+  const handleExportWithCheck = async () => {
+    if (songs.length === 0) {
+      Alert.alert('Playlist is empty', 'Add a few songs before exporting.');
+      return;
+    }
+
+    // Check if a playlist with the same name already exists
+    try {
+      const existingPlaylist = await findExistingYouTubePlaylist(playlistName);
+      
+      if (existingPlaylist) {
+        // Show alert asking user what they want to do
+        Alert.alert(
+          'Playlist Already Exists',
+          `A playlist named "${playlistName}" already exists on YouTube Music. What would you like to do?`,
+          [
+            {
+              text: 'Add to Existing',
+              onPress: () => handleExport(true, true, existingPlaylist.id),
+            },
+            {
+              text: 'Replace Existing',
+              onPress: () => handleExport(true, false, existingPlaylist.id),
+            },
+            {
+              text: 'Create New',
+              style: 'cancel',
+              onPress: () => handleExport(false, false),
+            },
+          ],
+          { cancelable: true }
+        );
+      } else {
+        // No existing playlist, proceed with normal export
+        handleExport(false, false);
+      }
+    } catch (error: any) {
+      console.error('Error checking for existing playlist:', error);
+      // If check fails, proceed with normal export
+      handleExport(false, false);
     }
   };
 
@@ -340,7 +391,7 @@ export default function YouTubeExportModal({
                   <View style={styles.buttonContainer}>
                     <AppButton
                       title="Export to YouTube Music"
-                      onPress={handleExport}
+                      onPress={handleExportWithCheck}
                       backgroundColor="#FF0000"
                       textColor="#FFFFFF"
                       width="100%"
