@@ -9,13 +9,18 @@ const supabasePrivateKey = process.env.EXPO_PRIVATE_SUPABASE_KEY!;
 export async function createSupabaseClient(req: Request): Promise<SupabaseClient<Database> | Response> {
     const auth = req.headers.get('Authorization');
     if (!auth || auth.split(" ").length < 2) {
-        console.log("missing auth header : ", auth);
         return new Response('Missing Authorization Header', {
             status: 403
         });
     }
     const access_token = auth.split(" ")[1];
     
+    if (access_token.split(".").length != 3) {
+        return new Response('Malformed Authorization Header', {
+            status: 403
+        });
+    }
+
     const supabase = createClient<Database>(
         supabaseUrl,
         supabasePublishableKey,
@@ -32,6 +37,6 @@ export async function createSupabaseClient(req: Request): Promise<SupabaseClient
 }
 
 // Used for testing only. Will provide FULL access to the database, bypassing RLS.
-export async function createSupabaseAdminClient(): Promise<SupabaseClient<Database>> {
+export function createSupabaseAdminClient(): SupabaseClient<Database> {
     return createClient<Database>(supabaseUrl, supabasePrivateKey);
 }
