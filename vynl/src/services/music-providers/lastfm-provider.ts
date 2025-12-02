@@ -1,20 +1,11 @@
 const BASE_URL = "https://ws.audioscrobbler.com/2.0/";
 
-// Check for both server-side (LASTFM_API_KEY) and client-side (EXPO_PUBLIC_LASTFM_API_KEY) environment variables
-const LASTFM_API_KEY = process.env.LASTFM_API_KEY || process.env.EXPO_PUBLIC_LASTFM_API_KEY || "";
+const LASTFM_API_KEY = process.env.EXPO_PUBLIC_LASTFM_API_KEY || "";
 
 export class LastFmService {
     constructor() {
         if (!LASTFM_API_KEY) {
-            const errorMsg = "Missing LASTFM_API_KEY environment variable. " +
-                "Please set either LASTFM_API_KEY (for server-side) or EXPO_PUBLIC_LASTFM_API_KEY (for client-side) in your .env file. " +
-                "For API routes, use LASTFM_API_KEY.";
-            console.error(errorMsg);
-            console.error("Available env vars:", {
-                has_LASTFM_API_KEY: !!process.env.LASTFM_API_KEY,
-                has_EXPO_PUBLIC_LASTFM_API_KEY: !!process.env.EXPO_PUBLIC_LASTFM_API_KEY,
-            });
-            throw new Error(errorMsg);
+            throw new Error("Missing LASTFM_API_KEY environment variable. Make sure it's set in .env and dotenv is loaded.");
         }
     }
 

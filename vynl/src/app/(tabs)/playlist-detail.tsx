@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import AppButton from '@/src/components/AppButton';
 import SpotifyExportModal from '@/src/components/SpotifyExportModal';
+import YouTubeExportModal from '@/src/components/YouTubeExportModal';
 import { ITunesPlaylist } from '@/src/types';
 import { usePlaylistWithID } from '@/src/hooks/use-playlist-with-id';
 
@@ -16,6 +17,7 @@ export default function PlaylistDetailScreen() {
   const playlistId = params.id as string;
   
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showYouTubeModal, setShowYouTubeModal] = useState(false);
   const { playlist, loading, error } = usePlaylistWithID(playlistId);
 
   const handleDeleteSong = async (songId: number) => {
@@ -56,7 +58,7 @@ export default function PlaylistDetailScreen() {
   };
 
   const handleDeletePlaylist = () => {
-    if (!playlist1) return;
+    if (!playlist) return;
     
     Alert.alert(
       'Delete Playlist',
@@ -175,24 +177,36 @@ export default function PlaylistDetailScreen() {
             width="100%"
           />
           {playlist.songs.length > 0 && (
-            <AppButton
-              title="Export to Spotify"
-              onPress={() => {
-                console.log('Export button clicked, opening modal');
-                console.log('Current showExportModal state:', showExportModal);
-                console.log('Playlist:', playlist.name, 'Songs:', playlist.songs.length);
-                try {
-                  setShowExportModal(true);
-                  console.log('Modal state set to true');
-                } catch (error) {
-                  console.error('Error setting modal state:', error);
-                  Alert.alert('Error', 'Failed to open export modal. Check console for details.');
-                }
-              }}
-              backgroundColor="#1DB954"
-              textColor="#FFFFFF"
-              width="100%"
-            />
+            <>
+              <AppButton
+                title="Export to Spotify"
+                onPress={() => {
+                  try {
+                    setShowExportModal(true);
+                  } catch (error) {
+                    console.error('Error setting Spotify modal state:', error);
+                    Alert.alert('Error', 'Failed to open Spotify export modal.');
+                  }
+                }}
+                backgroundColor="#1DB954"
+                textColor="#FFFFFF"
+                width="100%"
+              />
+              <AppButton
+                title="Export to YouTube Music"
+                onPress={() => {
+                  try {
+                    setShowYouTubeModal(true);
+                  } catch (error) {
+                    console.error('Error setting YouTube modal state:', error);
+                    Alert.alert('Error', 'Failed to open YouTube export modal.');
+                  }
+                }}
+                backgroundColor="#FF0000"
+                textColor="#FFFFFF"
+                width="100%"
+              />
+            </>
           )}
         </View>
 
@@ -205,6 +219,13 @@ export default function PlaylistDetailScreen() {
             setShowExportModal(false);
             // Optionally show success message or navigate
           }}
+        />
+        <YouTubeExportModal
+          visible={showYouTubeModal}
+          onClose={() => setShowYouTubeModal(false)}
+          playlistName={playlist.name}
+          songs={playlist.songs.map(song => ({ title: song.title, artist: song.artist }))}
+          onSuccess={() => setShowYouTubeModal(false)}
         />
       </SafeAreaView>
     </LinearGradient>

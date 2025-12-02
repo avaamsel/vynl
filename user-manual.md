@@ -137,7 +137,7 @@ Your music taste changes — and your playlists can too\! The **Modify Playlist*
 
 Your playlist will instantly update with your new additions.
 
-### Export Playlists (Work in Progress)
+### Export Playlists
 
 After creating a playlist, you are able to export it to Spotify\!
 
