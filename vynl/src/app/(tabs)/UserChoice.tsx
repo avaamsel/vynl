@@ -2,7 +2,7 @@ import { Link } from "expo-router";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { View, Text, TouchableOpacity, StyleSheet, useColorScheme } from "react-native";
-import { Colors } from '../constants/theme';
+import { Colors } from '@/src/constants/theme';
 
 export default function AuthChoice() {
   const colorScheme = useColorScheme();
@@ -53,13 +53,13 @@ export default function AuthChoice() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.card}>
-        <Link href="/LoginPage" asChild>
+        <Link href="/(tabs)/LoginPage" asChild>
           <TouchableOpacity style={styles.btn}>
             <Text style={styles.btnText}>Log in</Text>
           </TouchableOpacity>
         </Link>
 
-        <Link href="/SignupPage" asChild>
+        <Link href="/(tabs)/SignupPage" asChild>
           <TouchableOpacity style={styles.btnSecondary}>
             <Text style={styles.btnSecondaryText}>Sign up</Text>
           </TouchableOpacity>
@@ -68,3 +68,4 @@ export default function AuthChoice() {
     </SafeAreaView>
   );
 }
+

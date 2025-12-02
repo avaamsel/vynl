@@ -109,6 +109,39 @@ export default function TabLayout() {
           href: null, // Hide from tab bar
         }}
       />
+      <Tabs.Screen
+        name="HostParty"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="JoinParty"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="UserChoice"
+        options={{
+          href: null, // Hide from tab bar
+          tabBarStyle: { display: 'none' },
+        }}
+      />
+      <Tabs.Screen
+        name="LoginPage"
+        options={{
+          href: null, // Hide from tab bar
+          tabBarStyle: { display: 'none' },
+        }}
+      />
+      <Tabs.Screen
+        name="SignupPage"
+        options={{
+          href: null, // Hide from tab bar
+          tabBarStyle: { display: 'none' },
+        }}
+      />
     </Tabs>
   );
 }

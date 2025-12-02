@@ -6,8 +6,6 @@ import { useFonts } from 'expo-font';
 import { Poppins_400Regular } from '@expo-google-fonts/poppins';
 import { EBGaramond_400Regular } from '@expo-google-fonts/eb-garamond';
 import { useRouter } from 'expo-router';
-import { useAuth } from "@/src/context/auth-context";
-import { useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
 // Image assets
@@ -16,26 +14,12 @@ const imgBackground = require('@/assets/images/background.png');
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { login } = useAuth();
   const [fontsLoaded] = useFonts({
     Poppins: Poppins_400Regular,
     EBGaramond: EBGaramond_400Regular,
     'AppleGaramond-Regular': require('@/assets/fonts/AppleGaramond.ttf'),
     'AppleGaramond-Italic': require('@/assets/fonts/AppleGaramond-Italic.ttf'),
   });
-
-  useEffect(() => {
-    const doLogin = async () => {
-      try {
-        await login("abcde@gmail.com", "Hello123!");
-        console.log("Logged in successfully");
-      } catch (err) {
-        console.error("Login failed:", err);
-      }
-    };
-
-    doLogin();
-  }, [login]);
 
   if (!fontsLoaded) {
     return null;
