@@ -120,6 +120,7 @@ export default function Swiping() {
   const [gettingSimilar, setGettingSimilar] = useState(false);
   const [recommendedSongs, setRecommendations] = useState<ITunesSong[]>([]);
   const { authToken } = useAuth();
+  const isSwiping = useRef(false);
   const {
     playing,
     setPlaying,
@@ -339,10 +340,15 @@ export default function Swiping() {
 
   // fade in the new top card on index change
   useEffect(() => {
-    cardOpacity.setValue(0);
-    requestAnimationFrame(() => {
-      Animated.timing(cardOpacity, { toValue: 1, duration: 150, useNativeDriver: true }).start();
-    });
+    if (isSwiping.current) {
+      isSwiping.current = false;
+      cardOpacity.setValue(1);
+    } else {
+      cardOpacity.setValue(0);
+      requestAnimationFrame(() => {
+        Animated.timing(cardOpacity, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+      });
+    }
   }, [index]);
 
 
@@ -376,6 +382,7 @@ export default function Swiping() {
     Haptics.selectionAsync();
 
     Animated.timing(position, { toValue: { x: toX, y: vy * 16 }, duration: 220, useNativeDriver: true }).start(async () => {
+      isSwiping.current = true;
       // Add to history for undo functionality
       setSwipeHistory(prev => [...prev, { songId: currentSong.song_id, direction: dir, index: currentIndex }]);
       
@@ -387,6 +394,7 @@ export default function Swiping() {
       }
       
       // reset transform then advance next frame to avoid one-frame ghost
+      cardOpacity.setValue(0);
       position.setValue({ x: 0, y: 0 });
 
       await stopAll();
