@@ -83,6 +83,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="PartyMode"
+        options={{
+          title: 'Party',
+          tabBarIcon: ({ focused }) => (
+            <Ionicons name="people" size={22} color="#3b4f7d" />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
@@ -99,12 +108,6 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="playlist-detail"
-        options={{
-          href: null, // Hide from tab bar
-        }}
-      />
-      <Tabs.Screen
-        name="PartyMode"
         options={{
           href: null, // Hide from tab bar
         }}

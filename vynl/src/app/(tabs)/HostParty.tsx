@@ -158,7 +158,7 @@ export default function HostPartyScreen() {
             {/* Cancel Button */}
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => router.back()}
+              onPress={() => router.push('/(tabs)/PartyMode')}
               style={styles.cancelButton}
             >
               <Text style={styles.cancelButtonText}>CANCEL</Text>

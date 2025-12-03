@@ -53,8 +53,7 @@ export default function PartyModeScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => {
-                // TODO: Add Join Party navigation
-                console.log('Join Party pressed');
+                router.push('/(tabs)/JoinParty');
               }}
             >
               <LinearGradient
@@ -71,8 +70,7 @@ export default function PartyModeScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => {
-                // TODO: Add Create Party navigation
-                console.log('Create Party pressed');
+                router.push('/(tabs)/HostParty');
               }}
             >
               <View style={styles.outlinedButton}>

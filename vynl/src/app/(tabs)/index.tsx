@@ -78,27 +78,6 @@ export default function DashboardScreen() {
                 </View>
               </View>
             </TouchableOpacity>
-
-            {/* Party Mode Button */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => router.push('/(tabs)/PartyMode')}
-            >
-              <View style={styles.playlistButton}>
-                <LinearGradient
-                  colors={['#FF6B9D', '#FF8C42']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.plusIconGradient}
-                >
-                  <Ionicons name="people" size={28} color="#FFFFFF" />
-                </LinearGradient>
-                <View style={styles.buttonTextContainer}>
-                  <Text style={styles.buttonTitle}>Party Mode</Text>
-                  <Text style={styles.buttonSubtitle}>Create a collaborative playlist</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
           </View>
         </ScrollView>
       </SafeAreaView>
