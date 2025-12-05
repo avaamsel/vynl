@@ -46,7 +46,7 @@ export default function JoinPartyScreen() {
     if (fullCode.length === 6) {
       console.log('Joining party with code:', fullCode);
       
-      const res = await fetch(`api/playlist/party/link/${encodeURIComponent(fullCode)}`, {
+      const res = await fetch(`/api/playlist/party/link/${encodeURIComponent(fullCode)}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ export default function JoinPartyScreen() {
             {code.map((digit, index) => (
               <TextInput
                 key={index}
-                ref={(ref) => (inputRefs.current[index] = ref)}
+                ref={(ref) => { inputRefs.current[index] = ref; }}
                 style={styles.codeInput}
                 value={digit}
                 onChangeText={(text) => handleCodeChange(text, index)}

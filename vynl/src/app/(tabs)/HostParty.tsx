@@ -190,7 +190,7 @@ export default function HostPartyScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={handleCreateParty}
-              disabled={isCreating || authLoading || (playlistId && !playlist)}
+              disabled={isCreating || authLoading || (playlistId ? !playlist : false)}
             >
               <LinearGradient
                 colors={!isCreating && !authLoading && (!playlistId || playlist) ? ['#FF6B9D', '#FF8C42'] : ['#CCCCCC', '#CCCCCC']}

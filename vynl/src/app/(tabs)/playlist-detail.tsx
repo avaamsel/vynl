@@ -139,7 +139,7 @@ export default function PlaylistDetailScreen() {
             {!partyCode && (
               <TouchableOpacity 
                 onPress={() => router.push({
-                  pathname: '/(tabs)/HostParty',
+                  pathname: '../HostParty',
                   params: { playlistId: playlist.id.toString() }
                 })} 
                 style={styles.hostPartyButton}
