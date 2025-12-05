@@ -14,6 +14,7 @@ export default function PlaylistDetailScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const playlistId = params.id as string;
+  const partyCode = params.partyCode as string | undefined;
   
   const [showExportModal, setShowExportModal] = useState(false);
   const { playlist, loading, error, refetch } = usePlaylistWithID(playlistId);
@@ -134,10 +135,65 @@ export default function PlaylistDetailScreen() {
               {playlist.songs.length} song{playlist.songs.length !== 1 ? 's' : ''}
             </Text>
           </View>
-          <TouchableOpacity onPress={handleDeletePlaylist} style={styles.deleteButton}>
-            <Ionicons name="trash-outline" size={24} color="#F28695" />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            {!partyCode && (
+              <TouchableOpacity 
+                onPress={() => router.push({
+                  pathname: '/(tabs)/HostParty',
+                  params: { playlistId: playlist.id.toString() }
+                })} 
+                style={styles.hostPartyButton}
+              >
+                <Text style={styles.hostPartyButtonText}>HOST PARTY</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={handleDeletePlaylist} style={styles.deleteButton}>
+              <Ionicons name="trash-outline" size={24} color="#F28695" />
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {partyCode && (
+          <View style={styles.partyCodeSection}>
+            <View style={styles.partyCodeHeader}>
+              <Text style={styles.partyCodeLabel}>Party Code</Text>
+              <TouchableOpacity 
+                onPress={() => {
+                  // Navigate back to playlist detail without party code to end party
+                  router.push({
+                    pathname: '/(tabs)/playlist-detail',
+                    params: { id: playlist.id.toString() }
+                  });
+                }}
+                style={styles.endPartyButton}
+              >
+                <Ionicons name="close-circle" size={24} color="#F28695" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.partyCodeContainer}>
+              {partyCode.split('').map((char, index) => (
+                <View key={index} style={styles.partyCodeCharBox}>
+                  <Text style={styles.partyCodeCharText}>{char}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={styles.partyCodeInstruction}>
+              Share this code with friends to join your party
+            </Text>
+            <TouchableOpacity 
+              onPress={() => {
+                // Navigate back to playlist detail without party code to end party
+                router.push({
+                  pathname: '/(tabs)/playlist-detail',
+                  params: { id: playlist.id.toString() }
+                });
+              }}
+              style={styles.endPartyTextButton}
+            >
+              <Text style={styles.endPartyTextButtonText}>End Party</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <ScrollView 
           style={styles.scrollView}
@@ -247,6 +303,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6F7A88',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  hostPartyButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#FFF8F5',
+    borderWidth: 2,
+    borderColor: '#FF8C42',
+  },
+  hostPartyButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FF8C42',
+    letterSpacing: 0.5,
+  },
   deleteButton: {
     padding: 8,
   },
@@ -330,6 +405,74 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 100,
     gap: 12,
+  },
+  partyCodeSection: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    backgroundColor: '#FFF8F5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFE5D9',
+  },
+  partyCodeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  partyCodeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#001133',
+    flex: 1,
+    textAlign: 'center',
+  },
+  endPartyButton: {
+    padding: 4,
+  },
+  partyCodeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  partyCodeCharBox: {
+    width: 40,
+    height: 48,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FF8C42',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  partyCodeCharText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FF8C42',
+  },
+  partyCodeInstruction: {
+    fontSize: 12,
+    color: '#6F7A88',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  endPartyTextButton: {
+    marginTop: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignSelf: 'center',
+  },
+  endPartyTextButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#F28695',
+    textAlign: 'center',
   },
 });
 
