@@ -61,7 +61,7 @@ export async function PUT(req: Request, { code }: Record<string, string>) {
             });
         }
 
-        return new Response(JSON.stringify(deserializePlaylist), {
+        return new Response(JSON.stringify(deserializedPlaylist), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
         });

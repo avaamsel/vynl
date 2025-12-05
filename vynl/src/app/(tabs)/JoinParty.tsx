@@ -1,17 +1,20 @@
 import { Image } from 'expo-image';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { Poppins_400Regular } from '@expo-google-fonts/poppins';
 import { useRouter } from 'expo-router';
 import { useState, useRef } from 'react';
+import { useAuth } from '../../context/auth-context';
+import { ITunesPlaylist } from '@/src/types';
 
 // Image assets
 const imgBackground = require('@/assets/images/background.png');
 
 export default function JoinPartyScreen() {
   const router = useRouter();
+  const { authToken } = useAuth();
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const [fontsLoaded] = useFonts({
@@ -38,11 +41,32 @@ export default function JoinPartyScreen() {
     }
   };
 
-  const handleJoinParty = () => {
+  const handleJoinParty = async () => {
     const fullCode = code.join('');
     if (fullCode.length === 6) {
-      // TODO: Validate and join party with code
       console.log('Joining party with code:', fullCode);
+      
+      const res = await fetch(`api/playlist/party/link/${encodeURIComponent(fullCode)}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + authToken,
+        },
+      })
+
+      if (!res.ok) {
+        Alert.alert('Error', 'Failed to find playlist with your code');
+        setCode(['', '', '', '', '', '']);
+      } else {
+        const playlist: ITunesPlaylist = await res.json();
+        router.push({
+          pathname: '/(tabs)/playlist-detail',
+          params: { id: playlist.id }
+        });
+      }
+
+    } else {
+      Alert.alert('Error', 'Code must be 6 characters');
     }
   };
 
