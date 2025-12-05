@@ -65,18 +65,6 @@ export default function PartyModeScreen() {
                 <Text style={styles.gradientButtonText}>JOIN PARTY</Text>
               </LinearGradient>
             </TouchableOpacity>
-
-            {/* Create Party Button */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => {
-                router.push('/(tabs)/HostParty');
-              }}
-            >
-              <View style={styles.outlinedButton}>
-                <Text style={styles.outlinedButtonText}>HOST PARTY</Text>
-              </View>
-            </TouchableOpacity>
           </View>
         </ScrollView>
       </SafeAreaView>

@@ -1,15 +1,16 @@
 import { Image } from 'expo-image';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { Poppins_400Regular } from '@expo-google-fonts/poppins';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { useCreatePlaylist } from '@/src/hooks/use-create-playlist';
 import { useAuth } from '@/src/context/auth-context';
 import { supabase } from '@/src/utils/supabase';
 import { ITunesSong } from '@/src/types';
+import { usePlaylistWithID } from '@/src/hooks/use-playlist-with-id';
 
 // Image assets
 const imgBackground = require('@/assets/images/background.png');
@@ -26,11 +27,13 @@ const generatePartyCode = (): string => {
 
 export default function HostPartyScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const playlistId = params.playlistId as string | undefined;
   const [partyCode, setPartyCode] = useState<string>('');
-  const [playlistName, setPlaylistName] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);
   const { createPlaylist } = useCreatePlaylist();
   const { authToken, loading: authLoading } = useAuth();
+  const { playlist, loading: playlistLoading } = usePlaylistWithID(playlistId || null);
   const [fontsLoaded] = useFonts({
     Poppins: Poppins_400Regular,
   });
@@ -41,8 +44,22 @@ export default function HostPartyScreen() {
   }, []);
 
   const handleCreateParty = async () => {
-    if (!playlistName.trim() || isCreating || authLoading || !authToken) return;
+    if (isCreating || authLoading || !authToken) return;
 
+    // If we have a playlist ID, use the existing playlist
+    if (playlistId && playlist) {
+      // Navigate back to playlist detail with party code
+      router.push({
+        pathname: '/(tabs)/playlist-detail',
+        params: {
+          id: playlist.id.toString(),
+          partyCode: partyCode,
+        },
+      });
+      return;
+    }
+
+    // If no playlist ID, create a new playlist (fallback for old flow)
     setIsCreating(true);
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
@@ -53,9 +70,8 @@ export default function HostPartyScreen() {
       }
 
       // Create playlist with empty songs array initially
-      // The playlist will be populated after user selects 2 songs
       const playlist = await createPlaylist(
-        playlistName.trim(),
+        'My Playlist',
         user.id,
         [] as ITunesSong[]
       );
@@ -73,7 +89,7 @@ export default function HostPartyScreen() {
           partyMode: 'true',
           partyCode: partyCode,
           playlistId: playlist.id.toString(),
-          playlistName: playlistName.trim(),
+          playlistName: playlist.name,
           playlist: JSON.stringify(playlist),
         },
       });
@@ -85,6 +101,49 @@ export default function HostPartyScreen() {
 
   if (!fontsLoaded) {
     return null;
+  }
+
+  // Show loading state if we're waiting for playlist data
+  if (playlistId && playlistLoading) {
+    return (
+      <View style={styles.container}>
+        <Image
+          source={imgBackground}
+          style={styles.backgroundImage}
+          contentFit="cover"
+        />
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.centerContent}>
+            <Text style={styles.loadingText}>Loading...</Text>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  // If playlist ID provided but playlist not found, show error
+  if (playlistId && !playlist) {
+    return (
+      <View style={styles.container}>
+        <Image
+          source={imgBackground}
+          style={styles.backgroundImage}
+          contentFit="cover"
+        />
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.centerContent}>
+            <Text style={styles.errorText}>Playlist not found</Text>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => router.push('/(tabs)/playlists')}
+              style={styles.cancelButton}
+            >
+              <Text style={styles.cancelButtonText}>GO BACK</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </View>
+    );
   }
 
   return (
@@ -105,6 +164,9 @@ export default function HostPartyScreen() {
           {/* Header Section */}
           <View style={styles.headerSection}>
             <Text style={styles.headerTitle}>Host Party</Text>
+            {playlist && (
+              <Text style={styles.playlistNameText}>{playlist.name}</Text>
+            )}
           </View>
 
           {/* Party Code Display */}
@@ -122,35 +184,22 @@ export default function HostPartyScreen() {
             </Text>
           </View>
 
-          {/* Playlist Name Input */}
-          <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>Playlist Name</Text>
-            <TextInput
-              style={styles.nameInput}
-              value={playlistName}
-              onChangeText={setPlaylistName}
-              placeholder="Enter playlist name"
-              placeholderTextColor="#999999"
-              maxLength={50}
-            />
-          </View>
-
           {/* Buttons Section */}
           <View style={styles.buttonContainer}>
             {/* Create Party Button */}
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={handleCreateParty}
-              disabled={!playlistName.trim() || isCreating || authLoading}
+              disabled={isCreating || authLoading || (playlistId && !playlist)}
             >
               <LinearGradient
-                colors={playlistName.trim() && !isCreating ? ['#FF6B9D', '#FF8C42'] : ['#CCCCCC', '#CCCCCC']}
+                colors={!isCreating && !authLoading && (!playlistId || playlist) ? ['#FF6B9D', '#FF8C42'] : ['#CCCCCC', '#CCCCCC']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.gradientButton}
               >
                 <Text style={styles.gradientButtonText}>
-                  {isCreating ? 'CREATING...' : 'CREATE PARTY'}
+                  {isCreating ? 'CREATING...' : 'START PARTY'}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
@@ -158,7 +207,16 @@ export default function HostPartyScreen() {
             {/* Cancel Button */}
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => router.push('/(tabs)/PartyMode')}
+              onPress={() => {
+                if (playlistId) {
+                  router.push({
+                    pathname: '/(tabs)/playlist-detail',
+                    params: { id: playlistId }
+                  });
+                } else {
+                  router.push('/(tabs)/PartyMode');
+                }
+              }}
               style={styles.cancelButton}
             >
               <Text style={styles.cancelButtonText}>CANCEL</Text>
@@ -209,6 +267,34 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000000',
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  playlistNameText: {
+    fontSize: 18,
+    fontFamily: 'Poppins',
+    fontWeight: '400',
+    color: '#666666',
+    textAlign: 'center',
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'Poppins',
+    fontWeight: '400',
+    color: '#000000',
+  },
+  errorText: {
+    fontSize: 18,
+    fontFamily: 'Poppins',
+    fontWeight: '600',
+    color: '#F28695',
+    marginBottom: 20,
+    textAlign: 'center',
   },
   codeSection: {
     width: '100%',
@@ -257,31 +343,6 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#666666',
     textAlign: 'center',
-  },
-  inputSection: {
-    width: '100%',
-    maxWidth: 400,
-    marginBottom: 40,
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontFamily: 'Poppins',
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 12,
-  },
-  nameInput: {
-    width: '100%',
-    height: 56,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    fontFamily: 'Poppins',
-    fontWeight: '400',
-    color: '#000000',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
   },
   buttonContainer: {
     width: '100%',
