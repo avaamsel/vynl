@@ -25,6 +25,11 @@ export interface songs_data {
   preview_url: string | null
 }
 
+export interface party_user {
+  playlist_id: number
+  user_id: string
+}
+
 export function isProfile(obj: any): obj is profile {
   return (
     typeof obj === 'object' && 

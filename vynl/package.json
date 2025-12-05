@@ -11,7 +11,8 @@
     "lint": "expo lint",
     "test": "jest --runInBand",
     "test:watch": "jest --runInBand --watch",
-    "test:backend": "jest --runInBand -- Endpoint-test"
+    "test:playlist": "jest --runInBand -- playlist-endpoints-test",
+    "test:party": "jest --runInBand -- party-mode-test"
   },
   "dependencies": {
     "@expo-google-fonts/eb-garamond": "^0.4.2",

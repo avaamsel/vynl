@@ -14,9 +14,9 @@ This documentation describes the API that serves the Vynl mobile app. The backen
 
 ## Playlist Endpoints
 
-### `GET 'api/playlist'`
+### `GET 'api/playlist?party'`
 
-**Description:** Get all the playlist for a user. Requires user's access token in header. Returns a list of playlist objects that contains a list of songs in order.
+**Description:** Get all the playlist for a user. Requires user's access token in header. Returns a list of playlist objects that contains a list of songs in order. "party" flag indicates wether to return normal or party playlists.
 
 **Example Request:**
 
@@ -89,6 +89,10 @@ This documentation describes the API that serves the Vynl mobile app. The backen
 }
 ```
 
+### `DELETE 'api/playlist/:id`
+
+**Description:** Deletes a playlist. Calling user must own the playlist.
+
 ### `PUT 'api/playlist/:id'`
 
 **Description:** Update a playlist with a new list of songs and/or a new name. Requires user's access token, a playlist id, and a playlist object in the body. Created at time, user id, and playlist id will not be updated even if passed object's differ. Returns the old playlist object in json of response.
@@ -134,6 +138,10 @@ This documentation describes the API that serves the Vynl mobile app. The backen
 }
 ```
 *Note: id was not updated in this example.*
+
+### `PUT 'api/playlist/add/:id'`
+
+**Description:** Adds a song to the playlist. Calling user must be owner of playlist or linked to the playlist in party mode.
 
 ### `POST 'api/playlist'`
 
@@ -184,3 +192,15 @@ This documentation describes the API that serves the Vynl mobile app. The backen
 
 **Description:** Get a list of somg recommendation based on the songs in a given playlist that is owned by the user. Requires user's access token and playlist id. Optional query parameter `amount` to determine the amount of songs to return, defaults to 10 if not given.
 
+
+### `PUT 'api/playlist/party/link/:code'`
+
+**Description:** Links a user to a party mode playlist by taking in the party code. Once a user is linked to a playlist they can then called get playlist by the playlist's id and add songs to the playlist (Using add endpoint). Additionally, upon this user calling get all playlist once being linked, the linked playlist will also be returned. This endpoint returns the playlist's current state.
+
+### `PUT 'api/playlist/party/unlink/:id'`
+
+**Description:** Unlinks a user from a playlist, making it so they cannot call get on that playlist or add songs to it. Returns nothing.
+
+### `PUT 'api/playlist/party/toggle/:id`
+
+**Description:** Enables party mode on a given playlist's id. The calling user must own the playlist. Returns the party code.
