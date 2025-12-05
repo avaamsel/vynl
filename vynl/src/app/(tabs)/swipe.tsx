@@ -15,6 +15,7 @@ import { useUpdatePlaylist } from '@/src/hooks/use-update-playlist';
 import { useAuth } from '@/src/context/auth-context';
 import { Audio } from 'expo-av';
 import { useAudioPreview } from '@/src/hooks/use-audio-preview';
+import { useRegion } from '@/src/context/region-context';
 
 const { width, height } = Dimensions.get('window');
 const DISC_SIZE = Math.min(width * 0.78, 320);
@@ -121,6 +122,7 @@ export default function Swiping() {
   const [recommendedSongs, setRecommendations] = useState<ITunesSong[]>([]);
   const { authToken } = useAuth();
   const isSwiping = useRef(false);
+  const { region, setRegion } = useRegion();
   const {
     playing,
     setPlaying,
@@ -166,12 +168,13 @@ export default function Swiping() {
       setGettingSimilar(true);
       console.log("Fetching similar for seed songs:", newPlaylist.songs);
 
-      const res = await fetch(`/api/playlist/recommendation/${encodeURIComponent(newPlaylist.id)}?amount=${numberOfRecommendedSongs}`, {
+      console.log("Countries : ", region.topCountries);
+      const res = await fetch(`/api/playlist/recommendation/${encodeURIComponent(newPlaylist.id)}?amount=${numberOfRecommendedSongs}&countries=${region.topCountries.join(",")}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + authToken,
-        },
+        }
       });
 
       if (!res.ok) {
@@ -246,11 +249,9 @@ export default function Swiping() {
 
         const savedSession = await AsyncStorage.getItem(SWIPE_SESSION_KEY);
         if (savedSession) {
-          console.log("SAVED STATE");
           const session = JSON.parse(savedSession);
 
           const isSameSession = JSON.stringify(session.seedSongs) === JSON.stringify(seedSongs);
-          console.log("Same session : ", isSameSession);
           // Only restore if we have the same seed songs
           if (isSameSession) {
             setIndex(session.index || 0);

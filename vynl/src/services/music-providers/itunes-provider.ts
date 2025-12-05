@@ -32,31 +32,34 @@ function encodeForITunes(str: string): string {
  * @param numberOfSongs The number of songs to fetch.
  * @returns A promise that resolves to an array of song objects.
  */
-export async function fetchSongs(searchValue: string, numberOfSongs: number = 5): Promise<ITunesSong[]> {
-    const url = `https://itunes.apple.com/search?term=${encodeForITunes(searchValue)}&media=music&limit=${numberOfSongs}`;
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`Network response was not ok: ${response.statusText}`);
-    }
-
-    const data: ITunesSearchResult = await response.json();
-
+export async function fetchSongs(searchValue: string, numberOfSongs: number = 5, countries: string[]): Promise<ITunesSong[]> {
     let songs: ITunesSong[] = [];
 
-    if (data.results && data.results.length > 0) {
-        songs = data.results.map(result => ({
-            song_id: result.trackId,
-            title: result.trackName,
-            artist: result.artistName,
-            duration_sec: Math.round(result.trackTimeMillis / 1000),
-            cover_url: result.artworkUrl100,
-            preview_url: result.previewUrl
-        }));
+    for (let i = 0; i < countries.length; i++){
+        const url = `https://itunes.apple.com/search?term=${encodeForITunes(searchValue)}&media=music&limit=${numberOfSongs}&country=${countries[i]}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Network response was not ok: ${response.statusText}`);
+        }
+        const data: ITunesSearchResult = await response.json();
 
-        return songs;
+        if (data.results && data.results.length > 0) {
+            for (const result of data.results) {
+                songs.push({
+                    song_id: result.trackId,
+                    title: result.trackName,
+                    artist: result.artistName,
+                    duration_sec: Math.round(result.trackTimeMillis / 1000),
+                    cover_url: result.artworkUrl100,
+                    preview_url: result.previewUrl
+                })
+                if (songs.length >= numberOfSongs) return songs;
+            }
+        }
+
     }
 
-    return [];
+    return songs;
 }
 
 /**

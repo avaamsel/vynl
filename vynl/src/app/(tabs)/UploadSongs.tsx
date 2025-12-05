@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import AppButton from '@/src/components/AppButton';
 import {
-  SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, ActivityIndicator
+  SafeAreaView, View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Modal, FlatList
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -12,7 +12,8 @@ import { ITunesSong, ITunesPlaylist } from '@/src/types';
 import { useCreatePlaylist } from '@/src/hooks/use-create-playlist';
 import { useAuth } from '@/src/context/auth-context';
 import { supabase } from '@/src/utils/supabase';
-
+import { REGIONS } from '@/src/constants/regions';
+import { useRegion } from '@/src/context/region-context';
 
 export default function UploadSongs() {
   const [query, setQuery] = useState('');
@@ -20,6 +21,9 @@ export default function UploadSongs() {
   const [isSaving, setIsSaving] = useState(false);
   const { loading: savingPlaylistLoading, error: playlistError, createPlaylist } = useCreatePlaylist();
   const { authToken, loading: authLoading} = useAuth();
+  const [regionModalVisible, setRegionModalVisible] = useState(false);
+  const { region, setRegion } = useRegion();
+  
 
   const router = useRouter();
 
@@ -75,6 +79,9 @@ export default function UploadSongs() {
       <SafeAreaView style={s.wrap}>
         <View style={s.header}>
           <Text style={s.title}>Select</Text>
+          <TouchableOpacity onPress={() => setRegionModalVisible(true)} style={s.settingsButton}>
+            <Ionicons name="settings-outline" size={28} color="black" />
+          </TouchableOpacity>
           <Text style={s.subtitle}>Choose 2 songs to get started</Text>
 
           <View style={s.searchWrap}>
@@ -179,6 +186,35 @@ export default function UploadSongs() {
             />
         </View>
       </SafeAreaView>
+
+      <Modal
+        visible={regionModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setRegionModalVisible(false)}
+      >
+        <View style={s.modalOverlay}>
+          <View style={s.modalContent}>
+            <Text style={s.modalTitle}>Select Region</Text>
+            <FlatList
+              data={REGIONS}
+              keyExtractor={item => item.code}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={s.modalItem}
+                  onPress={() => {
+                    setRegion(item);
+                    setRegionModalVisible(false);
+                  }}
+                >
+                  <Text style={s.modalItemText}>{item.name}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+
     </LinearGradient>
   );
 }
@@ -253,4 +289,28 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  headerRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between',
+  },
+  settingsButton: {
+    padding: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    maxHeight: '70%',
+  },
+  modalTitle: { fontSize: 20, fontWeight: '700', marginBottom: 20 },
+  modalItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  modalItemText: { fontSize: 16 },
 });

@@ -3,6 +3,7 @@ import { getPlaylistFromDatabase } from "@/src/server/dataDeserialization";
 import { ITunesSong } from "@/src/types";
 import { getRecommendationsForSongTable } from "@/src/server/song-recommendation/recommendationUtils";
 import { fetchSongs } from "@/src/services/music-providers/itunes-provider";
+import { REGIONS } from '@/src/constants/regions';
 
 export async function GET(req: Request, { id }: Record<string, string>) {
     if (!id) {
@@ -20,6 +21,9 @@ export async function GET(req: Request, { id }: Record<string, string>) {
             });
         }
 
+        const url = new URL(req.url);
+        const countriesParam = url.searchParams.get("countries");
+        const countries = countriesParam ? countriesParam.split(",") : REGIONS[0].topCountries;
         const supabase = await createSupabaseClient(req);
 
         if (supabase instanceof Response) {
@@ -50,7 +54,7 @@ export async function GET(req: Request, { id }: Record<string, string>) {
 
         for (const s of lastFMRecommendations) {
             try {
-                const result = await fetchSongs(`${s.title} ${s.artist}`, 1);
+                const result = await fetchSongs(`${s.title} ${s.artist}`, 1, countries);
                 if (result && result.length >= 1) {
                     recommendations.push(result[0]);
                 } else {
