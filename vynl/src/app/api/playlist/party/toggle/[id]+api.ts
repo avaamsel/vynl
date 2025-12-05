@@ -28,7 +28,10 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
 
         const body = await req.json();
         const uid = body.uid;
+        const enable = body.enable;
+        
         if (!uid) return new Response("Missing user ID", { status: 400 });
+        if (!enable) return new Response("Missing eneble", { status: 400 });
 
         const supabase = await createSupabaseClient(req);
         // If given an error response return it
@@ -36,57 +39,70 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             return supabase
         }
 
-        // 0. Check if user is owner of the playlist
-        const { data, error } = await supabase
-            .from('playlists')
-            .select('uid')
-            .eq('playlist_id', playlist_id)
+        if (enable) {
+            // 1. Create secret party code if it doesn't exist
+            const { data: c_data, error: c_err } = await supabase
+                .from('playlists')
+                .select('party_code')
+                .eq('playlist_id', playlist_id)
 
-        if (error || data.length === 0) {
-            return new Response('Failed to verify owner', {
-                status: 400
+            let partyCode;
+
+            if (c_err) {
+                return new Response('Unable to check the party code', {
+                    status: 404
+                });
+            }
+
+            if (c_data) {
+                partyCode = c_data[0]?.party_code;
+            } else {
+                partyCode = generatePartyCode(6);
+            }
+
+            // 2. Store party code and put in_party_mode to TRUE
+            const { data: p_data, error: p_err } = await supabase
+                .from('playlists')
+                .update({ party_code: partyCode, in_party_mode: true })
+                .eq("playlist_id", playlist_id);
+
+            if (p_err) {
+                return new Response('Failed to update playlist', {
+                    status: 400
+                });
+            }
+            // 3. Add owner to party_user
+            const party_user_to_add: party_user = {playlist_id: playlist_id, user_id: uid}
+
+            const { data: pu_data, error: pu_err } = await supabase
+                .from('party_user')
+                .upsert(party_user_to_add)
+
+            if (pu_err) {
+                return new Response('Failed to update party_user', {
+                    status: 400
+                });
+            }
+
+            // 4. Return party code
+            return new Response(JSON.stringify(partyCode), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+        } else {
+            // 1. Put the in_party_mode to FALSE
+            const { data: p_data, error: p_err } = await supabase
+                .from('playlists')
+                .update({ in_party_mode: false })
+                .eq("playlist_id", playlist_id);
+            
+            return new Response(null, {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
             });
         }
 
-        if (data[0]?.uid !== uid) {
-            console.log("Sorry you aren't the owner of the playlist");
-            return new Response('Failed to verify owner', {
-                status: 400
-            });
-        }
-
-        // 1. Create secret party code
-        const partyCode = generatePartyCode(6);
-
-        // 2. Store party code and put in_party_mode to TRUE
-        const { data: p_data, error: p_err } = await supabase
-            .from('playlists')
-            .update({ party_code: partyCode, in_party_mode: true })
-            .eq("playlist_id", playlist_id);
-
-        if (p_err) {
-            return new Response('Failed to update playlist', {
-                status: 400
-            });
-        }
-        // 3. Add owner to party_user
-        const party_user_to_add: party_user = {playlist_id: playlist_id, user_id: uid}
-
-        const { data: pu_data, error: pu_err } = await supabase
-            .from('party_user')
-            .upsert(party_user_to_add)
-
-        if (pu_err) {
-            return new Response('Failed to update party_user', {
-                status: 400
-            });
-        }
-
-        // 4. Return party code
-        return new Response(JSON.stringify(partyCode), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-        });
     } catch (error) {
         console.error(error);
         return new Response('Unknown Server Error', {
