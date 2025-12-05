@@ -14,6 +14,7 @@ export async function GET(req: Request) {
 
         const { searchParams } = new URL(req.url);
         const uid = searchParams.get("uid");
+        const partyPlaylists = searchParams.has("partyPlaylists")
 
         let data, error;
 
@@ -22,10 +23,24 @@ export async function GET(req: Request) {
                 .from('playlists')
                 .select('*'));
         } else {
-            ({ data, error } = await supabase
-                .from('playlists')
-                .select('*')
-                .eq('uid', uid));
+            if (!partyPlaylists) {
+                ({ data, error } = await supabase
+                    .from('playlists')
+                    .select('*')
+                    .eq('uid', uid));
+            } else {
+                ({ data, error } = await supabase
+                    .from('party_user')
+                    .select(`
+                        playlist_id,
+                        playlists (*)`
+                    )
+                    .eq('user_id', uid));
+
+                data = data?.map(d =>
+                    d.playlists
+                )
+            }
         }
 
         if (error) {

@@ -30,8 +30,8 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
         const uid = body.uid;
         const enable = body.enable;
         
-        if (!uid) return new Response("Missing user ID", { status: 400 });
-        if (!enable) return new Response("Missing eneble", { status: 400 });
+        if (uid === undefined || uid === null) return new Response("Missing user ID", { status: 400 });
+        if (enable === undefined || enable === null) return new Response("Missing enable", { status: 400 });
 
         const supabase = await createSupabaseClient(req);
         // If given an error response return it
@@ -89,7 +89,7 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' }
             });
-            
+
         } else {
             // 1. Put the in_party_mode to FALSE
             const { data: p_data, error: p_err } = await supabase
