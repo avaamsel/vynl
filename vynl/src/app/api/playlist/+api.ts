@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
         const { searchParams } = new URL(req.url);
         const uid = searchParams.get("uid");
-        const partyPlaylists = searchParams.has("partyPlaylists")
+        const party = searchParams.has("party")
 
         let data, error;
 
@@ -23,7 +23,7 @@ export async function GET(req: Request) {
                 .from('playlists')
                 .select('*'));
         } else {
-            if (!partyPlaylists) {
+            if (!party) {
                 ({ data, error } = await supabase
                     .from('playlists')
                     .select('*')

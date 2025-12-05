@@ -14,9 +14,9 @@ This documentation describes the API that serves the Vynl mobile app. The backen
 
 ## Playlist Endpoints
 
-### `GET 'api/playlist?party=true/false'`
+### `GET 'api/playlist?party'`
 
-**Description:** Get all the playlist for a user. Requires user's access token in header. Returns a list of playlist objects that contains a list of songs in order.
+**Description:** Get all the playlist for a user. Requires user's access token in header. Returns a list of playlist objects that contains a list of songs in order. "party" flag indicates wether to return normal or party playlists.
 
 **Example Request:**
 
