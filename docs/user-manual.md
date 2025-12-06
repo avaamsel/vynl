@@ -209,8 +209,6 @@ You're likely missing the environmental variables file. Email Zack (zcrouse@uw.e
 * **Can’t save playlist?** Ensure you’re signed in to your account.  
 * **Recommendations off?** Update your liked songs to refine results.
 
-
-
 ## **5\. How to report a Bug**
 
 All bugs are tracked via **GitHub Issues**:  

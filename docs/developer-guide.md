@@ -176,14 +176,25 @@ npx expo start --tunnel
 ## 4\. 🧑‍💻 How to test the software:
 ### 4.1 Installing Jest:
 
-Make sure you have the required dev dependencies for Jest:  
-  1. If not, run: ``npx expo install jest-expo jest @types/jest \--dev``
-  2. Also make sure to run: ``npx expo install @testing-library/react-native \--dev`` 
+Make sure you have the required dev dependencies for Jest. To check Jest's dev dependencies run: ``npm list jest-expo jest @types/jest @testing-library/react-native``
+    
+If your dependencies are not:
+```
+jest: ^29.7.0
+jest-expo: ^54.0.13
+@types/jest: ^29.5.14
+@testing-library/react-native: ^13.3.3
+@testing-library/jest-native: ^5.4.3
+```
+    
+run: ``npx expo install jest-expo jest @types/jest \--dev``
+
+Also make sure to run: ``npx expo install @testing-library/react-native \--dev`` 
 
 ### 4.2 Running Tests:
   Run ``npx run test`` to see the test results within the terminal – make sure this is done within the Vynl directory and not the root\!
 
-To see code coverage reports, run ``npx run test`` within the code’s root directory and a table displaying coverage percentages should appear in the terminal that can be filtered by failed tests, etc 
+To see code coverage reports, run ``npx run test`` within the code’s root directory and a table displaying coverage percentages should appear in the terminal that can be filtered by failed tests, etc.
 
 For more examples for testing, especially regarding APIs, check out: [https://callstack.github.io/react-native-testing-library/docs/api/queries](https://callstack.github.io/react-native-testing-library/docs/api/queries) 
 
