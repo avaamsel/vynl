@@ -162,11 +162,21 @@ export default function Swiping() {
   const numberOfRecommendedSongs = 6;
 
   const fetchRecommendations = useCallback(async () => {
+    if (!newPlaylist?.id) {
+      console.warn('Cannot fetch recommendations: playlist ID is missing');
+      return;
+    }
+
     try {
       setGettingSimilar(true);
       console.log("Fetching similar for seed songs:", newPlaylist.songs);
+      console.log("Playlist ID:", newPlaylist.id);
+      console.log("Number of recommended songs:", numberOfRecommendedSongs);
 
-      const res = await fetch(`/api/playlist/recommendation/${encodeURIComponent(newPlaylist.id)}?amount=${numberOfRecommendedSongs}`, {
+      const url = `/api/playlist/recommendation/${encodeURIComponent(newPlaylist.id)}?amount=${numberOfRecommendedSongs}`;
+      console.log("Fetching from URL:", url);
+
+      const res = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -176,18 +186,29 @@ export default function Swiping() {
 
       if (!res.ok) {
         const text = await res.text();
-        console.error(text || 'Failed to fetch similar songs');
+        console.error(`Failed to fetch similar songs. Status: ${res.status} ${res.statusText}`);
+        console.error('Error response:', text);
+        
+        // Try to parse as JSON for more detailed error info
+        try {
+          const errorJson = JSON.parse(text);
+          console.error('Parsed error:', errorJson);
+        } catch {
+          // Not JSON, use text as is
+        }
         return;
       }
 
       const result = await res.json();
+      console.log("Received recommendations:", result?.length || 0, "songs");
       setRecommendations(result);
     } catch (err: any) {
-      console.error('Error updating playlist:', err.message || err);
+      console.error('Error fetching recommendations:', err.message || err);
+      console.error('Full error:', err);
     } finally {
       setGettingSimilar(false);
     }
-  }, [newPlaylist?.id, authToken, newPlaylist?.songs]);
+  }, [newPlaylist?.id, authToken, newPlaylist?.songs, numberOfRecommendedSongs]);
 
   useFocusEffect(
     useCallback(() => {

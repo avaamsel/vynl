@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       body: new URLSearchParams({
         grant_type: 'refresh_token',
         refresh_token: refresh_token,
-      }),
+      }).toString(),
     });
 
     if (!tokenResponse.ok) {
