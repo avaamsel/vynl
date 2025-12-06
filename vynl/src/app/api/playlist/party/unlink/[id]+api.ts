@@ -37,7 +37,7 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
         // because they cannot select any other entries that do not contain their uuid.
         // And to delete an entry you must also be able to select it.
         const { data: unlink_data, error: unlink_err } = await supabase
-            .from('party_user')
+            .from('party_users')
             .delete()
             .eq( 'playlist_id', playlist.playlist_id );
 
