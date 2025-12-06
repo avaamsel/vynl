@@ -8,6 +8,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '@/src/hooks/use-user';
 import { useUserPlaylists } from '@/src/hooks/use-playlist-for-user';
+import { usePartyPlaylists } from '@/src/hooks/use-party-playlists';
 
 const PARTY_CODE_STORAGE_KEY = '@vynl:partyCode';
 
@@ -18,6 +19,8 @@ export default function PlaylistsScreen() {
   const uid = user?.id;
   
   const { playlists, loading: playlistLoading, error, refetch } = useUserPlaylists(uid ?? null);
+  const { playlists: partyPlaylists, loading: partyLoading, error: partyError, refetch: refetchParty } = usePartyPlaylists(uid ?? null);
+  const [activeView, setActiveView] = useState<'myPlaylists' | 'partyPlaylists'>('myPlaylists');
   const [activePartyPlaylistIds, setActivePartyPlaylistIds] = useState<Set<number>>(new Set());
 
   // Calculate bottom padding: tab bar height (90) + safe area bottom + extra padding
@@ -52,6 +55,16 @@ export default function PlaylistsScreen() {
     };
     checkActiveParties();
   }, [playlists]);
+
+  useEffect(() => {
+    if (!uid) return;
+    
+    if (activeView === 'myPlaylists' && refetch) {
+      refetch();
+    } else if (activeView === 'partyPlaylists' && refetchParty) {
+      refetchParty();
+    }
+  }, [activeView, uid, refetch, refetchParty]);
 
   useFocusEffect(
     useCallback(() => {
@@ -99,6 +112,10 @@ export default function PlaylistsScreen() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  const currentPlaylists = activeView === 'myPlaylists' ? playlists : partyPlaylists;
+  const currentLoading = activeView === 'myPlaylists' ? playlistLoading : partyLoading;
+  const currentError = activeView === 'myPlaylists' ? error : partyError;
+
 
   return (
     <LinearGradient colors={['#F8F9FD', '#FFFFFF']} style={{ flex: 1 }}>
@@ -106,12 +123,26 @@ export default function PlaylistsScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>My Playlists</Text>
         </View>
+        <View style={styles.segmentControl}>
+          <TouchableOpacity
+            style={[styles.segmentButton, activeView === 'myPlaylists' && styles.segmentButtonActive]}
+            onPress={() => setActiveView('myPlaylists')}
+          >
+            <Text style={[styles.segmentText, activeView === 'myPlaylists' && styles.segmentTextActive]}>My Playlists</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.segmentButton, activeView === 'partyPlaylists' && styles.segmentButtonActive]}
+            onPress={() => setActiveView('partyPlaylists')}
+          >
+            <Text style={[styles.segmentText, activeView === 'partyPlaylists' && styles.segmentTextActive]}>Party Playlists</Text>
+          </TouchableOpacity>
+        </View>
 
-        {authLoading || playlistLoading ? (
+        {authLoading || currentLoading ? (
           <View style={styles.centerContent}>
             <Text style={styles.loadingText}>Loading...</Text>
           </View>
-        ) : playlists.length === 0 ? (
+        ) : currentPlaylists.length === 0 ? (
           <View style={styles.centerContent}>
             <Ionicons name="musical-notes-outline" size={64} color="#CCCCCC" />
             <Text style={styles.emptyText}>No playlists yet</Text>
@@ -124,7 +155,7 @@ export default function PlaylistsScreen() {
             showsVerticalScrollIndicator={false}
             contentInsetAdjustmentBehavior="automatic"
           >
-            {playlists.map((p) => (
+            {currentPlaylists.map((p) => (
               <TouchableOpacity
                 key={p.id}
                 style={styles.playlistCard}
@@ -149,15 +180,17 @@ export default function PlaylistsScreen() {
                       {(p.songs ?? []).length} song{(p.songs ?? []).length !== 1 ? 's' : ''} · {new Date(p.created_at).toLocaleDateString()}
                     </Text>
                   </View>
-                  <TouchableOpacity
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      handleDelete(p.id);
-                    }}
-                    style={styles.deleteButton}
-                  >
-                    <Ionicons name="trash-outline" size={20} color="#F28695" />
-                  </TouchableOpacity>
+                  {activeView === 'myPlaylists' && (
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleDelete(p.id);
+                      }}
+                      style={styles.deleteButton}
+                    >
+                      <Ionicons name="trash-outline" size={20} color="#F28695" />
+                    </TouchableOpacity>
+                  )}
                 </View>
 
                 {(p.songs ?? []).length > 0 && (
@@ -324,6 +357,37 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     marginTop: 4,
     paddingLeft: 52,
+  },
+  segmentControl: {
+    flexDirection: 'row',
+    marginHorizontal: 24,
+    marginBottom: 20,
+    backgroundColor: '#EBEBEB',
+    borderRadius: 12,
+    padding: 4,
+  },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentButtonActive: {
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  segmentText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6F7A88',
+  },
+  segmentTextActive: {
+    color: '#001133',
   },
 });
 
