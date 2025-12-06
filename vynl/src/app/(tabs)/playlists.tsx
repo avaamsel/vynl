@@ -1,12 +1,15 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '@/src/hooks/use-user';
 import { useUserPlaylists } from '@/src/hooks/use-playlist-for-user';
+
+const PARTY_CODE_STORAGE_KEY = '@vynl:partyCode';
 
 export default function PlaylistsScreen() {
   const router = useRouter();
@@ -15,6 +18,7 @@ export default function PlaylistsScreen() {
   const uid = user?.id;
   
   const { playlists, loading: playlistLoading, error, refetch } = useUserPlaylists(uid ?? null);
+  const [activePartyPlaylistId, setActivePartyPlaylistId] = useState<number | null>(null);
 
   // Calculate bottom padding: tab bar height (90) + safe area bottom + extra padding
   // Tab bar is absolutely positioned at bottom, height 90px with paddingBottom 20px
@@ -22,12 +26,55 @@ export default function PlaylistsScreen() {
   // Using a larger fixed value to ensure content stays above the nav bar
   const bottomPadding = Math.max(90 + insets.bottom + 50, 150);
   
+  // Check for active party when component mounts or playlists change
+  useEffect(() => {
+    const checkActiveParty = async () => {
+      try {
+        const storedPartyData = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+        if (storedPartyData) {
+          const partyData = JSON.parse(storedPartyData);
+          if (partyData.playlistId) {
+            setActivePartyPlaylistId(parseInt(partyData.playlistId));
+          } else {
+            setActivePartyPlaylistId(null);
+          }
+        } else {
+          setActivePartyPlaylistId(null);
+        }
+      } catch (error) {
+        console.error('Error checking active party:', error);
+        setActivePartyPlaylistId(null);
+      }
+    };
+    checkActiveParty();
+  }, [playlists]);
+
   useFocusEffect(
     useCallback(() => {
       if (refetch && uid) {
         console.log("Screen focused, refreshing playlists...");
         refetch();
       }
+      // Check for active party when screen comes into focus
+      const checkActiveParty = async () => {
+        try {
+          const storedPartyData = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+          if (storedPartyData) {
+            const partyData = JSON.parse(storedPartyData);
+            if (partyData.playlistId) {
+              setActivePartyPlaylistId(parseInt(partyData.playlistId));
+            } else {
+              setActivePartyPlaylistId(null);
+            }
+          } else {
+            setActivePartyPlaylistId(null);
+          }
+        } catch (error) {
+          console.error('Error checking active party:', error);
+          setActivePartyPlaylistId(null);
+        }
+      };
+      checkActiveParty();
     }, [refetch, uid])
   );
 
@@ -81,7 +128,15 @@ export default function PlaylistsScreen() {
               >
                 <View style={styles.playlistHeader}>
                   <View style={styles.playlistInfo}>
-                    <Text style={styles.playlistName} numberOfLines={1}>{p.name}</Text>
+                    <View style={styles.playlistNameRow}>
+                      <Text style={styles.playlistName} numberOfLines={1}>{p.name}</Text>
+                      {activePartyPlaylistId === p.id && (
+                        <View style={styles.partyModeBadge}>
+                          <Ionicons name="radio" size={12} color="#FF8C42" />
+                          <Text style={styles.partyModeText}>Party Mode</Text>
+                        </View>
+                      )}
+                    </View>
                     <Text style={styles.playlistMeta}>
                       {(p.songs ?? []).length} song{(p.songs ?? []).length !== 1 ? 's' : ''} · {new Date(p.created_at).toLocaleDateString()}
                     </Text>
@@ -192,11 +247,35 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
+  playlistNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 4,
+    gap: 8,
+  },
   playlistName: {
     fontSize: 20,
     fontWeight: '700',
     color: '#001133',
-    marginBottom: 4,
+    flexShrink: 1,
+  },
+  partyModeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8F5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FF8C42',
+    gap: 4,
+  },
+  partyModeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FF8C42',
+    letterSpacing: 0.3,
   },
   playlistMeta: {
     fontSize: 14,
