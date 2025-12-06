@@ -60,6 +60,6 @@ vynl/                                  # Project root
 * **[vynl's living document:](https://docs.google.com/document/d/1faT3a1d0nOTIH54GvlgVz1ZsnCDJu_9Clpa1UxbFFoE/edit?usp=sharing)** contains information on vynl's ideation, development timeline, technical description, and functional and non-functional requirements 
 * **[vynl's developer guide:](/docs/developer-guide.md)** instructions on setting up vynl's development environment, understanding the repository layout, and building the software
 * **[vynl's user guide:](/docs/coding-guidelines.md)** instruction on installing, running, and using the vynl mobile application
-* **[vynl's api endpoints:](/docs/api-endpoints.md)** describes the APIs that are utilized in Vynl
+* **[vynl's api endpoints:](/docs/api_endpoints.md)** describes the APIs that are utilized in Vynl
 
 ### _happy swiping!_
