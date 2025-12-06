@@ -18,7 +18,7 @@ export default function PlaylistsScreen() {
   const uid = user?.id;
   
   const { playlists, loading: playlistLoading, error, refetch } = useUserPlaylists(uid ?? null);
-  const [activePartyPlaylistId, setActivePartyPlaylistId] = useState<number | null>(null);
+  const [activePartyPlaylistIds, setActivePartyPlaylistIds] = useState<Set<number>>(new Set());
 
   // Calculate bottom padding: tab bar height (90) + safe area bottom + extra padding
   // Tab bar is absolutely positioned at bottom, height 90px with paddingBottom 20px
@@ -26,27 +26,31 @@ export default function PlaylistsScreen() {
   // Using a larger fixed value to ensure content stays above the nav bar
   const bottomPadding = Math.max(90 + insets.bottom + 50, 150);
   
-  // Check for active party when component mounts or playlists change
+  // Check for active parties when component mounts or playlists change
   useEffect(() => {
-    const checkActiveParty = async () => {
+    const checkActiveParties = async () => {
       try {
-        const storedPartyData = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
-        if (storedPartyData) {
-          const partyData = JSON.parse(storedPartyData);
-          if (partyData.playlistId) {
-            setActivePartyPlaylistId(parseInt(partyData.playlistId));
-          } else {
-            setActivePartyPlaylistId(null);
+        const storedParties = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+        if (storedParties) {
+          let parties = JSON.parse(storedParties);
+          
+          // Handle migration from old format (single object) to new format (array)
+          if (!Array.isArray(parties)) {
+            parties = parties.playlistId ? [parties] : [];
           }
+          
+          // Extract all playlist IDs that have active parties
+          const activeIds = new Set(parties.map((p: any) => parseInt(p.playlistId)));
+          setActivePartyPlaylistIds(activeIds);
         } else {
-          setActivePartyPlaylistId(null);
+          setActivePartyPlaylistIds(new Set());
         }
       } catch (error) {
-        console.error('Error checking active party:', error);
-        setActivePartyPlaylistId(null);
+        console.error('Error checking active parties:', error);
+        setActivePartyPlaylistIds(new Set());
       }
     };
-    checkActiveParty();
+    checkActiveParties();
   }, [playlists]);
 
   useFocusEffect(
@@ -55,26 +59,30 @@ export default function PlaylistsScreen() {
         console.log("Screen focused, refreshing playlists...");
         refetch();
       }
-      // Check for active party when screen comes into focus
-      const checkActiveParty = async () => {
+      // Check for active parties when screen comes into focus
+      const checkActiveParties = async () => {
         try {
-          const storedPartyData = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
-          if (storedPartyData) {
-            const partyData = JSON.parse(storedPartyData);
-            if (partyData.playlistId) {
-              setActivePartyPlaylistId(parseInt(partyData.playlistId));
-            } else {
-              setActivePartyPlaylistId(null);
+          const storedParties = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+          if (storedParties) {
+            let parties = JSON.parse(storedParties);
+            
+            // Handle migration from old format (single object) to new format (array)
+            if (!Array.isArray(parties)) {
+              parties = parties.playlistId ? [parties] : [];
             }
+            
+            // Extract all playlist IDs that have active parties
+            const activeIds = new Set(parties.map((p: any) => parseInt(p.playlistId)));
+            setActivePartyPlaylistIds(activeIds);
           } else {
-            setActivePartyPlaylistId(null);
+            setActivePartyPlaylistIds(new Set());
           }
         } catch (error) {
-          console.error('Error checking active party:', error);
-          setActivePartyPlaylistId(null);
+          console.error('Error checking active parties:', error);
+          setActivePartyPlaylistIds(new Set());
         }
       };
-      checkActiveParty();
+      checkActiveParties();
     }, [refetch, uid])
   );
 
@@ -130,7 +138,7 @@ export default function PlaylistsScreen() {
                   <View style={styles.playlistInfo}>
                     <View style={styles.playlistNameRow}>
                       <Text style={styles.playlistName} numberOfLines={1}>{p.name}</Text>
-                      {activePartyPlaylistId === p.id && (
+                      {activePartyPlaylistIds.has(p.id) && (
                         <View style={styles.partyModeBadge}>
                           <Ionicons name="radio" size={12} color="#FF8C42" />
                           <Text style={styles.partyModeText}>Party Mode</Text>

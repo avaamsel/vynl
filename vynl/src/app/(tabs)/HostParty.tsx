@@ -51,12 +51,26 @@ export default function HostPartyScreen() {
 
     // If we have a playlist ID, use the existing playlist
     if (playlistId && playlist) {
-      // Save party code to storage
+      // Save party code to storage (support multiple active parties)
       try {
-        await AsyncStorage.setItem(PARTY_CODE_STORAGE_KEY, JSON.stringify({
-          playlistId: playlist.id.toString(),
-          partyCode: partyCode
-        }));
+        const existingParties = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+        let parties = existingParties ? JSON.parse(existingParties) : [];
+        
+        // Check if this playlist already has an active party
+        const existingIndex = parties.findIndex((p: any) => p.playlistId === playlist.id.toString());
+        
+        if (existingIndex >= 0) {
+          // Update existing party code
+          parties[existingIndex].partyCode = partyCode;
+        } else {
+          // Add new party
+          parties.push({
+            playlistId: playlist.id.toString(),
+            partyCode: partyCode
+          });
+        }
+        
+        await AsyncStorage.setItem(PARTY_CODE_STORAGE_KEY, JSON.stringify(parties));
       } catch (error) {
         console.error('Error saving party code:', error);
       }
