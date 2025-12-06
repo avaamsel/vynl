@@ -1,12 +1,10 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, useColorScheme } from "react-native";
-import { Colors } from '../constants/theme';
-import { Link } from 'expo-router';
-import AppButton from "../components/AppButton";
-import InputField from '../components/InputField';
-import { supabase } from '@/src/utils/supabase';
-import { fetchSongs } from "@/src/services/music-providers/itunes-provider";
-import { ITunesPlaylist, ITunesSong } from '../types';
+import { Colors } from '@/src/constants/theme';
+import { Link, useRouter } from 'expo-router';
+import AppButton from "@/src/components/AppButton";
+import InputField from '@/src/components/InputField';
+import { useAuth } from '@/src/context/auth-context';
 
 interface FormData {
   email: string;
@@ -14,8 +12,11 @@ interface FormData {
 }
 
 const LoginPage: React.FC = () => {
+  const router = useRouter();
+  const { login } = useAuth();
   const [formData, setFormData] = useState<FormData>({ email: "", password: "" });
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (name: keyof FormData, value: string) => {
     setFormData({ ...formData, [name]: value });
@@ -36,64 +37,19 @@ const LoginPage: React.FC = () => {
       return;
     }
     setErrors({});
-
+    setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password: formData.password,
-      });
-      if (error) {
-        setErrors((prev) => ({ ...prev, password: error.message || 'Login failed' }));
-      }
-      const session = data.session;
-      console.log("session tocken : ", session?.access_token);
-      if (session?.access_token) {
-        const playlist: ITunesPlaylist = {
-          id: 0,
-          name: 'Test Create Playlist',
-          created_at: '',
-          user_id: session.user.id,
-          songs: [
-            {
-              song_id: 1,
-              title: "Unknown/Nth",
-              artist: "Hozier",
-              duration_sec: 10,
-              cover_url: "",
-              preview_url: ""
-            },
-            {
-              song_id: 2,
-              title: "The Ghost On The Shore",
-              artist: "Lord Huron",
-              duration_sec: 56,
-              cover_url: "",
-              preview_url: ""
-            }
-          ]
-        }
-        const response = await fetch('/api/playlist', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + session.access_token
-          },
-          body: JSON.stringify(playlist)
-        });
-
-        console.log(response);
-        // if (response.ok) {
-        //   const playlist: Playlist = await response.json();
-
-        //   console.log('Recommended Playlist:', playlist);
-          
-        // }
-      }
-    } catch (err) {
+      await login(email, formData.password);
+      console.log("Logged in successfully");
+      // Navigate to home screen after successful login
+      router.push('/(tabs)');
+    } catch (err: any) {
       console.error('Login error', err);
-      setErrors((prev) => ({ ...prev, password: 'An unexpected error occurred' }));
+      setErrors((prev) => ({ ...prev, password: err?.message || 'Login failed. Please check your credentials.' }));
+    } finally {
+      setIsLoading(false);
     }
-    
   };
 
   const colorScheme = useColorScheme();
@@ -147,10 +103,15 @@ const LoginPage: React.FC = () => {
           error={errors.password}
         />
       </View>
-      <AppButton title="Log In" onPress={handleSubmit} backgroundColor= {colors.primary} />
+      <AppButton 
+        title={isLoading ? "Logging in..." : "Log In"} 
+        onPress={handleSubmit} 
+        backgroundColor={colors.primary}
+        disabled={isLoading}
+      />
       <Text style={dynamicStyles.signupText}>
         Don't have an account?{' '}
-        <Link href="../SignupPage" style={dynamicStyles.signupLink}>
+        <Link href="/(tabs)/SignupPage" style={dynamicStyles.signupLink}>
           Sign up
         </Link>
       </Text>
@@ -160,4 +121,3 @@ const LoginPage: React.FC = () => {
 
 export default LoginPage;
 
-// ...removed static styles, now using dynamicStyles

@@ -58,6 +58,20 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => (
             <Ionicons name="musical-notes" size={22} color="#3b4f7d" />
           ),
+          tabBarStyle: {
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 90,
+            backgroundColor: '#FFFFFF',
+            borderTopWidth: 0,
+            elevation: 0,
+            shadowOpacity: 0,
+            paddingHorizontal: 0,
+            paddingBottom: 20,
+            paddingTop: 10,
+          },
         }}
       />
       <Tabs.Screen
@@ -66,6 +80,15 @@ export default function TabLayout() {
           title: 'Swipe',
           href: null,
           tabBarStyle: { display: 'none' },
+        }}
+      />
+      <Tabs.Screen
+        name="PartyMode"
+        options={{
+          title: 'Party',
+          tabBarIcon: ({ focused }) => (
+            <Ionicons name="people" size={22} color="#3b4f7d" />
+          ),
         }}
       />
       <Tabs.Screen
@@ -87,6 +110,39 @@ export default function TabLayout() {
         name="playlist-detail"
         options={{
           href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="HostParty"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="JoinParty"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
+      <Tabs.Screen
+        name="UserChoice"
+        options={{
+          href: null, // Hide from tab bar
+          tabBarStyle: { display: 'none' },
+        }}
+      />
+      <Tabs.Screen
+        name="LoginPage"
+        options={{
+          href: null, // Hide from tab bar
+          tabBarStyle: { display: 'none' },
+        }}
+      />
+      <Tabs.Screen
+        name="SignupPage"
+        options={{
+          href: null, // Hide from tab bar
+          tabBarStyle: { display: 'none' },
         }}
       />
     </Tabs>

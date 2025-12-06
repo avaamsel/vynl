@@ -5,23 +5,112 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppButton from '@/src/components/AppButton';
 import SpotifyExportModal from '@/src/components/SpotifyExportModal';
 import { ITunesPlaylist } from '@/src/types';
 import { usePlaylistWithID } from '@/src/hooks/use-playlist-with-id';
 
+const PARTY_CODE_STORAGE_KEY = '@vynl:partyCode';
+
 export default function PlaylistDetailScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const playlistId = params.id as string;
+  const partyCodeFromParams = params.partyCode as string | undefined;
   
   const [showExportModal, setShowExportModal] = useState(false);
+  const [partyCode, setPartyCode] = useState<string | undefined>(partyCodeFromParams);
   const { playlist, loading, error, refetch } = usePlaylistWithID(playlistId);
+
+  // Load party code from storage when component mounts or playlist changes
+  useEffect(() => {
+    const loadPartyCode = async () => {
+      try {
+        const storedParties = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+        if (storedParties) {
+          const parties = JSON.parse(storedParties);
+          // Check if there's an active party for this playlist
+          const activeParty = Array.isArray(parties) 
+            ? parties.find((p: any) => p.playlistId === playlistId)
+            : (parties.playlistId === playlistId ? parties : null);
+          
+          if (activeParty && activeParty.partyCode) {
+            setPartyCode(activeParty.partyCode);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading party code:', error);
+      }
+    };
+
+    // If party code comes from params, save it to storage
+    if (partyCodeFromParams) {
+      const savePartyCode = async () => {
+        try {
+          const existingParties = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+          let parties = existingParties ? JSON.parse(existingParties) : [];
+          
+          // Handle migration from old format (single object) to new format (array)
+          if (!Array.isArray(parties)) {
+            parties = parties.playlistId ? [parties] : [];
+          }
+          
+          // Check if this playlist already has an active party
+          const existingIndex = parties.findIndex((p: any) => p.playlistId === playlistId);
+          
+          if (existingIndex >= 0) {
+            // Update existing party code
+            parties[existingIndex].partyCode = partyCodeFromParams;
+          } else {
+            // Add new party
+            parties.push({
+              playlistId: playlistId,
+              partyCode: partyCodeFromParams
+            });
+          }
+          
+          await AsyncStorage.setItem(PARTY_CODE_STORAGE_KEY, JSON.stringify(parties));
+          setPartyCode(partyCodeFromParams);
+        } catch (error) {
+          console.error('Error saving party code:', error);
+        }
+      };
+      savePartyCode();
+    } else {
+      // Otherwise, try to load from storage
+      loadPartyCode();
+    }
+  }, [playlistId, partyCodeFromParams]);
 
   useFocusEffect(
     useCallback(() => {
       refetch();
-    }, [refetch])
+      // Reload party code when screen comes into focus
+      const loadPartyCode = async () => {
+        try {
+          const storedParties = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+          if (storedParties) {
+            const parties = JSON.parse(storedParties);
+            // Check if there's an active party for this playlist
+            const activeParty = Array.isArray(parties)
+              ? parties.find((p: any) => p.playlistId === playlistId)
+              : (parties.playlistId === playlistId ? parties : null);
+            
+            if (activeParty && activeParty.partyCode) {
+              setPartyCode(activeParty.partyCode);
+            } else {
+              setPartyCode(undefined);
+            }
+          } else {
+            setPartyCode(undefined);
+          }
+        } catch (error) {
+          console.error('Error loading party code:', error);
+        }
+      };
+      loadPartyCode();
+    }, [refetch, playlistId])
   );
 
 
@@ -134,10 +223,113 @@ export default function PlaylistDetailScreen() {
               {playlist.songs.length} song{playlist.songs.length !== 1 ? 's' : ''}
             </Text>
           </View>
-          <TouchableOpacity onPress={handleDeletePlaylist} style={styles.deleteButton}>
-            <Ionicons name="trash-outline" size={24} color="#F28695" />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            {!partyCode && (
+              <TouchableOpacity 
+                onPress={() => router.push({
+                  pathname: '../HostParty',
+                  params: { playlistId: playlist.id.toString() }
+                })} 
+                style={styles.hostPartyButton}
+              >
+                <Text style={styles.hostPartyButtonText}>HOST PARTY</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={handleDeletePlaylist} style={styles.deleteButton}>
+              <Ionicons name="trash-outline" size={24} color="#F28695" />
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {partyCode && (
+          <View style={styles.partyCodeSection}>
+            <View style={styles.partyCodeHeader}>
+              <Text style={styles.partyCodeLabel}>Party Code</Text>
+              <TouchableOpacity 
+                onPress={async () => {
+                  // Remove this playlist's party from storage and state
+                  try {
+                    const storedParties = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+                    if (storedParties) {
+                      let parties = JSON.parse(storedParties);
+                      
+                      // Handle migration from old format
+                      if (!Array.isArray(parties)) {
+                        parties = parties.playlistId ? [parties] : [];
+                      }
+                      
+                      // Remove this playlist's party
+                      parties = parties.filter((p: any) => p.playlistId !== playlist.id.toString());
+                      
+                      if (parties.length > 0) {
+                        await AsyncStorage.setItem(PARTY_CODE_STORAGE_KEY, JSON.stringify(parties));
+                      } else {
+                        await AsyncStorage.removeItem(PARTY_CODE_STORAGE_KEY);
+                      }
+                    }
+                    setPartyCode(undefined);
+                    // Navigate back to playlist detail without party code
+                    router.push({
+                      pathname: '/(tabs)/playlist-detail',
+                      params: { id: playlist.id.toString() }
+                    });
+                  } catch (error) {
+                    console.error('Error ending party:', error);
+                  }
+                }}
+                style={styles.endPartyButton}
+              >
+                <Ionicons name="close-circle" size={24} color="#F28695" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.partyCodeContainer}>
+              {partyCode.split('').map((char, index) => (
+                <View key={index} style={styles.partyCodeCharBox}>
+                  <Text style={styles.partyCodeCharText}>{char}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={styles.partyCodeInstruction}>
+              Share this code with friends to join your party
+            </Text>
+            <TouchableOpacity 
+              onPress={async () => {
+                // Remove this playlist's party from storage and state
+                try {
+                  const storedParties = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+                  if (storedParties) {
+                    let parties = JSON.parse(storedParties);
+                    
+                    // Handle migration from old format
+                    if (!Array.isArray(parties)) {
+                      parties = parties.playlistId ? [parties] : [];
+                    }
+                    
+                    // Remove this playlist's party
+                    parties = parties.filter((p: any) => p.playlistId !== playlist.id.toString());
+                    
+                    if (parties.length > 0) {
+                      await AsyncStorage.setItem(PARTY_CODE_STORAGE_KEY, JSON.stringify(parties));
+                    } else {
+                      await AsyncStorage.removeItem(PARTY_CODE_STORAGE_KEY);
+                    }
+                  }
+                  setPartyCode(undefined);
+                  // Navigate back to playlist detail without party code
+                  router.push({
+                    pathname: '/(tabs)/playlist-detail',
+                    params: { id: playlist.id.toString() }
+                  });
+                } catch (error) {
+                  console.error('Error ending party:', error);
+                }
+              }}
+              style={styles.endPartyTextButton}
+            >
+              <Text style={styles.endPartyTextButtonText}>End Party</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <ScrollView 
           style={styles.scrollView}
@@ -247,6 +439,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6F7A88',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  hostPartyButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#FFF8F5',
+    borderWidth: 2,
+    borderColor: '#FF8C42',
+  },
+  hostPartyButtonText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FF8C42',
+    letterSpacing: 0.5,
+  },
   deleteButton: {
     padding: 8,
   },
@@ -330,6 +541,74 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 100,
     gap: 12,
+  },
+  partyCodeSection: {
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    backgroundColor: '#FFF8F5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFE5D9',
+  },
+  partyCodeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  partyCodeLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#001133',
+    flex: 1,
+    textAlign: 'center',
+  },
+  endPartyButton: {
+    padding: 4,
+  },
+  partyCodeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  partyCodeCharBox: {
+    width: 40,
+    height: 48,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FF8C42',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  partyCodeCharText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FF8C42',
+  },
+  partyCodeInstruction: {
+    fontSize: 12,
+    color: '#6F7A88',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  endPartyTextButton: {
+    marginTop: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignSelf: 'center',
+  },
+  endPartyTextButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#F28695',
+    textAlign: 'center',
   },
 });
 
