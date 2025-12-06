@@ -99,13 +99,14 @@ type SwipeHistory = {
 };
 
 export default function Swiping() {
-  const { songs, playlist, mode } = useLocalSearchParams();
+  const { songs, playlist, mode, partyMode, playlistName: initialPlaylistName } = useLocalSearchParams();
   const newPlaylist: ITunesPlaylist = useMemo(() => 
       playlist ? JSON.parse(playlist as string) : null, 
     [playlist]);
   const seedSongs: ITunesSong[] = useMemo(() => 
       songs ? JSON.parse(songs as string) : [],
     [songs]);
+  const isPartyMode = partyMode === 'true';
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [addedSongs, setAddedSongs] = useState<ITunesSong[]>([]);
@@ -113,7 +114,7 @@ export default function Swiping() {
   const [passed, setPassed] = useState<ITunesSong[]>([]);
   const [swipeHistory, setSwipeHistory] = useState<SwipeHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [playlistName, setPlaylistName] = useState('');
+  const [playlistName, setPlaylistName] = useState(isPartyMode && initialPlaylistName ? initialPlaylistName as string : '');
   const [isSaving, setIsSaving] = useState(false);
   const [playlistSaved, setPlaylistSaved] = useState(false);
   const { updateLoading, updateError, updatePlaylist } = useUpdatePlaylist();
@@ -161,11 +162,21 @@ export default function Swiping() {
   const numberOfRecommendedSongs = 6;
 
   const fetchRecommendations = useCallback(async () => {
+    if (!newPlaylist?.id) {
+      console.warn('Cannot fetch recommendations: playlist ID is missing');
+      return;
+    }
+
     try {
       setGettingSimilar(true);
       console.log("Fetching similar for seed songs:", newPlaylist.songs);
+      console.log("Playlist ID:", newPlaylist.id);
+      console.log("Number of recommended songs:", numberOfRecommendedSongs);
 
-      const res = await fetch(`/api/playlist/recommendation/${encodeURIComponent(newPlaylist.id)}?amount=${numberOfRecommendedSongs}`, {
+      const url = `/api/playlist/recommendation/${encodeURIComponent(newPlaylist.id)}?amount=${numberOfRecommendedSongs}`;
+      console.log("Fetching from URL:", url);
+
+      const res = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -175,18 +186,29 @@ export default function Swiping() {
 
       if (!res.ok) {
         const text = await res.text();
-        console.error(text || 'Failed to fetch similar songs');
+        console.error(`Failed to fetch similar songs. Status: ${res.status} ${res.statusText}`);
+        console.error('Error response:', text);
+        
+        // Try to parse as JSON for more detailed error info
+        try {
+          const errorJson = JSON.parse(text);
+          console.error('Parsed error:', errorJson);
+        } catch {
+          // Not JSON, use text as is
+        }
         return;
       }
 
       const result = await res.json();
+      console.log("Received recommendations:", result?.length || 0, "songs");
       setRecommendations(result);
     } catch (err: any) {
-      console.error('Error updating playlist:', err.message || err);
+      console.error('Error fetching recommendations:', err.message || err);
+      console.error('Full error:', err);
     } finally {
       setGettingSimilar(false);
     }
-  }, [newPlaylist?.id, authToken, newPlaylist?.songs]);
+  }, [newPlaylist?.id, authToken, newPlaylist?.songs, numberOfRecommendedSongs]);
 
   useFocusEffect(
     useCallback(() => {
@@ -194,7 +216,7 @@ export default function Swiping() {
     }, [fetchRecommendations])
   );
 
-  const isAddingMode = mode === 'add' && newPlaylist.id;
+  const isAddingMode = (mode === 'add' && newPlaylist.id) || isPartyMode;
   
   const position = useRef(new Animated.ValueXY()).current;
   const cardOpacity = useRef(new Animated.Value(1)).current;
@@ -587,10 +609,10 @@ export default function Swiping() {
                 keyboardShouldPersistTaps="handled"
               >
                 <Text style={styles.confirmationTitle}>
-                  {isAddingMode ? 'Add Songs to Playlist' : 'Create Your Playlist'}
+                  {(isAddingMode || isPartyMode) ? 'Add Songs to Playlist' : 'Create Your Playlist'}
                 </Text>
                 <Text style={styles.confirmationSubtitle}>
-                  {isAddingMode 
+                  {isAddingMode || isPartyMode
                     ? playlistName 
                       ? `You liked ${liked.length} song${liked.length !== 1 ? 's' : ''} to add to "${playlistName}"`
                       : `You liked ${liked.length} song${liked.length !== 1 ? 's' : ''} to add to this playlist`
@@ -598,7 +620,7 @@ export default function Swiping() {
                   }
                 </Text>
                 
-                {!isAddingMode && (
+                {!isAddingMode && !isPartyMode && (
                   <View style={styles.nameInputContainer}>
                     <Text style={styles.inputLabel}>Playlist Name</Text>
                     <TextInput
@@ -609,6 +631,12 @@ export default function Swiping() {
                       onChangeText={setPlaylistName}
                       autoFocus
                     />
+                  </View>
+                )}
+                {isPartyMode && playlistName && (
+                  <View style={styles.nameInputContainer}>
+                    <Text style={styles.inputLabel}>Playlist Name</Text>
+                    <Text style={[styles.nameInput, { color: '#000', paddingVertical: 12 }]}>{playlistName}</Text>
                   </View>
                 )}
 
@@ -641,9 +669,9 @@ export default function Swiping() {
 
               <View style={styles.confirmationButtons}>
                 <AppButton
-                  title={isAddingMode ? "Add Songs" : "Save Playlist"}
+                  title={(isAddingMode || isPartyMode) ? "Add Songs" : "Save Playlist"}
                   onPress={handleSavePlaylist}
-                  disabled={(!isAddingMode && !playlistName.trim()) || isSaving}
+                  disabled={(!isAddingMode && !isPartyMode && !playlistName.trim()) || isSaving}
                   backgroundColor="#F28695"
                   textColor="#FFFFFF"
                 />
@@ -654,7 +682,7 @@ export default function Swiping() {
           {finished && playlistSaved && (
             <View style={styles.done}>
               <Text style={styles.doneTitle}>
-                {isAddingMode ? 'Songs Added! 🎉' : 'Playlist Saved! 🎉'}
+                {(isAddingMode || isPartyMode) ? 'Songs Added! 🎉' : 'Playlist Saved! 🎉'}
               </Text>
               <Text style={styles.doneSub}>{playlistName}</Text>
               <View style={styles.doneButtons}>

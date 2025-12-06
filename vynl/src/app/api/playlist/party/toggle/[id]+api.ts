@@ -1,0 +1,112 @@
+import { createSupabaseClient } from "@/src/server/supabase";
+import { party_user } from "@/src/types/database/index"
+
+function generatePartyCode(length: number): string {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let code = "";
+    for (let i = 0; i < length; i++) {
+        const index = Math.floor(Math.random() * chars.length);
+        code += chars[index];
+    }
+    return code;
+}
+
+// PUT "api/playlist/party/toggle/:id"
+export async function PUT(req: Request, { id }: Record<string, string>) {
+    if (!id) {
+        return new Response("Missing playlist ID", { status: 400 });
+    }
+    try {
+        const playlist_id = parseInt(id);
+
+        if (Number.isNaN(playlist_id)) {
+            console.log("Invalid Playlist ID:", id);
+            return new Response('Invalid Playlist ID', {
+                status: 400
+            });
+        }
+
+        const body = await req.json();
+        const uid = body.uid;
+        const enable = body.enable;
+        
+        if (uid === undefined || uid === null) return new Response("Missing user ID", { status: 400 });
+        if (enable === undefined || enable === null) return new Response("Missing enable", { status: 400 });
+
+        const supabase = await createSupabaseClient(req);
+        // If given an error response return it
+        if (supabase instanceof Response) {
+            return supabase
+        }
+
+        if (enable) {
+            // 1. Create secret party code if it doesn't exist
+            const { data: c_data, error: c_err } = await supabase
+                .from('playlists')
+                .select('party_code')
+                .eq('playlist_id', playlist_id)
+
+            let partyCode;
+
+            if (c_err) {
+                return new Response('Unable to check the party code', {
+                    status: 404
+                });
+            }
+
+            if (c_data) {
+                partyCode = c_data[0]?.party_code;
+            } else {
+                partyCode = generatePartyCode(6);
+            }
+
+            // 2. Store party code and put in_party_mode to TRUE
+            const { data: p_data, error: p_err } = await supabase
+                .from('playlists')
+                .update({ party_code: partyCode, in_party_mode: true })
+                .eq("playlist_id", playlist_id);
+
+            if (p_err) {
+                return new Response('Failed to update playlist', {
+                    status: 400
+                });
+            }
+            // 3. Add owner to party_user
+            const party_user_to_add: party_user = {playlist_id: playlist_id, user_id: uid}
+
+            const { data: pu_data, error: pu_err } = await supabase
+                .from('party_user')
+                .upsert(party_user_to_add)
+
+            if (pu_err) {
+                return new Response('Failed to update party_user', {
+                    status: 400
+                });
+            }
+
+            // 4. Return party code
+            return new Response(JSON.stringify(partyCode), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+        } else {
+            // 1. Put the in_party_mode to FALSE
+            const { data: p_data, error: p_err } = await supabase
+                .from('playlists')
+                .update({ in_party_mode: false })
+                .eq("playlist_id", playlist_id);
+            
+            return new Response(null, {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+
+    } catch (error) {
+        console.error(error);
+        return new Response('Unknown Server Error', {
+            status: 500
+        });
+    }
+}

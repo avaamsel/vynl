@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, useColorScheme } from "react-native";
-import { Colors } from '../constants/theme';
+import { Colors } from '@/src/constants/theme';
 import { Link } from 'expo-router';
-import AppButton from "../components/AppButton"; // make sure path is correct
-import InputField from '../components/InputField';
+import AppButton from "@/src/components/AppButton"; // make sure path is correct
+import InputField from '@/src/components/InputField';
 import { validatePassword } from "@/scripts/validatePassword";
 import { passwordErrorMessages } from "@/scripts/validatePassword";
 import { supabase } from '@/src/utils/supabase';
@@ -140,7 +140,7 @@ const SignupPage: React.FC = () => {
       <AppButton title="Sign Up" onPress={handleSubmit} backgroundColor= {colors.primary} />
       <Text style={dynamicStyles.loginText}>
         Already have an account?{' '}
-        <Link href="../LoginPage" style={dynamicStyles.loginLink}>
+        <Link href="/(tabs)/LoginPage" style={dynamicStyles.loginLink}>
           Log in
         </Link>
       </Text>
@@ -150,4 +150,3 @@ const SignupPage: React.FC = () => {
 
 export default SignupPage;
 
-// ...removed static styles, now using dynamicStyles

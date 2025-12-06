@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router'; // ← navigation
+import { useRouter, useLocalSearchParams } from 'expo-router'; // ← navigation
 import { Ionicons } from '@expo/vector-icons';
 import { useSongSearch } from '@/src/hooks/use-song-search';
 import { ITunesSong, ITunesPlaylist } from '@/src/types';
@@ -15,6 +15,13 @@ import { supabase } from '@/src/utils/supabase';
 
 
 export default function UploadSongs() {
+  const params = useLocalSearchParams();
+  const partyMode = params.partyMode === 'true';
+  const existingPlaylist: ITunesPlaylist | null = useMemo(() => 
+    params.playlist ? JSON.parse(params.playlist as string) : null,
+    [params.playlist]
+  );
+  
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<ITunesSong[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -45,28 +52,46 @@ export default function UploadSongs() {
 
     setIsSaving(true);
 
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not logged in");
+    try {
+      let playlist: ITunesPlaylist;
+      
+      if (partyMode && existingPlaylist) {
+        // In party mode, use the existing playlist
+        playlist = existingPlaylist;
+      } else {
+        // Normal mode: create a new playlist
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (!user) throw new Error("User not logged in");
 
-    const playlist = await createPlaylist(
-      "My Playlist",
-      user.id,
-      selected
-    );
+        playlist = await createPlaylist(
+          "My Playlist",
+          user.id,
+          selected
+        );
 
-    if (!playlist) {
-      console.error("Playlist creation failed:", playlistError);
+        if (!playlist) {
+          console.error("Playlist creation failed:", playlistError);
+          setIsSaving(false);
+          return;
+        }
+      }
+
+      router.push({
+        pathname: '/(tabs)/swipe',
+        params: { 
+          songs: JSON.stringify(selected), 
+          playlist: JSON.stringify(playlist),
+          mode: partyMode ? 'add' : undefined,
+          partyMode: partyMode ? 'true' : undefined,
+          partyCode: params.partyCode as string | undefined,
+          playlistName: params.playlistName as string | undefined,
+        }
+      });
+    } catch (error) {
+      console.error("Error in goSwiping:", error);
+    } finally {
       setIsSaving(false);
-      return;
     }
-
-    router.push({
-      pathname: '/swipe',
-      //TODO : remove songs
-      params: { songs: JSON.stringify(selected), playlist: JSON.stringify(playlist) }
-    });
-
-    setIsSaving(false);
   };
 
 
