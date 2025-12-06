@@ -29,12 +29,16 @@ export default function PlaylistDetailScreen() {
   useEffect(() => {
     const loadPartyCode = async () => {
       try {
-        const storedPartyData = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
-        if (storedPartyData) {
-          const partyData = JSON.parse(storedPartyData);
+        const storedParties = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+        if (storedParties) {
+          const parties = JSON.parse(storedParties);
           // Check if there's an active party for this playlist
-          if (partyData.playlistId === playlistId && partyData.partyCode) {
-            setPartyCode(partyData.partyCode);
+          const activeParty = Array.isArray(parties) 
+            ? parties.find((p: any) => p.playlistId === playlistId)
+            : (parties.playlistId === playlistId ? parties : null);
+          
+          if (activeParty && activeParty.partyCode) {
+            setPartyCode(activeParty.partyCode);
           }
         }
       } catch (error) {
@@ -46,10 +50,29 @@ export default function PlaylistDetailScreen() {
     if (partyCodeFromParams) {
       const savePartyCode = async () => {
         try {
-          await AsyncStorage.setItem(PARTY_CODE_STORAGE_KEY, JSON.stringify({
-            playlistId: playlistId,
-            partyCode: partyCodeFromParams
-          }));
+          const existingParties = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+          let parties = existingParties ? JSON.parse(existingParties) : [];
+          
+          // Handle migration from old format (single object) to new format (array)
+          if (!Array.isArray(parties)) {
+            parties = parties.playlistId ? [parties] : [];
+          }
+          
+          // Check if this playlist already has an active party
+          const existingIndex = parties.findIndex((p: any) => p.playlistId === playlistId);
+          
+          if (existingIndex >= 0) {
+            // Update existing party code
+            parties[existingIndex].partyCode = partyCodeFromParams;
+          } else {
+            // Add new party
+            parties.push({
+              playlistId: playlistId,
+              partyCode: partyCodeFromParams
+            });
+          }
+          
+          await AsyncStorage.setItem(PARTY_CODE_STORAGE_KEY, JSON.stringify(parties));
           setPartyCode(partyCodeFromParams);
         } catch (error) {
           console.error('Error saving party code:', error);
@@ -68,11 +91,16 @@ export default function PlaylistDetailScreen() {
       // Reload party code when screen comes into focus
       const loadPartyCode = async () => {
         try {
-          const storedPartyData = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
-          if (storedPartyData) {
-            const partyData = JSON.parse(storedPartyData);
-            if (partyData.playlistId === playlistId && partyData.partyCode) {
-              setPartyCode(partyData.partyCode);
+          const storedParties = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+          if (storedParties) {
+            const parties = JSON.parse(storedParties);
+            // Check if there's an active party for this playlist
+            const activeParty = Array.isArray(parties)
+              ? parties.find((p: any) => p.playlistId === playlistId)
+              : (parties.playlistId === playlistId ? parties : null);
+            
+            if (activeParty && activeParty.partyCode) {
+              setPartyCode(activeParty.partyCode);
             } else {
               setPartyCode(undefined);
             }
@@ -220,9 +248,26 @@ export default function PlaylistDetailScreen() {
               <Text style={styles.partyCodeLabel}>Party Code</Text>
               <TouchableOpacity 
                 onPress={async () => {
-                  // Clear party code from storage and state
+                  // Remove this playlist's party from storage and state
                   try {
-                    await AsyncStorage.removeItem(PARTY_CODE_STORAGE_KEY);
+                    const storedParties = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+                    if (storedParties) {
+                      let parties = JSON.parse(storedParties);
+                      
+                      // Handle migration from old format
+                      if (!Array.isArray(parties)) {
+                        parties = parties.playlistId ? [parties] : [];
+                      }
+                      
+                      // Remove this playlist's party
+                      parties = parties.filter((p: any) => p.playlistId !== playlist.id.toString());
+                      
+                      if (parties.length > 0) {
+                        await AsyncStorage.setItem(PARTY_CODE_STORAGE_KEY, JSON.stringify(parties));
+                      } else {
+                        await AsyncStorage.removeItem(PARTY_CODE_STORAGE_KEY);
+                      }
+                    }
                     setPartyCode(undefined);
                     // Navigate back to playlist detail without party code
                     router.push({
@@ -250,9 +295,26 @@ export default function PlaylistDetailScreen() {
             </Text>
             <TouchableOpacity 
               onPress={async () => {
-                // Clear party code from storage and state
+                // Remove this playlist's party from storage and state
                 try {
-                  await AsyncStorage.removeItem(PARTY_CODE_STORAGE_KEY);
+                  const storedParties = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+                  if (storedParties) {
+                    let parties = JSON.parse(storedParties);
+                    
+                    // Handle migration from old format
+                    if (!Array.isArray(parties)) {
+                      parties = parties.playlistId ? [parties] : [];
+                    }
+                    
+                    // Remove this playlist's party
+                    parties = parties.filter((p: any) => p.playlistId !== playlist.id.toString());
+                    
+                    if (parties.length > 0) {
+                      await AsyncStorage.setItem(PARTY_CODE_STORAGE_KEY, JSON.stringify(parties));
+                    } else {
+                      await AsyncStorage.removeItem(PARTY_CODE_STORAGE_KEY);
+                    }
+                  }
                   setPartyCode(undefined);
                   // Navigate back to playlist detail without party code
                   router.push({
