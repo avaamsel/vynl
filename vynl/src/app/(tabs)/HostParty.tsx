@@ -173,14 +173,14 @@ export default function HostPartyScreen() {
       
       setIsFetchingCode(false);
       
-      // Navigate back to playlist detail with party code
+      /* // Navigate back to playlist detail with party code
       router.push({
         pathname: '/(tabs)/playlist-detail',
         params: {
           id: playlist.id.toString(),
           partyCode: fetchedCode,
         },
-      });
+      }); */
       return;
     }
 
@@ -308,9 +308,9 @@ export default function HostPartyScreen() {
 
           {/* Party Code Display */}
           <View style={styles.codeSection}>
-            <Text style={styles.codeLabel}>Your Party Code</Text>
             {partyCode ? (
               <>
+                <Text style={styles.codeLabel}>Your Party Code</Text>
                 <View style={styles.codeDisplayContainer}>
                   {partyCode.split('').map((char, index) => (
                     <View key={index} style={styles.codeCharBox}>
@@ -329,13 +329,56 @@ export default function HostPartyScreen() {
             )}
           </View>
 
-          {/* Buttons Section */}
-          <View style={styles.buttonContainer}>
-            {/* Create Party Button */}
+          {!partyCode ? (
+            <View style={styles.buttonContainer}>
+              {/* Create Party Button */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleCreateParty}
+                disabled={isCreating || authLoading || isFetchingCode || (playlistId ? !playlist : false)}
+              >
+                <LinearGradient
+                  colors={!isCreating && !authLoading && !isFetchingCode && (!playlistId || playlist) ? ['#FF6B9D', '#FF8C42'] : ['#CCCCCC', '#CCCCCC']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.gradientButton}
+                >
+                  <Text style={styles.gradientButtonText}>
+                    {isCreating ? 'CREATING...' : isFetchingCode ? 'GETTING CODE...' : 'START PARTY'}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Cancel Button */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  if (playlistId) {
+                    router.push({
+                      pathname: '/(tabs)/playlist-detail',
+                      params: { id: playlistId }
+                    });
+                  } else {
+                    router.push('/(tabs)/PartyMode');
+                  }
+                }}
+                style={styles.cancelButton}
+              >
+                <Text style={styles.cancelButtonText}>CANCEL</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={handleCreateParty}
-              disabled={isCreating || authLoading || isFetchingCode || (playlistId ? !playlist : false)}
+              onPress={() =>{
+                router.push({
+                  pathname: '/(tabs)/playlist-detail',
+                  params: {
+                    id: playlistId,
+                    partyCode: partyCode,
+                  },
+                });
+              }}
             >
               <LinearGradient
                 colors={!isCreating && !authLoading && !isFetchingCode && (!playlistId || playlist) ? ['#FF6B9D', '#FF8C42'] : ['#CCCCCC', '#CCCCCC']}
@@ -343,30 +386,12 @@ export default function HostPartyScreen() {
                 end={{ x: 1, y: 0 }}
                 style={styles.gradientButton}
               >
-                <Text style={styles.gradientButtonText}>
-                  {isCreating ? 'CREATING...' : isFetchingCode ? 'GETTING CODE...' : 'START PARTY'}
+                <Text style={styles.gradientButtonText}>Back to Playlist
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
-
-            {/* Cancel Button */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => {
-                if (playlistId) {
-                  router.push({
-                    pathname: '/(tabs)/playlist-detail',
-                    params: { id: playlistId }
-                  });
-                } else {
-                  router.push('/(tabs)/PartyMode');
-                }
-              }}
-              style={styles.cancelButton}
-            >
-              <Text style={styles.cancelButtonText}>CANCEL</Text>
-            </TouchableOpacity>
-          </View>
+          )
+          }
         </ScrollView>
       </SafeAreaView>
     </View>
