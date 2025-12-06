@@ -1,8 +1,8 @@
-**Version:** 1.0 (Beta Release)  
-**Contributors:** Vicky, Lillian  
+**Version:** 2.0 (Final Release)  
+**Contributors:** Vicky Liu, Lillian Nguyen, Ava Nunes
 **Status:** Work in Progress (Some features under development)
 
-(Last Updated Tues, Nov 11, 2025\)
+(Last Updated Friday, December 5, 2025\)
 
 # **🎧 Vynl User Manual**
 
@@ -25,24 +25,79 @@ By choosing a few **seed songs**, Vynl recommends new tracks with similar energy
 * Swipe-based playlist building  
 * Song previews  
 * User login and saved playlists
+* * Playlist export to Spotify
 
 **Work in Progress:**
 
-* Playlist export to Spotify  
+* Multi-user "party mode" concurrent playlist creation  
 * Export to multiple platforms (Apple Music, YouTube Music)  
 * Social features (add friends, view shared playlists)  
 * Dashboard playlist stats
 
 ## **2. How to Install the Software**
+### **2.1 Prerequisites**
+| Requirement | Version | Purpose |
+| ----- | ----- | ----- |
+| **Node.js** | 24+ | Required for React Native development |
+| **npm** | 9+ | Package manager |
+| **Expo CLI** | 6+ | Cross-platform framework for React Native |
+| **Git** | 2.40+ | Version control |
+| **Supabase Account** | — | Backend database & authentication (logging in and signing up) |
+| **iTunes API** | — | API access for searching songs and sound previews |
+| **Last.fm** | — | API access for music data and export |
+| **Expo Linear Gradient** | — | Background of the app is a gradient |
+| **Expo Go** | — | For mobile testing |
 
-Please refer to the [developer-guide.md ](https://github.com/avaamsel/vynl/blob/main/developer-guide.md) for detailed instructions.
+### **2.2 Installation**
+> npm (Node Package Manager) comes bundled with Node.js, so you only need to install Node.
+
+```bash
+# Install Node.js (version 24)
+brew install node@24
+
+# Verify installation
+node -v
+npm -v
+```
+
+If you see an error about linking Node, run:
+
+```bash
+brew link \--force \--overwrite node@24
+```
+### **2.3 Installing Dependencies**
+Then ``cd`` into the inner ``/vynl`` (you should be in ``./vynl/vynl``) and run:
+
+```bash
+npm install
+```
+
+This installs dependencies for the project and the app
+
+### **2.4 Set up Environmental Variables**
+
+> Note: To obtain the ``.env`` file, send an email to Zack (Backend engineer) requesting access: zcrouse@uw.edu
+
+Once you have it, insert the file in same subfolder as the ``.env.example`` located in the inner ``./vynl`` folder.
+
+Your ``.env`` should have a structure like this:
+```
+EXPO_PUBLIC_SUPABASE_URL=''
+EXPO_PUBLIC_SUPABASE_KEY=''
+EXPO_PRIVATE_SUPABASE_KEY=''
+EXPO_PUBLIC_SPOTIFY_CLIENT_ID=''
+EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET=''
+EXPO_PUBLIC_API_URL=''
+LASTFM_API_KEY=''
+EXPO_PUBLIC_YOUTUBE_CLIENT_ID=''
+EXPO_PUBLIC_OWNER=''
+```
 
 ## **3\. How to run the software**
 
 Vynl uses Expo and npm for development builds
 
 Download [Expo Go](https://apps.apple.com/us/app/expo-go/id982107779) from the App Store or Google Play.
-
 
 >Note: Expo Go  supports the latest version automatically
 After all prerequisites have been installed and set up, you can start the application locally using the Expo development server.
@@ -79,8 +134,8 @@ npx expo start \--clear
 
 1. **Open the App:** Launch the Music Playlist App on your device.
 2. **Sign In or Create an Account:** Save your preferences and playlists by creating a profile.
-3. **There are 4 tabs on the bottom: Home, Playlists, and Profile**
-4. **You are now at the Home page:** From here you can view your music stats and create a new playlist
+3. **There are 3 tabs on the bottom: Home, Playlists, and Profile**
+4. **You are now at the Home page:** From here you can create new playlists
 5. **Create New Playlist:** Choose songs you like to help the app learn your taste.
 
 
@@ -148,8 +203,6 @@ You're likely missing the environmental variables file. Email Zack (zcrouse@uw.e
 * **Songs not loading?** Check your internet connection.  
 * **Can’t save playlist?** Ensure you’re signed in to your account.  
 * **Recommendations off?** Update your liked songs to refine results.
-
-
 
 ## **5\. How to report a Bug**
 
