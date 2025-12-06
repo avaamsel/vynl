@@ -40,6 +40,21 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
         }
 
         if (enable) {
+            // Get the authenticated user from Supabase
+            const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+            if (authError || !authUser) {
+                return new Response('Unauthorized', {
+                    status: 401
+                });
+            }
+
+            // Verify that the user from request body matches the authenticated user
+            if (authUser.id !== uid) {
+                return new Response('User ID mismatch', {
+                    status: 403
+                });
+            }
+
             // 1. Create secret party code if it doesn't exist
             const { data: c_data, error: c_err } = await supabase
                 .from('playlists')
@@ -49,13 +64,15 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             let partyCode;
 
             if (c_err) {
+                console.error('Error checking party code:', c_err);
                 return new Response('Unable to check the party code', {
                     status: 404
                 });
             }
 
-            if (c_data) {
-                partyCode = c_data[0]?.party_code;
+            // Check if playlist exists and has a party code
+            if (c_data && c_data.length > 0 && c_data[0]?.party_code) {
+                partyCode = c_data[0].party_code;
             } else {
                 partyCode = generatePartyCode(6);
             }
@@ -67,21 +84,31 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
                 .eq("playlist_id", playlist_id);
 
             if (p_err) {
+                console.error('Error updating playlist:', p_err);
                 return new Response('Failed to update playlist', {
                     status: 400
                 });
             }
+            
             // 3. Add owner to party_user
-            const party_user_to_add: party_user = {playlist_id: playlist_id, user_id: uid}
-
+            // RLS will automatically set user_id based on the authenticated user
+            // Only insert playlist_id, just like the link endpoint does
             const { data: pu_data, error: pu_err } = await supabase
                 .from('party_users')
-                .upsert(party_user_to_add)
+                .insert({ playlist_id: playlist_id });
 
             if (pu_err) {
-                return new Response('Failed to update party_user', {
-                    status: 400
-                });
+                // If it's a unique constraint violation, the user is already linked, which is fine
+                // Check if the error is about duplicate key
+                if (pu_err.code === '23505' || pu_err.message?.includes('duplicate') || pu_err.message?.includes('unique')) {
+                    // User is already in party_users, which is fine
+                    console.log('User already linked to playlist, continuing...');
+                } else {
+                    console.error('Error inserting party_user:', pu_err);
+                    return new Response(`Failed to update party_user: ${pu_err.message}`, {
+                        status: 400
+                    });
+                }
             }
 
             // 4. Return party code
