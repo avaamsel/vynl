@@ -27,30 +27,49 @@ cd vynl
 
 The repository is organized as follows. Paths are relative to the repository root.
 
-
 ```
-vynl/                  # Project root
-├── .expo/             # Expo-managed metadata and caches (do not edit manually)
-├── node_modules/      # Installed dependencies managed by npm
-├── vynl/              # Primary application source    
-│   └── app/           # Screens and routing using Expo router
-│   └── assets/
-│       └──images/     # Application images and icons
-│       └──fonts/      # Application fonts
-│   └── components/    # Reusable UI components
-│   └── constants/     # Shared constants such as colors, spacing, route names
-│   └── hooks/         # Custom React hooks and client-side logic
-│   └── scripts/       # Local automation scripts and developer utilities
-└── App.js             # Root entry that forwards to the app under ./vynl
+vynl/                                  # Project root
+├── .expo/                             # Expo-managed metadata and caches (do not edit manually)
+├── .github/                           # GitHub-specific configurations
+│   └── workflows/                     # Vynl's CI/CD workflows
+├── docs/                              # Documentation files
+├── node_modules/                      # Installed dependencies managed by npm
+│
+├── vynl/                              # Primary application source    
+│   ├── __tests__/                     # Unit and integration tests, organized by feature
+│   │   └── utils/                     # Shared test utilities
+│   ├── assets/
+│   │   ├── images/                    # Application images and icons
+│   │   └── fonts/                     # Application fonts
+│   ├── scripts/                       # Local automation scripts and developer utilities
+│   ├── src/               
+│   │   ├── app/                       # Screens and routing using Expo router
+│   │   │   └──  (tabs)/               # Tab-based navigation screens
+│   │   ├── components/    
+│   │   │   └── ui/                    # Reusable UI components
+│   │   ├── constants/                 # Shared constants such as colors, spacing, route names
+│   │   ├── hooks/                     # Custom React hooks and client-side logic
+│   │   ├── server/                    # Backend related utilities
+│   │   │   └── song-recommendation/   # Song recommendation logic
+│   │   ├── services                   
+│   │   │   └── music-providers/       # External integration of music providers
+│   │   ├── types/                    
+│   │   │   └── database/              # Database type definitions and interfaces
+│   │   └── utils/                     # Helper funtions and utilities 
+│   └── supabase/                      # Supabase configuration and backend setup
+└── App.js                             # Root entry that forwards to the app under ./vynl
 ```
 
-2.1 Source Files
+### **2.1 Source Files**
 
-* Core application code resides in `vynl/`  
-* Screens and navigation reside in `vynl/app/`  
-* Shared UI components reside in `vynl/components/`  
-* Reusable logic resides in `vynl/hooks/`  
-* Global configuration values reside in `vynl/constants/`
+* Core application code resides in `vynl/`
+* Tests are located in `vynl/__tests__`
+* Screens and navigation reside in `vynl/src/app/`  
+* Shared UI components reside in `vynl/src/components/`  
+* Reusable logic resides in `vynl/src/hooks/`  
+* Global configuration values reside in `vynl/src/constants/`
+* Backend configuration and logic reside in `vynl/src/server/` and `vynl/src/types/`
+
 
 
 ## 3\. 🚀Building the Software
@@ -108,7 +127,12 @@ Once you have it, insert the file in same subfolder as the ``.env.example`` loca
 
 ### **3.4 Development build and run**
 
-Start the development server from the repository root
+Navigate to the vynl folder:
+```
+cd vynl
+```
+
+Now, run the project's development server:
 
 ```
 npx expo start
@@ -116,7 +140,7 @@ npx expo start
 
 **Platform-Specific Testing:**
 * **Mobile (iOS/Android):** Use the ``Expo Go`` app on your physical device or emulator
-* **Web:** Web preview is currently **not supported** due to localStorage compatibility issues. Testing should be done on mobile platform only. 
+* **Web:** Web preview is currently **not supported** due to localStorage compatibility issues. **_Testing should be done on mobile platform only._**
 
 If you encounter connection problems or can’t be on the same wifi, run 
 
@@ -210,7 +234,7 @@ From the vynl/ directory:
 * ``npx eas build --platform [android|ios]`` - Build release for specified platform
 
 ## **8. 🤝 Contributing**
-When contributing to Vynl:
+**When contributing to Vynl:**
 1. Ensure your Node.js version is 24 or newer
 2. Write tests for new features (see Section 5)
 3. Run the test suite before submitting changes
