@@ -152,3 +152,39 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
         });
     }
 }
+
+export async function DELETE(req: Request, { id }: Record<string, string>) {
+    try {
+        const supabase = await createSupabaseClient(req);
+
+        // If given an error response return it
+        if (supabase instanceof Response) {
+            return supabase
+        }
+
+        const playlist_id = parseInt(id);
+
+        if (playlist_id == undefined) {
+            return new Response('Invalid Playlist ID', {
+                status: 400
+            });
+        }
+
+        // Everything is set to cascade delete so all playlists_songs  and party_users
+        // will get deleted with this call. 
+        const { data, error } = await supabase
+            .from('playlists')
+            .delete()
+            .eq('id', playlist_id);
+
+        return new Response("OK", {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    } catch (error) {
+        console.error(error);
+        return new Response('Unknown Server Error', {
+            status: 500
+        });
+    }
+}

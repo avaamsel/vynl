@@ -1,14 +1,11 @@
 import { createSupabaseAdminClient } from "@/src/server/supabase";
 import { clearDatabase, createUser, deleteAllUsers } from "./utils/database";
-import { clear } from "console";
 import { POST as POST_PLAYLIST, GET as GET_PLAYLISTS } from "@/src/app/api/playlist/+api";
 import { GET as GET_PLAYLIST, PUT as PUT_PLAYLIST} from "@/src/app/api/playlist/[id]+api";
 import { isITunesPlaylist, ITunesPlaylist } from "@/src/types";
 import { Session, User } from "@supabase/supabase-js";
-import { emitTypingEvents } from "@testing-library/react-native/build/user-event/type/type";
-import { PUT } from "@/src/app/api/user/[id]+api";
 
-describe('Test Backend', () => {
+describe('Playlist Test', () => {
     const adminClient = createSupabaseAdminClient();
     
     // Shared user session and user data between all test
