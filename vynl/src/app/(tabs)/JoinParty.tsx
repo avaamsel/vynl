@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { useState, useRef } from 'react';
 import { useAuth } from '../../context/auth-context';
 import { ITunesPlaylist } from '@/src/types';
+import { useUser } from '@/src/hooks/use-user';
 
 // Image assets
 const imgBackground = require('@/assets/images/background.png');
@@ -15,6 +16,7 @@ const imgBackground = require('@/assets/images/background.png');
 export default function JoinPartyScreen() {
   const router = useRouter();
   const { authToken } = useAuth();
+  const { user, loading: authLoading } = useUser();
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const [fontsLoaded] = useFonts({
@@ -45,8 +47,9 @@ export default function JoinPartyScreen() {
     const fullCode = code.join('');
     if (fullCode.length === 6) {
       console.log('Joining party with code:', fullCode);
+      console.log("Logged in as : ", user?.id);
       
-      const res = await fetch(`api/playlist/party/link/${encodeURIComponent(fullCode)}`, {
+      const res = await fetch(`/api/playlist/party/link/${encodeURIComponent(fullCode)}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
