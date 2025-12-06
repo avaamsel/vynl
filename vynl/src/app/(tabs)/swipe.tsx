@@ -99,13 +99,14 @@ type SwipeHistory = {
 };
 
 export default function Swiping() {
-  const { songs, playlist, mode } = useLocalSearchParams();
+  const { songs, playlist, mode, partyMode, playlistName: initialPlaylistName } = useLocalSearchParams();
   const newPlaylist: ITunesPlaylist = useMemo(() => 
       playlist ? JSON.parse(playlist as string) : null, 
     [playlist]);
   const seedSongs: ITunesSong[] = useMemo(() => 
       songs ? JSON.parse(songs as string) : [],
     [songs]);
+  const isPartyMode = partyMode === 'true';
   const router = useRouter();
   const [index, setIndex] = useState(0);
   const [addedSongs, setAddedSongs] = useState<ITunesSong[]>([]);
@@ -113,7 +114,7 @@ export default function Swiping() {
   const [passed, setPassed] = useState<ITunesSong[]>([]);
   const [swipeHistory, setSwipeHistory] = useState<SwipeHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [playlistName, setPlaylistName] = useState('');
+  const [playlistName, setPlaylistName] = useState(isPartyMode && initialPlaylistName ? initialPlaylistName as string : '');
   const [isSaving, setIsSaving] = useState(false);
   const [playlistSaved, setPlaylistSaved] = useState(false);
   const { updateLoading, updateError, updatePlaylist } = useUpdatePlaylist();
@@ -215,7 +216,7 @@ export default function Swiping() {
     }, [fetchRecommendations])
   );
 
-  const isAddingMode = mode === 'add' && newPlaylist.id;
+  const isAddingMode = (mode === 'add' && newPlaylist.id) || isPartyMode;
   
   const position = useRef(new Animated.ValueXY()).current;
   const cardOpacity = useRef(new Animated.Value(1)).current;
@@ -478,9 +479,9 @@ export default function Swiping() {
     setIsSaving(true);
     try {
       const allSongs = [...seedSongs, ...addedSongs];
-      console.log("Updating playlist ", newPlaylist.id, ", new name : '", playlistName,"' , added songs : ", allSongs);
-      if (isAddingMode) await updatePlaylist(newPlaylist.id, allSongs, newPlaylist.name);
-      else await updatePlaylist(newPlaylist.id, allSongs, playlistName);
+      const finalPlaylistName = isPartyMode && playlistName ? playlistName : (isAddingMode ? newPlaylist.name : playlistName);
+      console.log("Updating playlist ", newPlaylist.id, ", new name : '", finalPlaylistName,"' , added songs : ", allSongs);
+      await updatePlaylist(newPlaylist.id, allSongs, finalPlaylistName);
 
       setPlaylistSaved(true);
       
@@ -604,10 +605,10 @@ export default function Swiping() {
                 keyboardShouldPersistTaps="handled"
               >
                 <Text style={styles.confirmationTitle}>
-                  {isAddingMode ? 'Add Songs to Playlist' : 'Create Your Playlist'}
+                  {(isAddingMode || isPartyMode) ? 'Add Songs to Playlist' : 'Create Your Playlist'}
                 </Text>
                 <Text style={styles.confirmationSubtitle}>
-                  {isAddingMode 
+                  {isAddingMode || isPartyMode
                     ? playlistName 
                       ? `You liked ${liked.length} song${liked.length !== 1 ? 's' : ''} to add to "${playlistName}"`
                       : `You liked ${liked.length} song${liked.length !== 1 ? 's' : ''} to add to this playlist`
@@ -615,7 +616,7 @@ export default function Swiping() {
                   }
                 </Text>
                 
-                {!isAddingMode && (
+                {!isAddingMode && !isPartyMode && (
                   <View style={styles.nameInputContainer}>
                     <Text style={styles.inputLabel}>Playlist Name</Text>
                     <TextInput
@@ -626,6 +627,12 @@ export default function Swiping() {
                       onChangeText={setPlaylistName}
                       autoFocus
                     />
+                  </View>
+                )}
+                {isPartyMode && playlistName && (
+                  <View style={styles.nameInputContainer}>
+                    <Text style={styles.inputLabel}>Playlist Name</Text>
+                    <Text style={[styles.nameInput, { color: '#000', paddingVertical: 12 }]}>{playlistName}</Text>
                   </View>
                 )}
 
@@ -658,9 +665,9 @@ export default function Swiping() {
 
               <View style={styles.confirmationButtons}>
                 <AppButton
-                  title={isAddingMode ? "Add Songs" : "Save Playlist"}
+                  title={(isAddingMode || isPartyMode) ? "Add Songs" : "Save Playlist"}
                   onPress={handleSavePlaylist}
-                  disabled={(!isAddingMode && !playlistName.trim()) || isSaving}
+                  disabled={(!isAddingMode && !isPartyMode && !playlistName.trim()) || isSaving}
                   backgroundColor="#F28695"
                   textColor="#FFFFFF"
                 />
@@ -671,7 +678,7 @@ export default function Swiping() {
           {finished && playlistSaved && (
             <View style={styles.done}>
               <Text style={styles.doneTitle}>
-                {isAddingMode ? 'Songs Added! 🎉' : 'Playlist Saved! 🎉'}
+                {(isAddingMode || isPartyMode) ? 'Songs Added! 🎉' : 'Playlist Saved! 🎉'}
               </Text>
               <Text style={styles.doneSub}>{playlistName}</Text>
               <View style={styles.doneButtons}>
