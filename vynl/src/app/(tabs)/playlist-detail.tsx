@@ -5,24 +5,84 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppButton from '@/src/components/AppButton';
 import SpotifyExportModal from '@/src/components/SpotifyExportModal';
 import { ITunesPlaylist } from '@/src/types';
 import { usePlaylistWithID } from '@/src/hooks/use-playlist-with-id';
 
+const PARTY_CODE_STORAGE_KEY = '@vynl:partyCode';
+
 export default function PlaylistDetailScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const playlistId = params.id as string;
-  const partyCode = params.partyCode as string | undefined;
+  const partyCodeFromParams = params.partyCode as string | undefined;
   
   const [showExportModal, setShowExportModal] = useState(false);
+  const [partyCode, setPartyCode] = useState<string | undefined>(partyCodeFromParams);
   const { playlist, loading, error, refetch } = usePlaylistWithID(playlistId);
+
+  // Load party code from storage when component mounts or playlist changes
+  useEffect(() => {
+    const loadPartyCode = async () => {
+      try {
+        const storedPartyData = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+        if (storedPartyData) {
+          const partyData = JSON.parse(storedPartyData);
+          // Check if there's an active party for this playlist
+          if (partyData.playlistId === playlistId && partyData.partyCode) {
+            setPartyCode(partyData.partyCode);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading party code:', error);
+      }
+    };
+
+    // If party code comes from params, save it to storage
+    if (partyCodeFromParams) {
+      const savePartyCode = async () => {
+        try {
+          await AsyncStorage.setItem(PARTY_CODE_STORAGE_KEY, JSON.stringify({
+            playlistId: playlistId,
+            partyCode: partyCodeFromParams
+          }));
+          setPartyCode(partyCodeFromParams);
+        } catch (error) {
+          console.error('Error saving party code:', error);
+        }
+      };
+      savePartyCode();
+    } else {
+      // Otherwise, try to load from storage
+      loadPartyCode();
+    }
+  }, [playlistId, partyCodeFromParams]);
 
   useFocusEffect(
     useCallback(() => {
       refetch();
-    }, [refetch])
+      // Reload party code when screen comes into focus
+      const loadPartyCode = async () => {
+        try {
+          const storedPartyData = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+          if (storedPartyData) {
+            const partyData = JSON.parse(storedPartyData);
+            if (partyData.playlistId === playlistId && partyData.partyCode) {
+              setPartyCode(partyData.partyCode);
+            } else {
+              setPartyCode(undefined);
+            }
+          } else {
+            setPartyCode(undefined);
+          }
+        } catch (error) {
+          console.error('Error loading party code:', error);
+        }
+      };
+      loadPartyCode();
+    }, [refetch, playlistId])
   );
 
 
@@ -139,7 +199,7 @@ export default function PlaylistDetailScreen() {
             {!partyCode && (
               <TouchableOpacity 
                 onPress={() => router.push({
-                  pathname: '/(tabs)/HostParty',
+                  pathname: '../HostParty',
                   params: { playlistId: playlist.id.toString() }
                 })} 
                 style={styles.hostPartyButton}
@@ -158,12 +218,19 @@ export default function PlaylistDetailScreen() {
             <View style={styles.partyCodeHeader}>
               <Text style={styles.partyCodeLabel}>Party Code</Text>
               <TouchableOpacity 
-                onPress={() => {
-                  // Navigate back to playlist detail without party code to end party
-                  router.push({
-                    pathname: '/(tabs)/playlist-detail',
-                    params: { id: playlist.id.toString() }
-                  });
+                onPress={async () => {
+                  // Clear party code from storage and state
+                  try {
+                    await AsyncStorage.removeItem(PARTY_CODE_STORAGE_KEY);
+                    setPartyCode(undefined);
+                    // Navigate back to playlist detail without party code
+                    router.push({
+                      pathname: '/(tabs)/playlist-detail',
+                      params: { id: playlist.id.toString() }
+                    });
+                  } catch (error) {
+                    console.error('Error ending party:', error);
+                  }
                 }}
                 style={styles.endPartyButton}
               >
@@ -181,12 +248,19 @@ export default function PlaylistDetailScreen() {
               Share this code with friends to join your party
             </Text>
             <TouchableOpacity 
-              onPress={() => {
-                // Navigate back to playlist detail without party code to end party
-                router.push({
-                  pathname: '/(tabs)/playlist-detail',
-                  params: { id: playlist.id.toString() }
-                });
+              onPress={async () => {
+                // Clear party code from storage and state
+                try {
+                  await AsyncStorage.removeItem(PARTY_CODE_STORAGE_KEY);
+                  setPartyCode(undefined);
+                  // Navigate back to playlist detail without party code
+                  router.push({
+                    pathname: '/(tabs)/playlist-detail',
+                    params: { id: playlist.id.toString() }
+                  });
+                } catch (error) {
+                  console.error('Error ending party:', error);
+                }
               }}
               style={styles.endPartyTextButton}
             >

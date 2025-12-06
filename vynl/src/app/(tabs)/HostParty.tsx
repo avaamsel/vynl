@@ -6,11 +6,14 @@ import { useFonts } from 'expo-font';
 import { Poppins_400Regular } from '@expo-google-fonts/poppins';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCreatePlaylist } from '@/src/hooks/use-create-playlist';
 import { useAuth } from '@/src/context/auth-context';
 import { supabase } from '@/src/utils/supabase';
 import { ITunesSong } from '@/src/types';
 import { usePlaylistWithID } from '@/src/hooks/use-playlist-with-id';
+
+const PARTY_CODE_STORAGE_KEY = '@vynl:partyCode';
 
 // Image assets
 const imgBackground = require('@/assets/images/background.png');
@@ -48,6 +51,16 @@ export default function HostPartyScreen() {
 
     // If we have a playlist ID, use the existing playlist
     if (playlistId && playlist) {
+      // Save party code to storage
+      try {
+        await AsyncStorage.setItem(PARTY_CODE_STORAGE_KEY, JSON.stringify({
+          playlistId: playlist.id.toString(),
+          partyCode: partyCode
+        }));
+      } catch (error) {
+        console.error('Error saving party code:', error);
+      }
+      
       // Navigate back to playlist detail with party code
       router.push({
         pathname: '/(tabs)/playlist-detail',
@@ -190,7 +203,7 @@ export default function HostPartyScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={handleCreateParty}
-              disabled={isCreating || authLoading || (playlistId && !playlist)}
+              disabled={isCreating || authLoading || (playlistId ? !playlist : false)}
             >
               <LinearGradient
                 colors={!isCreating && !authLoading && (!playlistId || playlist) ? ['#FF6B9D', '#FF8C42'] : ['#CCCCCC', '#CCCCCC']}
