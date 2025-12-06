@@ -1,8 +1,8 @@
   
-**Version:** 1.0 (Beta Release)  
-**Contributors:** Vicky Liu, Louis Bernard, Aliyah Mcreae
+**Version:** 2.0 (Final Release)  
+**Contributors:** Vicky Liu, Louis Bernard, Aliyah Mcreae, Ava Nunes
 
-(Last Updated Tues, Nov 11, 2025\)
+(Last Updated Friday, December 5, 2025\)
 
 # 🎧 Vynl Developer Guide:
 This document provides full instructions for setting up the development environment, understanding repository organization, building the software, and contributing safely and effectively.
@@ -32,31 +32,40 @@ vynl/                                  # Project root
 ├── .expo/                             # Expo-managed metadata and caches (do not edit manually)
 ├── .github/                           # GitHub-specific configurations
 │   └── workflows/                     # Vynl's CI/CD workflows
+│
 ├── docs/                              # Documentation files
 ├── node_modules/                      # Installed dependencies managed by npm
-│
 ├── vynl/                              # Primary application source    
 │   ├── __tests__/                     # Unit and integration tests, organized by feature
 │   │   └── utils/                     # Shared test utilities
+│   │
 │   ├── assets/
 │   │   ├── images/                    # Application images and icons
 │   │   └── fonts/                     # Application fonts
+│   │
 │   ├── scripts/                       # Local automation scripts and developer utilities
 │   ├── src/               
 │   │   ├── app/                       # Screens and routing using Expo router
 │   │   │   └──  (tabs)/               # Tab-based navigation screens
+│   │   │ 
 │   │   ├── components/    
 │   │   │   └── ui/                    # Reusable UI components
+│   │   │ 
 │   │   ├── constants/                 # Shared constants such as colors, spacing, route names
 │   │   ├── hooks/                     # Custom React hooks and client-side logic
 │   │   ├── server/                    # Backend related utilities
 │   │   │   └── song-recommendation/   # Song recommendation logic
+│   │   │ 
 │   │   ├── services                   
 │   │   │   └── music-providers/       # External integration of music providers
+│   │   │ 
 │   │   ├── types/                    
 │   │   │   └── database/              # Database type definitions and interfaces
+│   │   │
 │   │   └── utils/                     # Helper funtions and utilities 
+│   │
 │   └── supabase/                      # Supabase configuration and backend setup
+│
 └── App.js                             # Root entry that forwards to the app under ./vynl
 ```
 
@@ -123,7 +132,22 @@ This installs dependencies for the project and the app
 > Note: To obtain the ``.env`` file, send an email to Zack (Backend engineer) requesting access: zcrouse@uw.edu
 
 Once you have it, insert the file in same subfolder as the ``.env.example`` located in the inner ``./vynl`` folder.
+Your ``.env`` should have a structure like this:
+```
+EXPO_PUBLIC_SUPABASE_URL=''
+EXPO_PUBLIC_SUPABASE_KEY=''
+EXPO_PRIVATE_SUPABASE_KEY=''
 
+EXPO_PUBLIC_SPOTIFY_CLIENT_ID=''
+EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET=''
+EXPO_PUBLIC_API_URL=''
+
+LASTFM_API_KEY=''
+
+EXPO_PUBLIC_YOUTUBE_CLIENT_ID=''
+
+EXPO_PUBLIC_OWNER=''
+```
 
 ### **3.4 Development build and run**
 

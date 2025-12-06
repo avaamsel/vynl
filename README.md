@@ -7,35 +7,61 @@ Vynl allows users to quickly assemble vibe-consistent platform-neutral playlists
 
 ### major features:
 * Tinder style swiping
-* Playlist exporting to various music streaming platforms (work in progress)
+* Playlist exporting to Spotify and YouTube Music
 * Song "matching" and recommendation algorithm
 * Saving playlists in app
+* Concurrent, multi-user "party mode" playlist creation
 * _Stretch:_ adding friends and seeing their build playlists
-
-### current vynl status (updated for 11/04 demo release) :
-At the time of our demo release, Vynl is has a functional log in, where a user can log in or sign up and see any previously saved playlists they may have created. Vynl also has the "select songs" ability implemented where the user selects two songs that they want the playlist they're creating to be inspired by, as well as the animated left and right swiping features completed. When a user has gone through the 10 songs presented to them they can view their created playlist.
 
 ## repository layout
 ```
-vynl/                  # Project root
-├── .expo/             # Expo-managed metadata and caches(do not edit manually)
-├── node_modules/      # Installed dependencies managed by npm
-├── vynl/              # Primary application source    
-│   └── app/           # Screens adn routing using Expo router
-│   └── assets/
-│       └──images/     # Application images and icons
-|       └──fonts/      # Application fonts
-│   └── components/    # Resuable UI components
-│   └── constants/     # Shared constants such as colors, spacing, route names
-│   └── hooks/         # Custom React hooks and client-side logic
-│   └── scripts/       # Local automation scripts and developer utilities
-└── App.js             # Root entry that forwards to the app under ./vynl
+vynl/                                  # Project root
+├── .expo/                             # Expo-managed metadata and caches (do not edit manually)
+├── .github/                           # GitHub-specific configurations
+│   └── workflows/                     # Vynl's CI/CD workflows
+│
+├── docs/                              # Documentation files
+├── node_modules/                      # Installed dependencies managed by npm
+├── vynl/                              # Primary application source    
+│   ├── __tests__/                     # Unit and integration tests, organized by feature
+│   │   └── utils/                     # Shared test utilities
+│   │
+│   ├── assets/
+│   │   ├── images/                    # Application images and icons
+│   │   └── fonts/                     # Application fonts
+│   │
+│   ├── scripts/                       # Local automation scripts and developer utilities
+│   ├── src/               
+│   │   ├── app/                       # Screens and routing using Expo router
+│   │   │   └──  (tabs)/               # Tab-based navigation screens
+│   │   │ 
+│   │   ├── components/    
+│   │   │   └── ui/                    # Reusable UI components
+│   │   │ 
+│   │   ├── constants/                 # Shared constants such as colors, spacing, route names
+│   │   ├── hooks/                     # Custom React hooks and client-side logic
+│   │   ├── server/                    # Backend related utilities
+│   │   │   └── song-recommendation/   # Song recommendation logic
+│   │   │ 
+│   │   ├── services                   
+│   │   │   └── music-providers/       # External integration of music providers
+│   │   │ 
+│   │   ├── types/                    
+│   │   │   └── database/              # Database type definitions and interfaces
+│   │   │
+│   │   └── utils/                     # Helper funtions and utilities 
+│   │
+│   └── supabase/                      # Supabase configuration and backend setup
+│
+└── App.js                             # Root entry that forwards to the app under ./vynl
 ```
 
 ## important links:
-[vynl's living document](https://docs.google.com/document/d/1faT3a1d0nOTIH54GvlgVz1ZsnCDJu_9Clpa1UxbFFoE/edit?usp=sharing)
+* **[vynl's living document:](https://docs.google.com/document/d/1faT3a1d0nOTIH54GvlgVz1ZsnCDJu_9Clpa1UxbFFoE/edit?usp=sharing)** contains information on vynl's ideation, development timeline, technical description, and functional and non-functional requirements 
+* **[vynl's developer guide:](/developer-guide.md)** instructions on setting up vynl's development environment, understanding the repository layout, and building the software
+* **[vynl's user guide:](/coding-guidelines.md)** instruction on installing, running, and using the vynl mobile application
 
-## how to build the system
+<!-- ## how to build the system
 Vynl uses Expo and npm for development builds
 
 * Node.js 18 or newer  
@@ -98,6 +124,6 @@ Tip: Run with \--clear to reset cache if you encounter issues:
 
 ```bash
 npx expo start \--clear
-```
+``` -->
 
 ### _happy swiping!_
