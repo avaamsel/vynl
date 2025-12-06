@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Feather, FontAwesome } from '@expo/vector-icons';
-import { SafeAreaView, View, Text, StyleSheet, Dimensions, Animated, PanResponder, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, Dimensions, Animated, PanResponder, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
@@ -185,17 +185,16 @@ export default function Swiping() {
       });
 
       if (!res.ok) {
-        const text = await res.text();
-        console.error(`Failed to fetch similar songs. Status: ${res.status} ${res.statusText}`);
-        console.error('Error response:', text);
-        
-        // Try to parse as JSON for more detailed error info
-        try {
-          const errorJson = JSON.parse(text);
-          console.error('Parsed error:', errorJson);
-        } catch {
-          // Not JSON, use text as is
-        }
+        Alert.alert(
+          "No recommendations found",
+          "Please try with other songs"
+        );
+        await clearSession();
+        setActive(false);
+        await stopAll();
+        resetState();
+        router.push('/');
+        //TODO : delete the playlist
         return;
       }
 
