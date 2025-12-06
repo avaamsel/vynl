@@ -98,12 +98,11 @@ EXPO_PUBLIC_OWNER=''
 ```
 
 
-## **3\. How to build and run the software**
+## **3\. How to Run the software**
 
 Vynl uses Expo and npm for development builds
 
 Download [Expo Go](https://apps.apple.com/us/app/expo-go/id982107779) from the App Store or Google Play.
-
 
 >Note: Expo Go  supports the latest version automatically
 After all prerequisites have been installed and set up, you can start the application locally using the Expo development server.
@@ -140,8 +139,8 @@ npx expo start \--clear
 
 1. **Open the App:** Launch the Music Playlist App on your device.
 2. **Sign In or Create an Account:** Save your preferences and playlists by creating a profile.
-3. **There are 4 tabs on the bottom: Home, Playlists, and Profile**
-4. **You are now at the Home page:** From here you can view your music stats and create a new playlist
+3. **There are 3 tabs on the bottom: Home, Playlists, and Profile**
+4. **You are now at the Home page:** From here you can create a new playlist
 5. **Create New Playlist:** Choose songs you like to help the app learn your taste.
 
 
@@ -198,7 +197,7 @@ Your music taste changes — and your playlists can too\! The **Modify Playlist*
 
 Your playlist will instantly update with your new additions.
 
-### Export Playlists (Work in Progress)
+### Export Playlists
 
 After creating a playlist, you are able to export it to Spotify\!
 

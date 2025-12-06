@@ -93,6 +93,7 @@ Vynl uses Expo and npm for development builds
 | **npm** | 9+ | Package manager |
 | **Expo CLI** | 6+ | Cross-platform framework for React Native |
 | **Git** | 2.40+ | Version control |
+| **Jest** | — | For mobile testing |
 | **Supabase Account** | — | Backend database & authentication (logging in and signing up) |
 | **iTunes API** | — | API access for searching songs and sound previews |
 | **Last.fm** | — | API access for music data and export |
@@ -173,11 +174,14 @@ npx expo start --tunnel
 ```
 
 ## 4\. 🧑‍💻 How to test the software:
+### 4.1 Installing Jest:
 
-1. Make sure you have the required dev dependencies for Jest:  
-   1. If not, run: ``npx expo install jest-expo jest @types/jest \--dev``
-   2. Also make sure to run: ``npx expo install @testing-library/react-native \--dev`` 
-2. Run ``npx run test`` to see the test results within the terminal – make sure this is done within the Vynl directory and not the root\!
+Make sure you have the required dev dependencies for Jest:  
+  1. If not, run: ``npx expo install jest-expo jest @types/jest \--dev``
+  2. Also make sure to run: ``npx expo install @testing-library/react-native \--dev`` 
+
+### 4.2 Running Tests:
+  Run ``npx run test`` to see the test results within the terminal – make sure this is done within the Vynl directory and not the root\!
 
 To see code coverage reports, run ``npx run test`` within the code’s root directory and a table displaying coverage percentages should appear in the terminal that can be filtered by failed tests, etc 
 
@@ -185,9 +189,7 @@ For more examples for testing, especially regarding APIs, check out: [https://ca
 
 ## 5\. ✍️ How to add new tests:
 
-1. Make sure you have the required dev dependencies for Jest:  
-   1. If not, run: ``npx expo install jest-expo jest @types/jest \--dev``  
-   2. Also make sure to run: ``npx expo install @testing-library/react-native \--dev``  
+1. Make sure you have the required dev dependencies for Jest, if not, reference step 4.1 for installation!
 2. Most of the unit tests created will fall under the “\_\_tests\_\_” folder in the project root directory, within that folder names for tests will follow this naming convention: ``FileBeingTested-test.tsx``  
    1. Within testing files, include: ``import { render } from '@testing-library/react-native';`` as well as the import for the file being imported: ``import HomeScreen from '@/app/index';``  
 3. \_\_tests\_\_ files can be added to test directories other than just the root, ex. within ``utils``
