@@ -30,7 +30,7 @@ export async function GET(req: Request) {
                     .eq('uid', uid));
             } else {
                 ({ data, error } = await supabase
-                    .from('party_user')
+                    .from('party_users')
                     .select(`
                         playlist_id,
                         playlists (*)`
