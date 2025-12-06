@@ -20,9 +20,10 @@ export async function PUT(req: Request, { code }: Record<string, string>) {
             });
         }
 
+        console.log("Code : ", code);
         const { data: playlist_id, error: p_err } = await supabase
-            .rpc('get_party_id', {
-                party_code: code
+            .rpc('get_party_id_duplicate', {
+                input_code: code
             });
 
         if (p_err || !playlist_id) {
@@ -39,12 +40,14 @@ export async function PUT(req: Request, { code }: Record<string, string>) {
         //     });
         // }
 
+        console.log("Playlist id : ", playlist_id)
+
         const { data: link_data, error: link_err } = await supabase
             .from('party_users')
             .insert({ 'playlist_id': playlist_id });
 
         if (link_err) {
-            console.log(link_err);
+            console.log("link error", link_err);
             return new Response("Error linking playlist", {
                 status: 400,
                 headers: { 'Content-Type': 'text/html' }
