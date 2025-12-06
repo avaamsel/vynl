@@ -50,21 +50,22 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             });
         }
 
-        // Add or update new playlist songs
-        const new_song_ids = new Set<number>();
-        let new_playlist_songs: playlist_song[] = [];
+        // Get list of song ids
+        const new_song_ids = new Array();
+        const song_id_set = new Set();
         for (let i = 0; i < songList.length; i++) {
-            new_song_ids.add(songList[i].song_id);
-            new_playlist_songs.push({
-                playlist_id: old_playlist.id,
-                song_id: songList[i].song_id,
-                position: i + old_playlist.songs.length
-            });
+            if (song_id_set.has(songList[i].song_id)) {
+                // Song was a duplicate, so skip from adding it to list
+                continue;
+            }
+            new_song_ids.push(songList[i].song_id);
+            song_id_set.add(songList[i].song_id);
         }
         const { data: nps_data, error: nps_err } = await supabase
-            .from('playlists_songs')
-            .upsert(new_playlist_songs)
-            .select()
+            .rpc('add_songs_to_playlist', {
+                p_playlist_id: old_playlist.id,
+                p_song_ids: new_song_ids
+            });
 
         if (nps_err) {
             console.log("Failed to insert into database : ", nps_err);
@@ -73,9 +74,9 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             });
         }
 
-        return new Response(JSON.stringify(old_playlist), {
+        return new Response('OK', {
             status: 200,
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'text/html' }
         });
     } catch (error) {
         console.error(error);
