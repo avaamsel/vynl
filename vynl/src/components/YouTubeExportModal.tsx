@@ -180,11 +180,11 @@ export default function YouTubeExportModal({
       onSuccess?.(result.playlistUrl);
 
       Alert.alert(
-        'Exported to YouTube Music',
-        `Found ${result.tracksFound} of ${result.tracksTotal} tracks`,
+        'Success!',
+        `Playlist exported to YouTube Music!\n\nFound ${result.tracksFound} out of ${result.tracksTotal} tracks.`,
         [
           {
-            text: 'Open Playlist',
+            text: 'Open in YouTube Music',
             onPress: () => {
               if (Platform.OS === 'web') {
                 if (typeof window !== 'undefined') {
@@ -195,7 +195,7 @@ export default function YouTubeExportModal({
               }
             },
           },
-          { text: 'Close', onPress: onClose },
+          { text: 'OK', onPress: onClose },
         ]
       );
     } catch (error: any) {
