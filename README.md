@@ -13,6 +13,12 @@ Vynl allows users to quickly assemble vibe-consistent platform-neutral playlists
 * Concurrent, multi-user "party mode" playlist creation
 * _Stretch:_ adding friends and seeing their build playlists
 
+## important links:
+* **[vynl's living document:](https://docs.google.com/document/d/1faT3a1d0nOTIH54GvlgVz1ZsnCDJu_9Clpa1UxbFFoE/edit?usp=sharing)** contains information on vynl's ideation, development timeline, technical description, and functional and non-functional requirements 
+* **[vynl's developer guide:](/docs/developer-guide.md)** instructions on setting up vynl's development environment, understanding the repository layout, and building the software
+* **[vynl's user guide:](/docs/coding-guidelines.md)** instruction on installing, running, and using the vynl mobile application
+* **[vynl's api endpoints:](/docs/api_endpoints.md)** contains information on the APIs that are utilized in the Vynl app
+
 ## repository layout
 ```
 vynl/                                  # Project root
@@ -49,17 +55,11 @@ vynl/                                  # Project root
 │   │   ├── types/                    
 │   │   │   └── database/              # Database type definitions and interfaces
 │   │   │
-│   │   └── utils/                     # Helper funtions and utilities 
+│   │   └── utils/                     # Helper functions and utilities 
 │   │
 │   └── supabase/                      # Supabase configuration and backend setup
 │
 └── App.js                             # Root entry that forwards to the app under ./vynl
 ```
-
-## important links:
-* **[vynl's living document:](https://docs.google.com/document/d/1faT3a1d0nOTIH54GvlgVz1ZsnCDJu_9Clpa1UxbFFoE/edit?usp=sharing)** contains information on vynl's ideation, development timeline, technical description, and functional and non-functional requirements 
-* **[vynl's developer guide:](/docs/developer-guide.md)** instructions on setting up vynl's development environment, understanding the repository layout, and building the software
-* **[vynl's user guide:](/docs/coding-guidelines.md)** instruction on installing, running, and using the vynl mobile application
-* **[vynl's api endpoints:](/docs/api_endpoints.md)** describes the APIs that are utilized in Vynl
 
 ### _happy swiping!_
