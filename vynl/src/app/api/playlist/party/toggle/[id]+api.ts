@@ -17,6 +17,7 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
         return new Response("Missing playlist ID", { status: 400 });
     }
     try {
+        console.log("PUT");
         const playlist_id = parseInt(id);
 
         if (Number.isNaN(playlist_id)) {
@@ -123,6 +124,12 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
                 .from('playlists')
                 .update({ in_party_mode: false })
                 .eq("playlist_id", playlist_id);
+            
+            if (p_err) {
+                return new Response("Failed to disable party mode", {
+                    status: 400
+                });
+            }
             
             return new Response(null, {
                 status: 200,
