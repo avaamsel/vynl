@@ -196,8 +196,8 @@ Your playlist will instantly update with your new additions.
 
 After creating a playlist, you are able to export it to Spotify\!
 
-## Profile Page
-The Profile page is your personal hub where you can view your account information, track your playlist activity.
+## Profile Page 👤
+The Profile page is your personal hub where you can view your account information and track your playlist activity.
 
 ### Accessing the Profile Page
 - Tap the **Profile** tab at the bottom right of the screen
