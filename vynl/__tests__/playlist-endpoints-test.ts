@@ -3,8 +3,11 @@ import { clearDatabase, createUser, deleteAllUsers } from "./utils/database";
 import { POST as POST_PLAYLIST, GET as GET_PLAYLISTS } from "@/src/app/api/playlist/+api";
 import { GET as GET_PLAYLIST, PUT as PUT_PLAYLIST} from "@/src/app/api/playlist/[id]+api";
 import { PUT as ADD_TO_PLAYLIST } from "@/src/app/api/playlist/add/[id]+api";
-import { isITunesPlaylist, ITunesPlaylist, ITunesSong } from "@/src/types";
+import { isITunesPlaylist } from "@/src/types";
 import { Session, User } from "@supabase/supabase-js";
+import { getPlaylist, addPlaylist, createAddReq } from "./utils/api";
+
+jest.setTimeout(10000);
 
 describe('Playlist Test', () => {
     const adminClient = createSupabaseAdminClient();
@@ -42,7 +45,7 @@ describe('Playlist Test', () => {
     });
 
     describe('Connected to Supabase', () => {
-        beforeEach(async () => {
+        afterEach(async () => {
             await clearDatabase(adminClient)
         });
 
@@ -104,7 +107,7 @@ describe('Playlist Test', () => {
     })
 
     describe("Endpoint: POST 'api/playlist'", () => {
-        beforeEach(async () => {
+        afterEach(async () => {
             await clearDatabase(adminClient);
         });
 
@@ -207,7 +210,7 @@ describe('Playlist Test', () => {
     });
 
     describe("Endpoint: GET 'api/playlist'", () => {
-        beforeEach(async () => {
+        afterEach(async () => {
             await clearDatabase(adminClient);
         });
 
@@ -334,7 +337,7 @@ describe('Playlist Test', () => {
     });
 
     describe("Endpoint: GET 'api/playlist/:id'", () => {
-        beforeEach(async () => {
+        afterEach(async () => {
             await clearDatabase(adminClient);
         });
 
@@ -632,7 +635,7 @@ describe('Playlist Test', () => {
     });
 
     describe("Endpoint: PUT 'api/playlist/add/:id'", () => {
-        beforeEach(async () => {
+        afterEach(async () => {
             await clearDatabase(adminClient);
         });
 
@@ -803,53 +806,3 @@ describe('Playlist Test', () => {
         })
     });
 });
-
-// Helper function to call the post playlist endpoint with playlist.
-async function addPlaylist(playlist: ITunesPlaylist, access_token: string): Promise<ITunesPlaylist> {
-    const req = new Request("localhost:1234/api/playlist", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${access_token}`,
-        },
-        body: JSON.stringify(playlist)
-    });
-    expect(req).not.toBeNull();
-
-    // Call post endpoint
-    const res = await POST_PLAYLIST(req);
-    const body = await res.json();
-    expect(isITunesPlaylist(body)).toBeTruthy();
-
-    return body;
-}
-
-// Helper function to call the get playlist by id enpoint with a given id.
-async function getPlaylist(id: Number, access_token: string): Promise<ITunesPlaylist> {
-    const req = new Request("localhost:1234/api/playlist/" + id, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${access_token}`,
-        }
-    });
-    expect(req).not.toBeNull();
-
-    const res = await GET_PLAYLIST(req, { id:id.toString() });
-    const body = await res.json();
-    expect(isITunesPlaylist(body)).toBeTruthy();
-    return body;
-}
-
-
-function createAddReq(id: Number, songs: ITunesSong[], access_token: string): Request {
-    const req = new Request("localhost:1234/api/playlist/add" + id, {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${access_token}`,
-        },
-        body: JSON.stringify({songs: songs})
-    });
-    return req;
-}
