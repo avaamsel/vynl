@@ -26,6 +26,7 @@ export async function PUT(req: Request, { code }: Record<string, string>) {
             });
 
         if (p_err || !playlist_id) {
+            console.log(p_err)
             return new Response("Playlist not found", {
                 status: 404,
                 headers: { 'Content-Type': 'text/html' }
