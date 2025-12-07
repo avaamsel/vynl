@@ -1,5 +1,5 @@
 **Version:** 2.0 (Final Release)  
-**Contributors:** Vicky Liu, Lillian Nguyen, Ava Nunes
+**Contributors:** Vicky Liu, Lillian Nguyen, Ava Nunes, Aliyah Mcrae
 **Status:** Work in Progress (Some features under development)
 
 (Last Updated Friday, December 5, 2025\)
@@ -195,6 +195,31 @@ Your playlist will instantly update with your new additions.
 ### Export Playlists
 
 After creating a playlist, you are able to export it to Spotify\!
+
+## Profile Page
+The Profile page is your personal hub where you can view your account information, track your playlist activity.
+
+### Accessing the Profile Page
+- Tap the **Profile** tab at the bottom right of the screen
+
+### Profile Overview
+- At the top of the page, you'll see your profile icon displayed in the vynl logo
+- Below that are two statistics cards showing:
+  - **Playlists Created**: Total number of playlists you've made
+  - **Party Playlists**: Number of collaborative playlists you've participated in
+- Both statistics display as numbers (e.g., "0" when you first start)
+
+### Account Information Section
+The profile displays your key account details in a clean, organized format:
+- **Email**: Your registered email address (e.g., "user@example.com")
+- **Member Since**: The date you joined Vynl (e.g., "Jan 2024")
+- This information is displayed in a light card with clear labels
+
+### Logging Out
+- To sign out of your account, tap the **Log Out** button at the bottom of the profile page
+- The button has a distinctive pink/coral gradient color that makes it easy to find
+- You'll be returned to the login screen after logging out
+- This is useful when you need to switch accounts or sign out for security
 
 ### Troubleshooting/FAQs
 
