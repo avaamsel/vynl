@@ -80,7 +80,7 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             });
         }
 
-        if (newName) {
+        if (old_playlist.name != newName) {
             // Updating playlist object in database
             const { data: p_data, error: p_err } = await supabase
                 .from('playlists')
@@ -91,6 +91,7 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
 
             if (p_err || !isPlaylistData(p_data)) {
                 console.log("p_data : ", p_err);
+                console.log("New name : ", newName, old_playlist.name);
                 return new Response('Failed to insert into database', {
                     status: 400
                 });

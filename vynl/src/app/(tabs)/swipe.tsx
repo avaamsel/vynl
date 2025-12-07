@@ -482,7 +482,6 @@ export default function Swiping() {
       );
 
       const allSongs = [...seedSongs, ...filteredAddedSongs];
-      console.log("Updating playlist ", newPlaylist.id, ", new name : '", playlistName,"' , added songs : ", allSongs);
       if (isAddingMode) await updatePlaylist(newPlaylist.id, allSongs, newPlaylist.name);
       else await updatePlaylist(newPlaylist.id, allSongs, playlistName);
 
