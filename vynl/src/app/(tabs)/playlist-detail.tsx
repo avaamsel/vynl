@@ -13,6 +13,7 @@ import { ITunesPlaylist } from '@/src/types';
 import { usePlaylistWithID } from '@/src/hooks/use-playlist-with-id';
 import { supabase } from '@/src/utils/supabase';
 import { useAuth } from '@/src/context/auth-context';
+import { useUser } from '@/src/hooks/use-user';
 
 const PARTY_CODE_STORAGE_KEY = '@vynl:partyCode';
 
@@ -27,6 +28,7 @@ export default function PlaylistDetailScreen() {
   const [partyCode, setPartyCode] = useState<string | undefined>(partyCodeFromParams);
   const [showYouTubeModal, setShowYouTubeModal] = useState(false);
   const { playlist, loading, error, refetch } = usePlaylistWithID(playlistId);
+  const { user, loading: userLoading } = useUser();
 
   // Load party code from storage when component mounts or playlist changes
   useEffect(() => {
@@ -184,9 +186,7 @@ export default function PlaylistDetailScreen() {
       return;
     }
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-    if (userError || !user) {
+    if (!user) {
       console.log("Unable to get user");
       return
     }
@@ -257,7 +257,7 @@ export default function PlaylistDetailScreen() {
             </Text>
           </View>
           <View style={styles.headerActions}>
-            {!partyCode ? (
+            {(playlist.user_id === user?.id) && (!partyCode ? (
               <TouchableOpacity 
                 onPress={() => router.push({
                   pathname: '../HostParty',
@@ -274,7 +274,7 @@ export default function PlaylistDetailScreen() {
               >
                 <Text style={styles.hostPartyButtonText}>STOP PARTY</Text>
               </TouchableOpacity>      
-            )}
+            ))}
             <TouchableOpacity onPress={handleDeletePlaylist} style={styles.deleteButton}>
               <Ionicons name="trash-outline" size={24} color="#F28695" />
             </TouchableOpacity>

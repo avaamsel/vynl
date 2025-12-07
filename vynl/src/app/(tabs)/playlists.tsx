@@ -169,12 +169,12 @@ export default function PlaylistsScreen() {
                   <View style={styles.playlistInfo}>
                     <View style={styles.playlistNameRow}>
                       <Text style={styles.playlistName} numberOfLines={1}>{p.name}</Text>
-                      {activePartyPlaylistIds.has(p.id) && (
+                      {/* {activePartyPlaylistIds.has(p.id) && (
                         <View style={styles.partyModeBadge}>
                           <Ionicons name="radio" size={12} color="#FF8C42" />
                           <Text style={styles.partyModeText}>Party Mode</Text>
                         </View>
-                      )}
+                      )} */}
                     </View>
                     <Text style={styles.playlistMeta}>
                       {(p.songs ?? []).length} song{(p.songs ?? []).length !== 1 ? 's' : ''} · {new Date(p.created_at).toLocaleDateString()}
