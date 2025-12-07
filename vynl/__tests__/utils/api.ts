@@ -9,11 +9,20 @@ import { isITunesPlaylist, ITunesPlaylist, ITunesSong } from "@/src/types";
 import { POST as POST_PLAYLIST, GET as GET_PLAYLISTS } from "@/src/app/api/playlist/+api";
 import { GET as GET_PLAYLIST, PUT as PUT_PLAYLIST} from "@/src/app/api/playlist/[id]+api";
 import { PUT as ADD_TO_PLAYLIST } from "@/src/app/api/playlist/add/[id]+api";
+import { PUT as LINK_PLAYLIST } from "@/src/app/api/playlist/party/link/[code]+api";
 import { PUT as TOGGLE_PLAYLIST } from "@/src/app/api/playlist/party/toggle/[id]+api";
 
 /*
 ----------------------- API Wrappers -----------------------
 */
+
+export async function getPlaylists(access_token: string, party: boolean = false, uid: string): Promise<ITunesPlaylist[]> {
+    const req = createGetAllReq(access_token, party, uid);
+    const res = await GET_PLAYLISTS(req);
+    
+    expect(res.ok).toBeTruthy();
+    return res.json();
+}
 
 // Helper function to call the post playlist endpoint with playlist.
 export async function addPlaylist(playlist: ITunesPlaylist, access_token: string): Promise<ITunesPlaylist> {
@@ -61,14 +70,39 @@ export async function togglePlaylist(id: number, enable: boolean, access_token: 
     if (enable) {
         expect(body).not.toBeNull();
     } else {
-        expect(body).toBe("");
+        expect(body).toBe("OK");
     }
     return body;
+}
+
+export async function linkPlaylist(code: string, access_token: string): Promise<string> {
+    const req = createLinkReq(code, access_token);
+    const res = await LINK_PLAYLIST(req, { code:code });
+
+    if (!res.ok) {
+        console.log(await res.text());
+    }
+    expect(res.ok).toBeTruthy();
+    // Should return id of playlist
+    return await res.text();
 }
 
 /*
 ----------------------- Request Creation -----------------------
 */
+
+export function createGetAllReq(access_token: string, party: boolean = false, uid?: string) {
+    const party_param = (party) ? "?party=true" : "";
+    const uid_param = (uid) ? "?uid=" + uid : "";
+    const req = new Request("localhost:1234/api/" + party_param + uid_param, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${access_token}`,
+        }
+    });
+    return req;
+}
 
 // Creates a request for the add song endpoint with the given values.
 export function createAddReq(id: number, songs: ITunesSong[], access_token: string): Request {
@@ -98,6 +132,17 @@ export function createToggleReq(id: number, enable: boolean, access_token: strin
 
 export function createLinkReq(code: string, access_token: string): Request {
     const req = new Request("localhost:1234/api/playlist/party/link/" + code, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${access_token}`,
+        }
+    });
+    return req;
+}
+
+export function createUnlinkReq(id: number, access_token: string): Request {
+    const req = new Request("localhost:1234/api/playlist/party/unlink/" + id.toString, {
         method: "PUT",
         headers: {
             "Content-Type": "application/json",

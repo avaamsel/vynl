@@ -2,16 +2,17 @@ import { createSupabaseAdminClient } from "@/src/server/supabase";
 import { clearDatabase, createRandomUser, createUser, deleteAllUsers } from "./utils/database";
 import { PUT as TOGGLE_PLAYLIST } from "@/src/app/api/playlist/party/toggle/[id]+api";
 import { PUT as LINK_PLAYLIST } from "@/src/app/api/playlist/party/link/[code]+api";
-import { isITunesPlaylist, ITunesPlaylist } from "@/src/types";
+import { PUT as UNLINK_PLAYLIST } from "@/src/app/api/playlist/party/unlink/[id]+api";
 import { Session, User } from "@supabase/supabase-js";
-import { getPlaylist, addPlaylist, createToggleReq, togglePlaylist, createLinkReq } from "./utils/api";
+import { getPlaylist, addPlaylist, createToggleReq, togglePlaylist, createLinkReq, linkPlaylist, createUnlinkReq } from "./utils/api";
 import { makeSeededRand } from "./utils/random";
 import { createRandomPlaylist } from "./utils/playlist";
-import { WebBrowserPresentationStyle } from "expo-web-browser";
+import { link } from "fs";
+import { ITunesPlaylist } from "@/src/types";
 
 jest.setTimeout(10000);
 
-describe('Playlist Test', () => {
+describe('Party Playlist Test', () => {
     const adminClient = createSupabaseAdminClient();
     
     // Shared user session and user data between all test
@@ -20,8 +21,8 @@ describe('Playlist Test', () => {
     let session: Session;
 
     // Shared list of users for testing party functionality
-    let party_user: User[] = [];
-    let party_session: Session[] = [];
+    let party_users: User[] = [];
+    let party_sessions: Session[] = [];
     let party_size = 5;
 
     // Shared seeded random number generator
@@ -47,8 +48,8 @@ describe('Playlist Test', () => {
 
         for (let i = 0; i < party_size; i++) {
             const user_data = await createRandomUser(rand);
-            party_user.push(user_data.user);
-            party_session.push(user_data.session);
+            party_users.push(user_data.user);
+            party_sessions.push(user_data.session);
         }
     });
 
@@ -221,31 +222,238 @@ describe('Playlist Test', () => {
             const party_code = await togglePlaylist(id, true, session.access_token);
 
             // Link party user 0 with playlist
-            const req = createLinkReq(party_code, party_session[0].access_token);
+            const req = createLinkReq(party_code, party_sessions[0].access_token);
             const res = await LINK_PLAYLIST(req, { code: party_code });
 
             if (!res.ok) {
                 console.log(await res.text());
             }
             expect(res.ok).toBeTruthy();
+            expect(parseInt(await res.text())).toBe(id);
 
             const { data, error } = await adminClient
                 .from('party_users')
                 .select()
                 .eq('playlist_id', id)
-                .eq('user_id', party_user[0].id)
+                .eq('user_id', party_users[0].id)
                 .single();
             
-            console.log(error);
             expect(error).toBeNull();
         });
+
+        test('Link many users to party', async () => {
+             // Set up party playlist
+            const playlist = createRandomPlaylist(rand, user.id, 5);
+            const { id } = await addPlaylist(playlist, session.access_token);
+            const party_code = await togglePlaylist(id, true, session.access_token);
+
+            for (let i = 0; i < Math.min(party_size, 3); i++) {
+                 // Link party user with playlist
+                const req = createLinkReq(party_code, party_sessions[i].access_token);
+                const res = await LINK_PLAYLIST(req, { code: party_code });
+
+                if (!res.ok) {
+                    console.log(await res.text());
+                }
+                expect(res.ok).toBeTruthy();
+                expect(parseInt(await res.text())).toBe(id);
+            }
+
+            const { data: party_data, error } = await adminClient
+                .from('party_users')
+                .select()
+                .eq('playlist_id', id);
+            
+            expect(error).toBeNull();
+            for (let i = 0; i < Math.min(party_size, 3); i++) {
+                let row = party_data?.find(r => r.user_id == party_users[i].id);
+
+                expect(row).toBeDefined();
+                expect(row).toEqual({ playlist_id: id, user_id: party_users[i].id});
+            }
+        });
+
+        test('Link user to already linked playlist', async () => {
+            // Set up party playlist
+            const playlist = createRandomPlaylist(rand, user.id, 5);
+            const { id } = await addPlaylist(playlist, session.access_token);
+            const party_code = await togglePlaylist(id, true, session.access_token);
+
+            // Link party user 0 with playlist
+            const link_id_1 = await linkPlaylist(party_code, party_sessions[0].access_token);
+            expect(parseInt(link_id_1)).toBe(id);
+
+            const { data: _, error: err1 } = await adminClient
+                .from('party_users')
+                .select()
+                .eq('playlist_id', id)
+                .eq('user_id', party_users[0].id)
+                .single();
+            
+            expect(err1).toBeNull();
+
+            // Link party user 0 with playlist again, expect no change
+            const link_id_2 = await linkPlaylist(party_code, party_sessions[0].access_token);
+            expect(parseInt(link_id_1)).toBe(id);
+
+            const { data:__, error: err2 } = await adminClient
+                .from('party_users')
+                .select()
+                .eq('playlist_id', id)
+                .eq('user_id', party_users[0].id)
+                .single();
+            
+            expect(err2).toBeNull();
+        });
+
+        test('Link to non-party playlist', async () => {
+            // Set up party playlist
+            const playlist = createRandomPlaylist(rand, user.id, 5);
+            const { id } = await addPlaylist(playlist, session.access_token);
+            const party_code = await togglePlaylist(id, true, session.access_token);
+            // Playlist is now not party mode anymore
+            await togglePlaylist(id, false, session.access_token);
+
+            // Link party user 0 with playlist
+            const req = createLinkReq(party_code, party_sessions[0].access_token);
+            const res = await LINK_PLAYLIST(req, { code: party_code });
+
+            expect(res.ok).not.toBeTruthy();
+            expect(parseInt(await res.text())).not.toBe(id);
+
+            const { data, error } = await adminClient
+                .from('party_users')
+                .select()
+                .eq('playlist_id', id)
+                .eq('user_id', party_users[0].id)
+                .single();
+            
+            expect(error).not.toBeNull();
+        })
     });
 
     describe("Endpoint: PUT 'api/playlist/party/unlink/:code", () => {
+        afterEach(async () => {
+            await clearDatabase(adminClient);
+        });
 
+        test('Unlink one user', async () => {
+            // Set up party playlist
+            const playlist = createRandomPlaylist(rand, user.id, 5);
+            const { id } = await addPlaylist(playlist, session.access_token);
+            const party_code = await togglePlaylist(id, true, session.access_token);
+
+            // Link party user 0 with playlist
+            await linkPlaylist(party_code, party_sessions[0].access_token);
+
+            // Unlink user
+            const req = createUnlinkReq(id, party_sessions[0].access_token);
+            const res = await UNLINK_PLAYLIST(req, { id: id.toString() });
+
+            expect(res.ok).toBeTruthy();
+
+            const { data, error } = await adminClient
+                .from('party_users')
+                .select()
+                .eq('playlist_id', id)
+                .eq('user_id', party_users[0].id);
+            
+            expect(error).toBeNull();
+            expect(data!.length).toBe(0);
+        });
+
+        test('Unlink non-linked user', async () => {
+            // Set up party playlist
+            const playlist = createRandomPlaylist(rand, user.id, 5);
+            const { id } = await addPlaylist(playlist, session.access_token);
+            const party_code = await togglePlaylist(id, true, session.access_token);
+
+            // Unlink user without ever linking them
+            const req = createUnlinkReq(id, party_sessions[0].access_token);
+            const res = await UNLINK_PLAYLIST(req, { id: id.toString() });
+
+            expect(res.ok).not.toBeTruthy();
+
+            const { data, error } = await adminClient
+                .from('party_users')
+                .select()
+                .eq('playlist_id', id)
+                .eq('user_id', party_users[0].id);
+            
+            expect(error).toBeNull();
+            expect(data!.length).toBe(0);
+        });
     });
 
-    describe("Endpoint: PUT 'api/playlist/party/link/:code", () => {
+    /*
+        The Follow are non-party endpoints being testing on party playlists
+    */
 
+    describe("Endpoint: GET 'api/playlist'", () => {
+        afterEach(async () => {
+            await clearDatabase(adminClient);
+        });
+
+        test('Get party playlists with mixed library', async () => {
+            const party_playlist = createRandomPlaylist(rand, user.id, 5);
+            const { id } = await addPlaylist(party_playlist, session.access_token);
+            const party_code = await togglePlaylist(id, true, session.access_token);
+
+            const playlists: ITunesPlaylist[] = [];
+            for (let i = 0; i < 3; i++) {
+                playlists.push(await addPlaylist(
+                    createRandomPlaylist(rand, party_users[0].id, 5), 
+                    party_sessions[0].access_token)
+                );
+            }
+        });
+
+        test('Get party playlist with party mode off', () => {
+
+        })
+
+        test('Get non-party playlist with mixed library', async () => {
+
+        });
+
+        test('Get all playlist with mixed library', async () => {
+
+        })
+    });
+
+    describe("Endpoint: GET 'api/playlist/:id'", () => {
+        afterEach(async () => {
+            await clearDatabase(adminClient);
+        });
+
+        test('Get party playlist', async () => {
+
+        });
+
+        test('Get party playlist with party mode off', async () => {
+
+        });
+
+        test('Get unlinked party playlist', async () => {
+
+        });
+    });
+
+    describe("Endpoint: PUT 'api/playlist/add/:id'", () => {
+        afterEach(async () => {
+            await clearDatabase(adminClient);
+        });
+
+        test('Add to party playlist', async () => {
+
+        });
+
+        test('Add to party playlist with party mode off', async () => {
+
+        });
+
+        test('Many add to party playlist', async () => {
+
+        })
     });
 });
