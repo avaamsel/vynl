@@ -3,11 +3,11 @@ import { clearDatabase, createRandomUser, createUser, deleteAllUsers } from "./u
 import { PUT as TOGGLE_PLAYLIST } from "@/src/app/api/playlist/party/toggle/[id]+api";
 import { PUT as LINK_PLAYLIST } from "@/src/app/api/playlist/party/link/[code]+api";
 import { PUT as UNLINK_PLAYLIST } from "@/src/app/api/playlist/party/unlink/[id]+api";
+import { GET as GET_PLAYLIST, PUT as PUT_PLAYLIST} from "@/src/app/api/playlist/[id]+api";
 import { Session, User } from "@supabase/supabase-js";
-import { getPlaylist, addPlaylist, createToggleReq, togglePlaylist, createLinkReq, linkPlaylist, createUnlinkReq } from "./utils/api";
+import { getPlaylist, addPlaylist, createToggleReq, togglePlaylist, createLinkReq, linkPlaylist, createUnlinkReq, getPlaylists, unlinkPlaylist, createGetReq } from "./utils/api";
 import { makeSeededRand } from "./utils/random";
-import { createRandomPlaylist } from "./utils/playlist";
-import { link } from "fs";
+import { createRandomPlaylist, testEqualPlaylist } from "./utils/playlist";
 import { ITunesPlaylist } from "@/src/types";
 
 jest.setTimeout(10000);
@@ -395,29 +395,118 @@ describe('Party Playlist Test', () => {
         });
 
         test('Get party playlists with mixed library', async () => {
-            const party_playlist = createRandomPlaylist(rand, user.id, 5);
+            const party_playlist = createRandomPlaylist(rand, user.id, 1);
             const { id } = await addPlaylist(party_playlist, session.access_token);
             const party_code = await togglePlaylist(id, true, session.access_token);
+            await linkPlaylist(party_code, party_sessions[0].access_token);
 
             const playlists: ITunesPlaylist[] = [];
             for (let i = 0; i < 3; i++) {
                 playlists.push(await addPlaylist(
-                    createRandomPlaylist(rand, party_users[0].id, 5), 
+                    createRandomPlaylist(rand, party_users[0].id, 2), 
                     party_sessions[0].access_token)
                 );
             }
+
+            // Get party playlists
+            const returned_playlists = await getPlaylists(party_sessions[0].access_token, true, party_users[0].id);
+
+            // Check it matches the one party we are in
+            expect(returned_playlists.length).toBe(1);
+            const r_playlist = returned_playlists[0];
+            expect(r_playlist.id).toBe(id);
+            testEqualPlaylist(r_playlist, party_playlist);
         });
 
-        test('Get party playlist with party mode off', () => {
+        test('Get party playlist with party mode off', async () => {
+            const party_playlist = createRandomPlaylist(rand, user.id, 1);
+            const { id } = await addPlaylist(party_playlist, session.access_token);
+            const party_code = await togglePlaylist(id, true, session.access_token);
+            await linkPlaylist(party_code, party_sessions[0].access_token);
+            await togglePlaylist(id, false, session.access_token);
 
+
+            const playlists: ITunesPlaylist[] = [];
+            for (let i = 0; i < 3; i++) {
+                playlists.push(await addPlaylist(
+                    createRandomPlaylist(rand, party_users[0].id, 2), 
+                    party_sessions[0].access_token)
+                );
+            }
+
+            // Get party playlists
+            const returned_playlists = await getPlaylists(party_sessions[0].access_token, true, party_users[0].id);
+
+            // Check it matches the one party we are in
+            expect(returned_playlists.length).toBe(1);
+            const r_playlist = returned_playlists[0];
+            expect(r_playlist.id).toBe(id);
+            testEqualPlaylist(r_playlist, party_playlist);
         })
 
         test('Get non-party playlist with mixed library', async () => {
+            const party_playlist = createRandomPlaylist(rand, user.id, 1);
+            const { id } = await addPlaylist(party_playlist, session.access_token);
+            const party_code = await togglePlaylist(id, true, session.access_token);
+            await linkPlaylist(party_code, party_sessions[0].access_token);
 
+            const playlists: ITunesPlaylist[] = [];
+            for (let i = 0; i < 3; i++) {
+                playlists.push(await addPlaylist(
+                    createRandomPlaylist(rand, party_users[0].id, 2), 
+                    party_sessions[0].access_token)
+                );
+            }
+
+            // Get party playlists
+            const returned_playlists = await getPlaylists(party_sessions[0].access_token, false, party_users[0].id);
+
+            // Check it matches the one party we are in
+            expect(returned_playlists.length).toBe(3);
+            for (let i = 0; i < 3; i++) {
+                let original_playlist = playlists[i];
+                let r_playlist = returned_playlists.find(
+                    pl => pl.id == original_playlist.id
+                )
+                
+                expect(r_playlist).toBeDefined();
+                testEqualPlaylist(original_playlist, r_playlist!);
+            }
         });
 
         test('Get all playlist with mixed library', async () => {
+            const party_playlist = createRandomPlaylist(rand, user.id, 1);
+            const { id } = await addPlaylist(party_playlist, session.access_token);
+            const party_code = await togglePlaylist(id, true, session.access_token);
+            await linkPlaylist(party_code, party_sessions[0].access_token);
 
+            const playlists: ITunesPlaylist[] = [];
+            for (let i = 0; i < 3; i++) {
+                playlists.push(await addPlaylist(
+                    createRandomPlaylist(rand, party_users[0].id, 2), 
+                    party_sessions[0].access_token)
+                );
+            }
+
+            // Get party playlists
+            const returned_playlists = await getPlaylists(party_sessions[0].access_token, false);
+
+            // Check it matches the one party we are in
+            expect(returned_playlists.length).toBe(4);
+            for (let i = 0; i < 3; i++) {
+                let original_playlist = playlists[i];
+                let r_playlist = returned_playlists.find(
+                    pl => pl.id == original_playlist.id
+                )
+                
+                expect(r_playlist).toBeDefined();
+                testEqualPlaylist(original_playlist, r_playlist!);
+            }
+            let r_playlist = returned_playlists.find(
+                pl => pl.id == id
+            )
+            expect(r_playlist).toBeDefined();
+            testEqualPlaylist(party_playlist, r_playlist!);
         })
     });
 
@@ -427,15 +516,39 @@ describe('Party Playlist Test', () => {
         });
 
         test('Get party playlist', async () => {
+            const party_playlist = createRandomPlaylist(rand, user.id, 1);
+            const { id } = await addPlaylist(party_playlist, session.access_token);
+            const party_code = await togglePlaylist(id, true, session.access_token);
+            await linkPlaylist(party_code, party_sessions[0].access_token);
 
+            const returned_playlists = await getPlaylist(id, party_sessions[0].access_token);
+            testEqualPlaylist(party_playlist, returned_playlists);
         });
 
         test('Get party playlist with party mode off', async () => {
+            const party_playlist = createRandomPlaylist(rand, user.id, 1);
+            const { id } = await addPlaylist(party_playlist, session.access_token);
+            const party_code = await togglePlaylist(id, true, session.access_token);
+            await linkPlaylist(party_code, party_sessions[0].access_token);
 
+            // Turn party mode off
+            await togglePlaylist(id, false, session.access_token);
+
+            const returned_playlists = await getPlaylist(id, party_sessions[0].access_token);
+            testEqualPlaylist(party_playlist, returned_playlists);
         });
 
         test('Get unlinked party playlist', async () => {
+            const party_playlist = createRandomPlaylist(rand, user.id, 1);
+            const { id } = await addPlaylist(party_playlist, session.access_token);
+            const party_code = await togglePlaylist(id, true, session.access_token);
+            await linkPlaylist(party_code, party_sessions[0].access_token);
+            await unlinkPlaylist(id, party_sessions[0].access_token);
 
+            const req = createGetReq(id, party_sessions[0].access_token);
+            const res = await GET_PLAYLIST(req, { id: id.toString()});
+
+            expect(res.ok).not.toBeTruthy();
         });
     });
 

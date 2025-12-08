@@ -11,12 +11,13 @@ import { GET as GET_PLAYLIST, PUT as PUT_PLAYLIST} from "@/src/app/api/playlist/
 import { PUT as ADD_TO_PLAYLIST } from "@/src/app/api/playlist/add/[id]+api";
 import { PUT as LINK_PLAYLIST } from "@/src/app/api/playlist/party/link/[code]+api";
 import { PUT as TOGGLE_PLAYLIST } from "@/src/app/api/playlist/party/toggle/[id]+api";
+import { PUT as UNLINK_PLAYLIST } from "@/src/app/api/playlist/party/unlink/[id]+api";
 
 /*
 ----------------------- API Wrappers -----------------------
 */
 
-export async function getPlaylists(access_token: string, party: boolean = false, uid: string): Promise<ITunesPlaylist[]> {
+export async function getPlaylists(access_token: string, party: boolean = false, uid?: string): Promise<ITunesPlaylist[]> {
     const req = createGetAllReq(access_token, party, uid);
     const res = await GET_PLAYLISTS(req);
     
@@ -87,14 +88,26 @@ export async function linkPlaylist(code: string, access_token: string): Promise<
     return await res.text();
 }
 
+export async function unlinkPlaylist(id: number, access_token: string) {
+    const req = createUnlinkReq(id, access_token);
+    const res = await UNLINK_PLAYLIST(req, { id: id.toString() });
+
+    if (!res.ok) {
+        console.log(await res.text());
+    }
+    expect(res.ok).toBeTruthy();
+}
+
 /*
 ----------------------- Request Creation -----------------------
 */
 
 export function createGetAllReq(access_token: string, party: boolean = false, uid?: string) {
-    const party_param = (party) ? "?party=true" : "";
-    const uid_param = (uid) ? "?uid=" + uid : "";
-    const req = new Request("localhost:1234/api/" + party_param + uid_param, {
+    const start = (party || uid) ? "?" : "";
+    const party_param = (party) ? "party=true" : "";
+    const uid_param = (uid) ? 'uid=' + uid : "";
+    const conj = (party && uid) ? "&" : "";
+    const req = new Request("localhost:1234/api/" + start + party_param + conj + uid_param, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
@@ -150,4 +163,14 @@ export function createUnlinkReq(id: number, access_token: string): Request {
         }
     });
     return req;
+}
+
+export function createGetReq(id: number, access_token: string): Request {
+    return new Request("localhost:1234/api/playlist/" + id, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${access_token}`,
+        }
+    });
 }
