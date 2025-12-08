@@ -1,13 +1,14 @@
 import { createSupabaseAdminClient } from "@/src/server/supabase";
 import { clearDatabase, createRandomUser, createUser, deleteAllUsers } from "./utils/database";
 import { PUT as TOGGLE_PLAYLIST } from "@/src/app/api/playlist/party/toggle/[id]+api";
+import { PUT as ADD_TO_PLAYLIST } from "@/src/app/api/playlist/add/[id]+api";
 import { PUT as LINK_PLAYLIST } from "@/src/app/api/playlist/party/link/[code]+api";
 import { PUT as UNLINK_PLAYLIST } from "@/src/app/api/playlist/party/unlink/[id]+api";
 import { GET as GET_PLAYLIST, PUT as PUT_PLAYLIST} from "@/src/app/api/playlist/[id]+api";
 import { Session, User } from "@supabase/supabase-js";
-import { getPlaylist, addPlaylist, createToggleReq, togglePlaylist, createLinkReq, linkPlaylist, createUnlinkReq, getPlaylists, unlinkPlaylist, createGetReq } from "./utils/api";
+import { getPlaylist, addPlaylist, createToggleReq, togglePlaylist, createLinkReq, linkPlaylist, createUnlinkReq, getPlaylists, unlinkPlaylist, createGetReq, addToPlaylist, createAddReq } from "./utils/api";
 import { makeSeededRand } from "./utils/random";
-import { createRandomPlaylist, testEqualPlaylist } from "./utils/playlist";
+import { createRandomPlaylist, createRandomSong, playlistContainsSong, testEqualPlaylist } from "./utils/playlist";
 import { ITunesPlaylist } from "@/src/types";
 
 jest.setTimeout(10000);
@@ -559,11 +560,40 @@ describe('Party Playlist Test', () => {
         });
 
         test('Add to party playlist', async () => {
+            const party_playlist = createRandomPlaylist(rand, user.id, 1);
+            const { id } = await addPlaylist(party_playlist, session.access_token);
+            const party_code = await togglePlaylist(id, true, session.access_token);
+            await linkPlaylist(party_code, party_sessions[0].access_token);
 
+            const songs_to_add = [ createRandomSong(rand, 1000), createRandomSong(rand, 1001)]
+            
+            await addToPlaylist(id, songs_to_add, party_sessions[0].access_token);
+            const r_playlist = await getPlaylist(id, session.access_token);
+
+            expect(playlistContainsSong(r_playlist, songs_to_add[0])).toBeTruthy();
+            expect(playlistContainsSong(r_playlist, songs_to_add[1])).toBeTruthy();
         });
 
         test('Add to party playlist with party mode off', async () => {
+            const party_playlist = createRandomPlaylist(rand, user.id, 1);
+            const { id } = await addPlaylist(party_playlist, session.access_token);
+            const party_code = await togglePlaylist(id, true, session.access_token);
+            await linkPlaylist(party_code, party_sessions[0].access_token);
 
+            // Toggle playlist off
+            await togglePlaylist(id, false, session.access_token);
+
+            const songs_to_add = [ createRandomSong(rand, 500), createRandomSong(rand, 501)]
+            
+            const req = createAddReq(id, songs_to_add, party_sessions[0].access_token);
+            const res = await ADD_TO_PLAYLIST(req, { id: id.toString() });
+
+            // Expect Error
+            expect(res.ok).toBeFalsy();
+            const r_playlist = await getPlaylist(id, session.access_token);
+        
+            expect(playlistContainsSong(r_playlist, songs_to_add[0])).toBeFalsy();
+            expect(playlistContainsSong(r_playlist, songs_to_add[1])).toBeFalsy();
         });
 
         test('Many add to party playlist', async () => {

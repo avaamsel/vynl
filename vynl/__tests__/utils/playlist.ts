@@ -48,3 +48,15 @@ export function testEqualPlaylist(a: ITunesPlaylist, b: ITunesPlaylist) {
         expect(song_a).toEqual(song_b);
     }
 }
+
+export function playlistContainsSong(playlist: ITunesPlaylist, song: ITunesSong): boolean {
+    const found = playlist.songs.find(
+        s => s.song_id == song.song_id
+    )
+
+    return found?.artist == song.artist 
+        && found.cover_url == song.cover_url
+        && found.duration_sec == song.duration_sec
+        && found.preview_url == song.preview_url
+        && found.title == song.title;
+}

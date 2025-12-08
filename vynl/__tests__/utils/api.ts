@@ -2,7 +2,7 @@
     This file stores utility functions to interact with our API directly. These functions
     are meant to be used inside of test as they include expect statements that check for
     values returned from the endpoints. Additionally there are functions to help build
-    request used in interacting with the databse
+    request used in the api requests.
 */
 
 import { isITunesPlaylist, ITunesPlaylist, ITunesSong } from "@/src/types";
@@ -91,6 +91,16 @@ export async function linkPlaylist(code: string, access_token: string): Promise<
 export async function unlinkPlaylist(id: number, access_token: string) {
     const req = createUnlinkReq(id, access_token);
     const res = await UNLINK_PLAYLIST(req, { id: id.toString() });
+
+    if (!res.ok) {
+        console.log(await res.text());
+    }
+    expect(res.ok).toBeTruthy();
+}
+
+export async function addToPlaylist(id: number, songs: ITunesSong[], access_token: string) {
+    const req = createAddReq(id, songs, access_token);
+    const res = await ADD_TO_PLAYLIST(req, { id: id.toString() });
 
     if (!res.ok) {
         console.log(await res.text());
