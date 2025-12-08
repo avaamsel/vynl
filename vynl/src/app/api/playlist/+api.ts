@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
         const { searchParams } = new URL(req.url);
         const uid = searchParams.get("uid");
-        const party = searchParams.has("party")
+        const party = searchParams.has("party");
 
         let data, error;
 
@@ -36,7 +36,6 @@ export async function GET(req: Request) {
                         playlists (*)
                     `)
                     .eq('user_id', uid));
-
                 data = data?.map(d =>
                     d.playlists
                 )

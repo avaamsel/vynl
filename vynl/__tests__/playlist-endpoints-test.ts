@@ -197,12 +197,14 @@ describe('Playlist Test', () => {
                 .from('songs')
                 .select();
 
+            console.log(songs_data);
+
             expect(songs_data).toBeDefined();
             expect(songs_error).toBeNull();
-            for (let i = 0; i < songs_data!.length; i++) {
-                let database_song = songs_data![i];
-                let original_song = filled_playlist.songs.find(
-                    song => song.song_id == database_song.song_id
+            for (let i = 0; i < filled_playlist.songs.length; i++) {
+                let original_song = filled_playlist.songs[i];
+                let database_song = songs_data?.find(
+                    s => s.song_id == original_song.song_id
                 );
                 expect(database_song).toStrictEqual(original_song);
             }
@@ -800,9 +802,5 @@ describe('Playlist Test', () => {
 
             expect(new_playlist.songs).toEqual([...playlist.songs, songs_to_add2[0], songs_to_add2[2]]);
         });
-
-        test("Many user add at once", async () => {
-
-        })
     });
 });
