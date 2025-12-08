@@ -18,7 +18,7 @@ Vynl allows users to quickly assemble vibe-consistent platform-neutral playlists
 * **[vynl's developer guide:](/docs/developer-guide.md)** instructions on setting up vynl's development environment, understanding the repository layout, and building the software
 * **[vynl's user guide:](/docs/user-manual.md)** instructions on installing, running, and using the vynl mobile application
 * **[vynl's api endpoints:](/docs/api_endpoints.md)** contains information on the APIs that are utilized in the Vynl app
-* **[vynl's coding guidelunes:](/docs/coding-guidelines.md)** contains information on coding best practices for TypeScript and React Native
+* **[vynl's coding guidelines:](/docs/coding-guidelines.md)** contains information on coding best practices for TypeScript and React Native
 
 ## repository layout
 ```
