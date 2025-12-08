@@ -1,5 +1,11 @@
+/*
+    This file stores helper functions to interact directly with the testing database.
+    Including functions to manage users and clear data.
+*/
+
 import { createSupabaseAdminClient } from "@/src/server/supabase";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { getRandomString } from "./random";
 
 export async function createUser(email: string, password: string) {
     // Must use a new supabase client since this one will inherit the user's
@@ -34,6 +40,18 @@ export async function createUser(email: string, password: string) {
     return verified; // have inside the session
 }
 
+// Creates a random user
+export async function createRandomUser(rand: () => number) {
+    const user_data = await createUser(getRandomString(rand, 10) + "@test.com", getRandomString(rand, 10))
+
+    if (!user_data || !user_data.session || !user_data.user) {
+        console.log(user_data);
+        throw new Error('Error creating random user')
+    }
+
+    return {user: user_data.user, session: user_data.session};
+}
+
 // Clears the test database of all data besides the auth table
 export async function clearDatabase(adminClient: SupabaseClient) {
     const { error: playlistSongError } = await adminClient
@@ -61,7 +79,7 @@ export async function clearDatabase(adminClient: SupabaseClient) {
     const { error: songError } = await adminClient
         .from('songs')
         .delete()
-        .neq('song_id', 0);
+        .neq('song_id', -1);
     
     if (songError) {
         console.error('Error deleting songs: ');

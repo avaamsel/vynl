@@ -22,10 +22,11 @@ export async function PUT(req: Request, { code }: Record<string, string>) {
 
         const { data: playlist_id, error: p_err } = await supabase
             .rpc('get_party_id', {
-                party_code: code
+                code: code
             });
 
         if (p_err || !playlist_id) {
+            console.log(p_err)
             return new Response("Playlist not found", {
                 status: 404,
                 headers: { 'Content-Type': 'text/html' }
@@ -41,7 +42,7 @@ export async function PUT(req: Request, { code }: Record<string, string>) {
 
         const { data: link_data, error: link_err } = await supabase
             .from('party_users')
-            .insert({ 'playlist_id': playlist_id });
+            .upsert({ 'playlist_id': playlist_id });
 
         if (link_err) {
             console.log(link_err);

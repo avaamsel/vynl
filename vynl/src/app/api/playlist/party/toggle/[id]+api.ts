@@ -27,10 +27,10 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
         }
 
         const body = await req.json();
-        const uid = body.uid;
+        // const uid = body.uid;
         const enable = body.enable;
         
-        if (uid === undefined || uid === null) return new Response("Missing user ID", { status: 400 });
+        // if (uid === undefined || uid === null) return new Response("Missing user ID", { status: 400 });
         if (enable === undefined || enable === null) return new Response("Missing enable", { status: 400 });
 
         const supabase = await createSupabaseClient(req);
@@ -43,19 +43,23 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             // 1. Create secret party code if it doesn't exist
             const { data: c_data, error: c_err } = await supabase
                 .from('playlists')
-                .select('party_code')
+                .select('party_code,  uid')
                 .eq('playlist_id', playlist_id)
+                .single();
 
-            let partyCode;
-
-            if (c_err) {
-                return new Response('Unable to check the party code', {
+            if (c_err || !c_data) {
+                console.log(c_err);
+                console.log(c_data);
+                return new Response('Playlist not found', {
                     status: 404
                 });
             }
 
-            if (c_data) {
-                partyCode = c_data[0]?.party_code;
+            let partyCode;
+            let uid = c_data.uid;
+
+            if (c_data.party_code) {
+                partyCode = c_data.party_code;
             } else {
                 partyCode = generatePartyCode(6);
             }
@@ -79,13 +83,14 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
                 .upsert(party_user_to_add)
 
             if (pu_err) {
+                console.log(pu_err)
                 return new Response('Failed to update party_user', {
                     status: 400
                 });
             }
 
             // 4. Return party code
-            return new Response(JSON.stringify(partyCode), {
+            return new Response(partyCode, {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -97,9 +102,15 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
                 .update({ in_party_mode: false })
                 .eq("playlist_id", playlist_id);
             
-            return new Response(null, {
+            if (p_err) {
+                return new Response('Playlist not found', {
+                    status: 404
+                });
+            }
+            
+            return new Response("OK", {
                 status: 200,
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'text/html' }
             });
         }
 
