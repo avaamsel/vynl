@@ -41,7 +41,7 @@ vynl/                                  # Project root
 │   ├── src/               
 │   │   ├── app/                       # Screens and routing using Expo router
 │   │   │   └── (tabs)/                # Tab-based navigation screens
-│   │   │   └── api/                   # API endpoints
+│   │   │   └── api/                   # API endpoints for user, authentication, spotify, youtube, playlists, etc
 │   │   │ 
 │   │   ├── components/    
 │   │   │   └── ui/                    # Reusable UI components
