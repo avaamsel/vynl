@@ -278,8 +278,8 @@ export default function YouTubeExportModal({
     >
       <View style={styles.modalOverlay}>
         <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
-        <View style={[styles.modalContentWrapper, { marginBottom: insets.bottom }]}>
-          <LinearGradient colors={['#F8F9FD', '#FFFFFF']} style={styles.modalContent}>
+        <View style={styles.modalContentWrapper}>
+          <LinearGradient colors={['#F8F9FD', '#FFFFFF']} style={[styles.modalContent, { paddingBottom: Math.max(16, insets.bottom) }]}>
             <View style={styles.header}>
               <Text style={styles.title}>Export to YouTube Music</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -287,7 +287,7 @@ export default function YouTubeExportModal({
               </TouchableOpacity>
             </View>
 
-            <ScrollView
+            <ScrollView 
               style={styles.content}
               contentContainerStyle={styles.contentContainer}
               showsVerticalScrollIndicator={false}
@@ -340,11 +340,12 @@ export default function YouTubeExportModal({
                 </View>
               ) : exportResult ? (
                 <View style={styles.successSection}>
-                  <Ionicons name="checkmark-circle" size={64} color="#1DB954" style={styles.successIcon} />
-                  <Text style={styles.successTitle}>All set!</Text>
-                  <Text style={styles.successText}>
-                    Found {exportResult.tracksFound} of {exportResult.tracksTotal} tracks.
-                  </Text>
+                  <View style={styles.playlistInfoCompact}>
+                    <Text style={styles.playlistNameCompact}>{playlistName}</Text>
+                    <Text style={styles.songCountCompact}>
+                      Found {exportResult.tracksFound} of {exportResult.tracksTotal} tracks
+                    </Text>
+                  </View>
                   <View style={styles.buttonContainer}>
                     <AppButton
                       title="Open in YouTube Music"
@@ -374,18 +375,10 @@ export default function YouTubeExportModal({
                 </View>
               ) : (
                 <View style={styles.readySection}>
-                  <Ionicons name="logo-youtube" size={64} color="#FF0000" style={styles.youtubeIcon} />
-                  <Text style={styles.readyTitle}>Ready to Export</Text>
-                  <Text style={styles.readyDescription}>
-                    Export "{playlistName}" with {songs.length} song{songs.length !== 1 ? 's' : ''} to YouTube
-                    Music.
-                  </Text>
-                  <View style={styles.playlistInfo}>
-                    <Text style={styles.playlistInfoText}>
-                      <Text style={styles.bold}>Playlist:</Text> {playlistName}
-                    </Text>
-                    <Text style={styles.playlistInfoText}>
-                      <Text style={styles.bold}>Songs:</Text> {songs.length}
+                  <View style={styles.playlistInfoCompact}>
+                    <Text style={styles.playlistNameCompact}>{playlistName}</Text>
+                    <Text style={styles.songCountCompact}>
+                      {songs.length} song{songs.length !== 1 ? 's' : ''}
                     </Text>
                   </View>
                   <View style={styles.buttonContainer}>
@@ -420,15 +413,14 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     overflow: 'hidden',
-    maxHeight: '80%',
-    minHeight: 300,
+    maxHeight: '85%',
+    width: '100%',
   },
   modalContent: {
     paddingTop: 16,
     paddingBottom: 16,
     paddingHorizontal: 24,
-    maxHeight: '100%',
-    flex: 1,
+    minHeight: 200,
   },
   header: {
     flexDirection: 'row',
@@ -449,11 +441,10 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   content: {
-    flex: 1,
-    maxHeight: '100%',
+    flexShrink: 1,
   },
   contentContainer: {
-    paddingBottom: 24,
+    paddingBottom: 16,
     flexGrow: 1,
   },
   centerContent: {
@@ -520,8 +511,8 @@ const styles = StyleSheet.create({
     color: '#6F7A88',
   },
   successSection: {
-    alignItems: 'center',
-    paddingVertical: 16,
+    alignItems: 'stretch',
+    paddingVertical: 4,
   },
   successIcon: {
     marginBottom: 12,
@@ -540,8 +531,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   readySection: {
-    alignItems: 'center',
-    paddingVertical: 12,
+    alignItems: 'stretch',
+    paddingVertical: 4,
   },
   readyTitle: {
     fontSize: 22,
@@ -569,16 +560,36 @@ const styles = StyleSheet.create({
     color: '#001133',
     marginBottom: 8,
   },
+  playlistInfoCompact: {
+    width: '100%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  playlistNameCompact: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#001133',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  songCountCompact: {
+    fontSize: 16,
+    color: '#6F7A88',
+    textAlign: 'center',
+  },
   bold: {
     fontWeight: '700',
   },
   buttonContainer: {
     width: '100%',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   disconnectButton: {
-    marginTop: 8,
-    padding: 12,
+    marginTop: 4,
+    padding: 10,
     width: '100%',
   },
   disconnectText: {
