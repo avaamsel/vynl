@@ -30,8 +30,23 @@ export function useAddToPlaylist(): UseAddPlaylistResult {
         });
 
         if (!res.ok) {
-          const text = await res.text();
-          setError(text || 'Failed to update playlist');
+          const contentType = res.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            try {
+              const errorData = await res.json();
+              if (errorData.error === 'PARTY_ENDED') {
+                setError('PARTY_ENDED');
+                return null;
+              }
+              setError(errorData.message || 'Failed to update playlist');
+            } catch {
+              const text = await res.text();
+              setError(text || 'Failed to update playlist');
+            }
+          } else {
+            const text = await res.text();
+            setError(text || 'Failed to update playlist');
+          }
           return null;
         }
 

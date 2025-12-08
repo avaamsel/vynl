@@ -15,6 +15,7 @@ import { useUpdatePlaylist } from '@/src/hooks/use-update-playlist';
 import { useAuth } from '@/src/context/auth-context';
 import { Audio } from 'expo-av';
 import { useAudioPreview } from '@/src/hooks/use-audio-preview';
+import PartyEndedModal from '@/src/components/PartyEndedModal';
 
 const { width, height } = Dimensions.get('window');
 const DISC_SIZE = Math.min(width * 0.78, 320);
@@ -123,10 +124,12 @@ export default function Swiping() {
   const [playlistName, setPlaylistName] = useState(isPartyMode && initialPlaylistName ? initialPlaylistName as string : '');
   const [isSaving, setIsSaving] = useState(false);
   const [playlistSaved, setPlaylistSaved] = useState(false);
+  const [shouldSkipSessionSave, setShouldSkipSessionSave] = useState(false);
   const { updateLoading, updateError, updatePlaylist } = useUpdatePlaylist();
   const [gettingSimilar, setGettingSimilar] = useState(false);
   const [recommendedSongs, setRecommendations] = useState<ITunesSong[]>([]);
   const { authToken } = useAuth();
+  const [showPartyEndedModal, setShowPartyEndedModal] = useState(false);
   const {
     playing,
     setPlaying,
@@ -320,7 +323,7 @@ export default function Swiping() {
 
   // Save session state whenever it changes (only if we have seed songs)
   useEffect(() => {
-    if (!isLoading && seedSongs.length > 0) {
+    if (!isLoading && seedSongs.length > 0 && !shouldSkipSessionSave) {
       const saveSession = async () => {
         try {
           const session = {
@@ -338,7 +341,7 @@ export default function Swiping() {
       };
       saveSession();
     }
-  }, [index, liked, passed, swipeHistory, isLoading, seedSongs, addedSongs]);
+  }, [index, liked, passed, swipeHistory, isLoading, seedSongs, addedSongs, shouldSkipSessionSave]);
 
   const top = recommendedSongs[index];
   const next = recommendedSongs[index + 1];
@@ -492,9 +495,35 @@ export default function Swiping() {
       );
 
       const allSongs = [...seedSongs, ...filteredAddedSongs];
-      if (isAddingMode) await updatePlaylist(newPlaylist.id, allSongs, newPlaylist.name);
-      else await updatePlaylist(newPlaylist.id, allSongs, playlistName);
+      const result = await (isAddingMode 
+        ? updatePlaylist(newPlaylist.id, allSongs, newPlaylist.name)
+        : updatePlaylist(newPlaylist.id, allSongs, playlistName));
 
+      // Check if the update failed due to party ended
+      // Give a small delay to ensure updateError is set by the hook
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // If result is null, check if it's because party ended
+      if (result === null) {
+        // Check error state - if PARTY_ENDED, the useEffect will handle showing the modal
+        if (updateError === 'PARTY_ENDED') {
+          // Prevent session from being saved and clear session, but keep UI state
+          // so the confirmation page shows behind the modal
+          setShouldSkipSessionSave(true);
+          await clearSession();
+          // Don't reset state - keep finished state and liked songs for confirmation page
+          // Re-enable session saving after a brief delay
+          setTimeout(() => setShouldSkipSessionSave(false), 100);
+          // Don't set playlistSaved - useEffect will ensure it stays false
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          return;
+        }
+        // Other error - don't show success
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
+
+      // Only set success if we got a valid result (not null)
       setPlaylistSaved(true);
       
       // Clear session after saving playlist
@@ -507,6 +536,27 @@ export default function Swiping() {
       setIsSaving(false);
     }
   };
+
+  // Show modal when updateError is PARTY_ENDED and prevent success message
+  useEffect(() => {
+    if (updateError === 'PARTY_ENDED') {
+      setShowPartyEndedModal(true);
+      // Make sure success message doesn't show
+      setPlaylistSaved(false);
+    }
+  }, [updateError]);
+
+  // Clear session when modal is shown (party ended) but keep UI state
+  useEffect(() => {
+    if (showPartyEndedModal) {
+      // Ensure session is cleared when modal appears, but don't reset UI state
+      // so the confirmation page shows behind the modal
+      setShouldSkipSessionSave(true);
+      clearSession().catch(console.error);
+      // Re-enable session saving after clearing
+      setTimeout(() => setShouldSkipSessionSave(false), 100);
+    }
+  }, [showPartyEndedModal, clearSession]);
 
   // Don't render until session is loaded
   if (isLoading || gettingSimilar) {
@@ -744,6 +794,23 @@ export default function Swiping() {
           )}
         </View>
       </SafeAreaView>
+      <PartyEndedModal
+        visible={showPartyEndedModal}
+        onClose={() => setShowPartyEndedModal(false)}
+        onNavigate={async () => {
+          if (newPlaylist?.id) {
+            setShouldSkipSessionSave(true);
+            await clearSession();
+            resetState();
+            await stopAll();
+            setActive(false);
+            router.push({
+              pathname: '/(tabs)/playlist-detail',
+              params: { id: newPlaylist.id.toString() }
+            });
+          }
+        }}
+      />
     </LinearGradient>
   );
 }

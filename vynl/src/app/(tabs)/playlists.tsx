@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image as ExpoImage } from 'expo-image';
@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useUser } from '@/src/hooks/use-user';
 import { useUserPlaylists } from '@/src/hooks/use-playlist-for-user';
 import { usePartyPlaylists } from '@/src/hooks/use-party-playlists';
+import { useAuth } from '@/src/context/auth-context';
 
 const PARTY_CODE_STORAGE_KEY = '@vynl:partyCode';
 
@@ -16,6 +17,7 @@ export default function PlaylistsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, loading: authLoading } = useUser();
+  const { authToken } = useAuth();
   const uid = user?.id;
   
   const { playlists, loading: playlistLoading, error, refetch } = useUserPlaylists(uid ?? null);
@@ -99,12 +101,53 @@ export default function PlaylistsScreen() {
     }, [refetch, uid])
   );
 
-  const handleDelete = async (playlistId: number) => {
-    try {
-      //TODO : implement
-    } catch (error) {
-      console.error('Error deleting playlist:', error);
-    }
+  const handleDelete = (playlistId: number, playlistName: string) => {
+    Alert.alert(
+      'Delete Playlist',
+      `Are you sure you want to delete "${playlistName}"? This action cannot be undone.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (!authToken) {
+                console.error('No auth token available');
+                Alert.alert('Error', 'Authentication failed. Please try again.');
+                return;
+              }
+
+              const res = await fetch(`/api/playlist/${playlistId}`, {
+                method: 'DELETE',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${authToken}`,
+                },
+              });
+
+              if (!res.ok) {
+                const errorText = await res.text();
+                console.error('Failed to delete playlist:', errorText);
+                Alert.alert('Error', 'Failed to delete playlist. Please try again.');
+                return;
+              }
+
+              // Refresh the playlists after successful deletion
+              if (refetch) {
+                refetch();
+              }
+            } catch (error) {
+              console.error('Error deleting playlist:', error);
+              Alert.alert('Error', 'An error occurred while deleting the playlist. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const formatDate = (timestamp: number) => {
@@ -184,7 +227,7 @@ export default function PlaylistsScreen() {
                     <TouchableOpacity
                       onPress={(e) => {
                         e.stopPropagation();
-                        handleDelete(p.id);
+                        handleDelete(p.id, p.name);
                       }}
                       style={styles.deleteButton}
                     >
