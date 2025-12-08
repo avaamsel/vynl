@@ -176,7 +176,7 @@ export async function DELETE(req: Request, { id }: Record<string, string>) {
         const { data, error } = await supabase
             .from('playlists')
             .delete()
-            .eq('id', playlist_id);
+            .eq('playlist_id', playlist_id);
 
         return new Response("OK", {
             status: 200,
