@@ -222,6 +222,8 @@ npx expo install @testing-library/react-native --dev
 Also make sure to run: ``npx expo install @testing-library/react-native \--dev`` 
 
 ### 4.2 Running Tests:
+  Ensure that you have the ``.env.test`` file added within Vynl's root directory. Again if you do not have this file, please reach out to zcrouse@uw.edu for access.
+  
   Run ``npx run test`` to see the test results within the terminal – make sure this is done within the Vynl directory and not the root\!
 
 To see code coverage reports, run ``npx run test`` within the code’s root directory and a table displaying coverage percentages should appear in the terminal that can be filtered by failed tests, etc.
