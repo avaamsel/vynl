@@ -34,6 +34,7 @@ vynl/                                  # Project root
 │
 ├── docs/                              # Documentation files
 ├── node_modules/                      # Installed dependencies managed by npm
+├── reports/                           # Weekly Status Report Submissions
 ├── vynl/                              # Primary application source    
 │   ├── __tests__/                     # Unit and integration tests, organized by feature
 │   │   └── utils/                     # Shared test utilities
@@ -85,8 +86,8 @@ Vynl uses Expo and npm for development builds
 | Requirement | Version | Purpose |
 | ----- | ----- | ----- |
 | **Node.js** | 24+ | Required for React Native development |
-| **npm** | 9+ | Package manager (bundled with Node.js) |
-| **Expo CLI** | 6+ | Cross-platform framework for React Native |
+| **npm** | 10+ | Package manager (bundled with Node.js) |
+| **Expo CLI** | Expo SDK 54 (Get latest version via ``npx expo``) | Cross-platform framework for React Native |
 | **Git** | 2.40+ | Version control |
 | **Jest** | — | For mobile testing |
 | **Supabase Account** | — | Backend database & authentication (logging in and signing up) |

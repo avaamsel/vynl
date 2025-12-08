@@ -33,14 +33,15 @@ By choosing a few **seed songs**, Vynl recommends new tracks with similar energy
 | Requirement | Version | Purpose |
 | ----- | ----- | ----- |
 | **Node.js** | 24+ | Required for React Native development |
-| **npm** | 9+ | Package manager |
-| **Expo CLI** | 6+ | Cross-platform framework for React Native |
+| **npm** | 10+ | Package manager (bundled with Node.js) |
+| **Expo CLI** | Expo SDK 54 (Get latest version via ``npx expo``) | Cross-platform framework for React Native |
 | **Git** | 2.40+ | Version control |
 | **Supabase Account** | — | Backend database & authentication (logging in and signing up) |
 | **iTunes API** | — | API access for searching songs and sound previews |
 | **Last.fm** | — | API access for music data and export |
 | **Expo Linear Gradient** | — | Background of the app is a gradient |
 | **Expo Go** | — | For mobile testing |
+
 
 ### **2.2 Installation**
 > npm (Node Package Manager) comes bundled with Node.js, so you only need to install Node.
@@ -259,8 +260,11 @@ The profile displays your key account details in a clean, organized format:
 * **Getting Error: Missing EXPO_PUBLIC_SUPABASE_URL?** 
 You're likely missing the environmental variables file. Email Zack (zcrouse@uw.edu) to request the ``.env`` file 
 * **Songs not loading?** Check your internet connection.  
-* **Can’t save playlist?** Ensure you’re signed in to your account.  
+* **Can’t save playlist?** Ensure you are signed in to your account.  
 * **Recommendations off?** Update your liked songs to refine results.
+* **Can't connect to Host Playlist when Party Mode is active?** Refresh your cache in your CLI by typing ``npx expo start -c``
+* **Can't export songs on Spotify?** Email Ava (avanunes@uw.edu) to see if you're added in the approved email list in Vynl's developer Spotify account 
+* **Can't export songs on Youtube?** Ensure you are signed in via your .edu domain email on YouTube and created a YouTube channel before
 
 ## **5\. How to report a Bug**
 
