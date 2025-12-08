@@ -9,12 +9,12 @@
 
 ​​**Vynl** is a **platform-neutral playlist builder mobile app** that lets music lovers create personalized playlists by **swiping** through candidate songs — similar to Tinder’s interface.
 
-By choosing a few **seed songs**, Vynl recommends new tracks with similar energy, rhythm, and sound profiles. Users can **swipe right** to add a song or **swipe left** to skip. When satisfied, the playlist can be **exported** to their favorite streaming platform (starting with Spotify) via secure OAuth sign-in.
+By choosing a few **seed songs**, Vynl recommends new tracks with similar energy, rhythm, and sound profiles. Users can **swipe right** to add a song or **swipe left** to skip. When satisfied, the playlist can be **exported** to their favorite streaming platform (Spotify, YouTube Music) via secure OAuth sign-in.
 
 **Why Use Vynl?**
 
 * **Smart discovery** – Find new songs by “vibe,” not just keywords or artists.  
-* **Cross-platform** – Export playlists to any supported service (Spotify for MVP, more coming soon).  
+* **Cross-platform** – Export playlists to supported services (Spotify, YouTube Music).  
 * **Fast and fun** – Swipe-based UI for quick playlist building.  
 * **Free and open** – No paid account required.
 
@@ -27,10 +27,6 @@ By choosing a few **seed songs**, Vynl recommends new tracks with similar energy
 * Playlist export to Spotify and YouTube Music
 * Multi-user "party mode" concurrent playlist creation      
 
-**Work in Progress:**
-
-* Social features (add friends, view shared playlists)  
-* Dashboard playlist stats
 
 ## **2. How to Install the Software**
 ### **2.1 Prerequisites**
