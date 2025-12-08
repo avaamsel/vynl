@@ -79,7 +79,7 @@ export async function clearDatabase(adminClient: SupabaseClient) {
     const { error: songError } = await adminClient
         .from('songs')
         .delete()
-        .neq('song_id', 0);
+        .neq('song_id', -1);
     
     if (songError) {
         console.error('Error deleting songs: ');

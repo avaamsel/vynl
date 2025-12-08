@@ -40,12 +40,12 @@ export default function UploadSongs() {
 
   const toggle = (song: ITunesSong) => {
     if (selected.includes(song)) setSelected(selected.filter(x => x !== song));
-    else if (selected.length < 2) setSelected([...selected, song]);
+    else if (selected.length < 5) setSelected([...selected, song]);
   };
 
-  const ready = selected.length === 2;
+  const ready = selected.length >= 2 && selected.length <= 5;
 
-  // Navigate to swipe.tsx with the two picks
+  // Navigate to swipe.tsx with the picks (2-5 songs)
   const goSwiping = async () => {
     console.log("Go swipping");
     if (!ready || authLoading || !authToken) return;
@@ -100,7 +100,7 @@ export default function UploadSongs() {
       <SafeAreaView style={s.wrap}>
         <View style={s.header}>
           <Text style={s.title}>Select</Text>
-          <Text style={s.subtitle}>Choose 2 songs to get started</Text>
+          <Text style={s.subtitle}>Choose 2-5 songs to get started</Text>
 
           <View style={s.searchWrap}>
             <Ionicons name="search" size={20} color="rgba(0,0,0,0.5)" />
@@ -120,7 +120,7 @@ export default function UploadSongs() {
           <View style={s.likedWrap}>
             <View style={s.likedHeader}>
               <Text style={s.likedTitle}>Liked</Text>
-              <Text style={s.likedCount}>{selected.length}/2</Text>
+              <Text style={s.likedCount}>{selected.length}/5</Text>
             </View>
             {loading && <Text style={{ textAlign: 'center', marginTop: 20 }}>Loading...</Text>}
             {error && <Text style={{ textAlign: 'center', marginTop: 20, color: 'red' }}>{error}</Text>}
@@ -163,11 +163,13 @@ export default function UploadSongs() {
           </View>
         )}
 
-        {/* Hide the bottom list entirely once two songs are selected */}
-        {!ready && (
+        {/* Scrollable song list - fills remaining space */}
+        {selected.length < 5 && (
           <ScrollView
-            contentContainerStyle={{ paddingHorizontal: 30, paddingBottom: 160 }}
+            style={s.scrollContainer}
+            contentContainerStyle={s.scrollContent}
             keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={true}
           >
             {filtered.map(item => {
               const on = selected.includes(item);
@@ -196,14 +198,23 @@ export default function UploadSongs() {
           </ScrollView>
         )}
 
-        <View style={s.cta}>
-            <AppButton
-              title={ready ? 'Start Swiping' : `Pick ${2 - selected.length} more`}
-              disabled={!ready || authLoading || isSaving}
-              onPress={goSwiping}
-              backgroundColor="#FFFFFF"
-              textColor="#000000"
-            />
+        {/* Fixed button at bottom */}
+        <View style={s.ctaContainer}>
+          <AppButton
+            title={
+              ready 
+                ? 'Start Swiping' 
+                : selected.length === 0 
+                  ? 'Pick 2-5 songs'
+                  : selected.length === 1
+                    ? 'Pick 1 more'
+                    : `Pick ${5 - selected.length} more (optional)`
+            }
+            disabled={!ready || authLoading || isSaving}
+            onPress={goSwiping}
+            backgroundColor="#FFFFFF"
+            textColor="#000000"
+          />
         </View>
       </SafeAreaView>
     </LinearGradient>
@@ -268,7 +279,24 @@ const s = StyleSheet.create({
   dot: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: '#2F2F2F', alignItems: 'center', justifyContent: 'center' },
   dotOn: { backgroundColor: '#2F2F2F' },
   check: { color: 'white', fontWeight: '800' },
-  cta: { position: 'absolute', left: 30, right: 30, bottom: 100 },
+  
+  // Scrollable container for song list
+  scrollContainer: {
+    flex: 1,
+    marginTop: 12,
+  },
+  scrollContent: {
+    paddingHorizontal: 30,
+    paddingBottom: 20,
+  },
+  
+  // Button container at bottom
+  ctaContainer: {
+    paddingHorizontal: 30,
+    paddingTop: 20,
+    paddingBottom: 60,
+    backgroundColor: 'transparent',
+  },
   center: {
     flex: 1,
     justifyContent: 'center',

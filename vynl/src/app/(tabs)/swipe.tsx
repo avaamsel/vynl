@@ -112,6 +112,12 @@ export default function Swiping() {
   const [addedSongs, setAddedSongs] = useState<ITunesSong[]>([]);
   const [liked, setLiked] = useState<ITunesSong[]>([]);
   const [passed, setPassed] = useState<ITunesSong[]>([]);
+  // include initial seed songs in the final preview (avoid duplicates)
+  const previewSongs = useMemo(() => {
+    const seeds = seedSongs ?? [];
+    const uniqueLiked = liked.filter(s => !seeds.some(seed => seed.song_id === s.song_id));
+    return [...seeds, ...uniqueLiked];
+  }, [seedSongs, liked]);
   const [swipeHistory, setSwipeHistory] = useState<SwipeHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [playlistName, setPlaylistName] = useState(isPartyMode && initialPlaylistName ? initialPlaylistName as string : '');
@@ -159,7 +165,7 @@ export default function Swiping() {
     }, [])
   );
 
-  const numberOfRecommendedSongs = 6;
+  const numberOfRecommendedSongs = 10;
 
   const fetchRecommendations = useCallback(async () => {
     if (!newPlaylist?.id) {
@@ -372,8 +378,12 @@ export default function Swiping() {
     inputRange: [-width / 2, 0, width / 2],
     outputRange: [`-${ROTATION}deg`, '0deg', `${ROTATION}deg`],
   });
-  const likeOpacity = position.x.interpolate({ inputRange: [0, SWIPE_THRESHOLD], outputRange: [0, 1], extrapolate: 'clamp' });
-  const nopeOpacity = position.x.interpolate({ inputRange: [-SWIPE_THRESHOLD, 0], outputRange: [1, 0], extrapolate: 'clamp' });
+  // derive raw opacities from swipe position
+  const likeOpacityRaw = position.x.interpolate({ inputRange: [0, SWIPE_THRESHOLD], outputRange: [0, 1], extrapolate: 'clamp' });
+  const nopeOpacityRaw = position.x.interpolate({ inputRange: [-SWIPE_THRESHOLD, 0], outputRange: [1, 0], extrapolate: 'clamp' });
+  // multiply by the card opacity so banners don't persist when the next card fades in
+  const likeOpacity = Animated.multiply(likeOpacityRaw, cardOpacity as any);
+  const nopeOpacity = Animated.multiply(nopeOpacityRaw, cardOpacity as any);
 
   // Use ref to store current index to avoid closure issues
   const indexRef = useRef(index);
@@ -646,7 +656,7 @@ export default function Swiping() {
                     nestedScrollEnabled
                     showsVerticalScrollIndicator={false}
                   >
-                    {liked.map((song, idx) => {
+                    {previewSongs.map((song, idx) => {
                       return song ? (
                         <View key={`${song.song_id}-${idx}`} style={styles.songPreviewItem}>
                           <Image
