@@ -40,7 +40,8 @@ vynl/                                  # Project root
 │   ├── scripts/                       # Local automation scripts and developer utilities
 │   ├── src/               
 │   │   ├── app/                       # Screens and routing using Expo router
-│   │   │   └──  (tabs)/               # Tab-based navigation screens
+│   │   │   └── (tabs)/                # Tab-based navigation screens
+│   │   │   └── api/                   # API endpoints
 │   │   │ 
 │   │   ├── components/    
 │   │   │   └── ui/                    # Reusable UI components
