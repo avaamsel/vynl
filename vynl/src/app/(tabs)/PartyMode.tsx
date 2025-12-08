@@ -43,7 +43,7 @@ export default function PartyModeScreen() {
           <View style={styles.headerSection}>
             <Text style={styles.headerTitle}>Party Mode</Text>
             <Text style={styles.descriptionText}>
-              Create or Join a Live Playlist and Team Up with Friends to build the Perfect Party Soundtrack.
+              Join a Live Playlist and Team Up with Friends to build the Perfect Party Soundtrack.
             </Text>
           </View>
 
