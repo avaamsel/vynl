@@ -22,8 +22,8 @@ export async function PUT(req: Request, { code }: Record<string, string>) {
 
         console.log("Code : ", code);
         const { data: playlist_id, error: p_err } = await supabase
-            .rpc('get_party_id_duplicate', {
-                input_code: code
+            .rpc('get_party_id', {
+                code: code
             });
 
         if (p_err || !playlist_id) {

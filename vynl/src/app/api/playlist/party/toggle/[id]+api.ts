@@ -17,7 +17,6 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
         return new Response("Missing playlist ID", { status: 400 });
     }
     try {
-        console.log("PUT");
         const playlist_id = parseInt(id);
 
         if (Number.isNaN(playlist_id)) {
@@ -28,10 +27,8 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
         }
 
         const body = await req.json();
-        // const uid = body.uid;
         const enable = body.enable;
-        
-        // if (uid === undefined || uid === null) return new Response("Missing user ID", { status: 400 });
+
         if (enable === undefined || enable === null) return new Response("Missing enable", { status: 400 });
 
         const supabase = await createSupabaseClient(req);
@@ -91,7 +88,7 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             // Only insert playlist_id, just like the link endpoint does
             const { data: pu_data, error: pu_err } = await supabase
                 .from('party_users')
-                .insert({ playlist_id: playlist_id });
+                .upsert({ playlist_id: playlist_id });
 
             if (pu_err) {
                 console.log(pu_err)
