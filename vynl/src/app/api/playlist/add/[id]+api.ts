@@ -69,6 +69,16 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
 
         if (nps_err) {
             console.log("Failed to insert into database : ", nps_err);
+            // Check if error is due to row-level security policy (party mode ended)
+            if (nps_err.code === '42501' || (nps_err.message && nps_err.message.includes('row-level security policy'))) {
+                return new Response(JSON.stringify({ 
+                    error: 'PARTY_ENDED',
+                    message: 'Host has ended the party session. No songs can be added at this time.' 
+                }), {
+                    status: 403,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
             return new Response('Failed to insert into database', {
                 status: 400
             });
