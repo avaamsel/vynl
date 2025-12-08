@@ -20,13 +20,12 @@ export async function PUT(req: Request, { code }: Record<string, string>) {
             });
         }
 
-        const { data: playlist, error: p_err } = await supabase
-            .from('playlists')
-            .select('*')
-            .eq('party_code', code)
-            .single();
+        const { data: playlist_id, error: p_err } = await supabase
+            .rpc('get_party_id', {
+                party_code: code
+            });
 
-        if (!playlist) {
+        if (p_err || !playlist_id) {
             return new Response("Playlist not found", {
                 status: 404,
                 headers: { 'Content-Type': 'text/html' }
@@ -41,8 +40,8 @@ export async function PUT(req: Request, { code }: Record<string, string>) {
         // }
 
         const { data: link_data, error: link_err } = await supabase
-            .from('party_user')
-            .insert({ 'playlist_id': playlist.playlist_id });
+            .from('party_users')
+            .insert({ 'playlist_id': playlist_id });
 
         if (link_err) {
             console.log(link_err);
@@ -52,16 +51,17 @@ export async function PUT(req: Request, { code }: Record<string, string>) {
             });
         }
 
-        const deserializedPlaylist = await deserializePlaylist(playlist, supabase);
+        // No longer returning playlist from link 
+        // const deserializedPlaylist = await deserializePlaylist(playlist, supabase);
         
-        if (!deserializedPlaylist) {
-            console.log("Error deserializing playlist:", playlist.playlist_id);
-            return new Response('Error Deserializing Playlist', {
-                status: 500
-            });
-        }
+        // if (!deserializedPlaylist) {
+        //     console.log("Error deserializing playlist:", playlist.playlist_id);
+        //     return new Response('Error Deserializing Playlist', {
+        //         status: 500
+        //     });
+        // }
 
-        return new Response(JSON.stringify(deserializedPlaylist), {
+        return new Response(playlist_id.toString(), {
             status: 200,
             headers: { 'Content-Type': 'application/json' }
         });

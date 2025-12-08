@@ -60,12 +60,19 @@ export async function getRecommendationsForSongTable(
     allRecommendations.push(...mapped);
   }
 
-  if (allRecommendations.length == 0) {
+  const uniqueRecommendations = allRecommendations.filter(
+    (s) =>
+      !titleArtistPair.some(
+        (p) => p.artist === s.artist && p.title === s.title
+      )
+  );
+
+  if (uniqueRecommendations.length == 0) {
     throw new Error("No recommendation could be found for your seed songs.");
   }
 
   const countMap: Map<string, { song: LastFmSong; count: number }> = new Map();
-  for (const rec of allRecommendations) {
+  for (const rec of uniqueRecommendations) {
     const key = `${rec.artist}||${rec.title}`;
     if (countMap.has(key)) {
       countMap.get(key)!.count += 1;

@@ -148,7 +148,9 @@ export default function UploadSongs() {
                       placeholder={BLUR_PLACEHOLDER}
                     />
                     <View style={{ flex: 1 }}>
-                      <Text style={s.likedSong} numberOfLines={1}>{item.title}</Text>
+                      <Text style={s.likedSong} numberOfLines={1}>
+                        {item.title.length > 15 ? item.title.slice(0, 12) + '...' : item.title}
+                      </Text>
                       <Text style={s.likedArtist} numberOfLines={1}>{item.artist}</Text>
                     </View>
                     <View style={s.removePill}>

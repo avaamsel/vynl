@@ -2,7 +2,8 @@ import { createSupabaseAdminClient } from "@/src/server/supabase";
 import { clearDatabase, createUser, deleteAllUsers } from "./utils/database";
 import { POST as POST_PLAYLIST, GET as GET_PLAYLISTS } from "@/src/app/api/playlist/+api";
 import { GET as GET_PLAYLIST, PUT as PUT_PLAYLIST} from "@/src/app/api/playlist/[id]+api";
-import { isITunesPlaylist, ITunesPlaylist } from "@/src/types";
+import { PUT as ADD_TO_PLAYLIST } from "@/src/app/api/playlist/add/[id]+api";
+import { isITunesPlaylist, ITunesPlaylist, ITunesSong } from "@/src/types";
 import { Session, User } from "@supabase/supabase-js";
 
 describe('Playlist Test', () => {
@@ -628,8 +629,178 @@ describe('Playlist Test', () => {
             const changed_playlist = await getPlaylist(new_playlist.id, session.access_token);
             expect(changed_playlist).toStrictEqual(new_playlist);
         });
+    });
 
+    describe("Endpoint: PUT 'api/playlist/add/:id'", () => {
+        beforeEach(async () => {
+            await clearDatabase(adminClient);
+        });
 
+        test('Missing access token', async () => {
+            const playlist = {
+                "id": 0, 
+                "name": "An empty playlist", 
+                "created_at": "", 
+                "user_id": user.id,
+                "songs": [
+                    { song_id: 12, title: "test song", artist: "fake artist", preview_url: "example.com", cover_url: "example.com", duration_sec: 51 },
+                    { song_id: 42, title: "test song 2", artist: "abcd", preview_url: "test.com/abcd", cover_url: "test.com/abcd", duration_sec: 231 },
+                    { song_id: 52, title: "test song 3", artist: "xyz", preview_url: "test.com/xyz", cover_url: "test.com/xyz", duration_sec: 192 }
+                ]
+            }
+            const extra_song = { song_id: 391, title: "test song 4", artist: "xyz", preview_url: "test.com/xyz", cover_url: "test.com/xyz", duration_sec: 1932 }
+            const { id } = await addPlaylist(playlist, session.access_token);
+
+            // Missing access token
+            const req1 = new Request("localhost:1234/api/playlist/add/" + id, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify([extra_song])
+            });
+
+            // Call put endpoint, expect an error
+            const res1 = await ADD_TO_PLAYLIST(req1, { id:id.toString() });
+            expect(res1.ok).not.toBeTruthy();
+
+            // Bad access token
+            const req2 = new Request("localhost:1234/api/playlist/" + id, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer NotToken`,
+                },
+                body: JSON.stringify([extra_song])
+            });
+
+            // Call put endpoint, expect an error
+            const res2 = await GET_PLAYLIST(req2, { id:"21" });
+            expect(res2.ok).not.toBeTruthy();
+        });
+
+        test("Add to empty playlist", async () => {
+            const playlist = {
+                "id": 0, 
+                "name": "An empty playlist", 
+                "created_at": "", 
+                "user_id": user.id,
+                "songs": [
+                ]
+            }
+
+            const songs_to_add = [
+                { song_id: 12, title: "test song", artist: "fake artist", preview_url: "example.com", cover_url: "example.com", duration_sec: 51 },
+                { song_id: 42, title: "test song 2", artist: "abcd", preview_url: "test.com/abcd", cover_url: "test.com/abcd", duration_sec: 231 },
+                { song_id: 52, title: "test song 3", artist: "xyz", preview_url: "test.com/xyz", cover_url: "test.com/xyz", duration_sec: 192 }
+            ]
+
+            const { id } = await addPlaylist(playlist, session.access_token);
+
+            // Add the first song to the playlist
+            const req1 = createAddReq(id, songs_to_add.slice(0, 1), session.access_token);
+
+            const res1 = await ADD_TO_PLAYLIST(req1, { id:id.toString() });
+            expect(res1.ok).toBeTruthy();
+            let new_playlist = await getPlaylist(id, session.access_token);
+
+            expect(new_playlist.songs).toEqual(songs_to_add.slice(0,1));
+
+            const req2 = createAddReq(id, songs_to_add.slice(1, 3), session.access_token);
+
+            // Add the next two
+            const res2 = await ADD_TO_PLAYLIST(req2, { id:id.toString() });
+            expect(res2.ok).toBeTruthy();
+            new_playlist = await getPlaylist(id, session.access_token);
+
+            expect(new_playlist.songs).toEqual(songs_to_add);
+        });
+
+        test("Add to non-empty playlist", async () => {
+            const playlist = {
+                "id": 0, 
+                "name": "An empty playlist", 
+                "created_at": "", 
+                "user_id": user.id,
+                "songs": [
+                    { song_id: 1, title: "existing song 1", artist: "fake artist", preview_url: "example.com", cover_url: "example.com", duration_sec: 51 },
+                    { song_id: 1041, title: "existing song 2", artist: "fake artist", preview_url: "example.com", cover_url: "example.com", duration_sec: 34 },
+                ]
+            }
+
+            const songs_to_add = [
+                { song_id: 12, title: "test song", artist: "fake artist", preview_url: "example.com", cover_url: "example.com", duration_sec: 51 },
+                { song_id: 42, title: "test song 2", artist: "abcd", preview_url: "test.com/abcd", cover_url: "test.com/abcd", duration_sec: 231 },
+                { song_id: 52, title: "test song 3", artist: "xyz", preview_url: "test.com/xyz", cover_url: "test.com/xyz", duration_sec: 192 }
+            ]
+
+            const { id } = await addPlaylist(playlist, session.access_token);
+
+            // Add the first song to the playlist
+            const req1 = createAddReq(id, songs_to_add.slice(0, 1), session.access_token);
+
+            const res1 = await ADD_TO_PLAYLIST(req1, { id:id.toString() });
+            expect(res1.ok).toBeTruthy();
+            let new_playlist = await getPlaylist(id, session.access_token);
+
+            expect(new_playlist.songs).toEqual([...playlist.songs, ...songs_to_add.slice(0,1)]);
+
+            const req2 = createAddReq(id, songs_to_add.slice(1, 3), session.access_token);
+
+            // Add the next two
+            const res2 = await ADD_TO_PLAYLIST(req2, { id:id.toString() });
+            expect(res2.ok).toBeTruthy();
+            new_playlist = await getPlaylist(id, session.access_token);
+
+            expect(new_playlist.songs).toEqual([...playlist.songs, ...songs_to_add]);
+        });
+
+        test("Add existing song", async () => {
+            const playlist = {
+                "id": 0, 
+                "name": "An empty playlist", 
+                "created_at": "", 
+                "user_id": user.id,
+                "songs": [
+                    { song_id: 1, title: "existing song 1", artist: "fake artist", preview_url: "example.com", cover_url: "example.com", duration_sec: 51 },
+                    { song_id: 1041, title: "existing song 2", artist: "fake artist", preview_url: "example.com", cover_url: "example.com", duration_sec: 34 },
+                ]
+            }
+
+            const songs_to_add1 = [
+                { song_id: 1, title: "existing song 1", artist: "fake artist", preview_url: "example.com", cover_url: "example.com", duration_sec: 51 },
+            ]
+
+            const songs_to_add2 = [
+                { song_id: 42, title: "test song 2", artist: "abcd", preview_url: "test.com/abcd", cover_url: "test.com/abcd", duration_sec: 231 },
+                { song_id: 1, title: "existing song 1", artist: "fake artist", preview_url: "example.com", cover_url: "example.com", duration_sec: 51 },
+                { song_id: 52, title: "test song 3", artist: "xyz", preview_url: "test.com/xyz", cover_url: "test.com/xyz", duration_sec: 192 }
+            ]
+
+            const { id } = await addPlaylist(playlist, session.access_token);
+
+            // Add the first song to the playlist
+            const req1 = createAddReq(id, songs_to_add1, session.access_token);
+
+            const res1 = await ADD_TO_PLAYLIST(req1, { id:id.toString() });
+            expect(res1.ok).toBeTruthy();
+            let new_playlist = await getPlaylist(id, session.access_token);
+
+            expect(new_playlist.songs).toEqual(playlist.songs);
+
+            const req2 = createAddReq(id, songs_to_add2, session.access_token);
+
+            // Add the next two
+            const res2 = await ADD_TO_PLAYLIST(req2, { id:id.toString() });
+            expect(res2.ok).toBeTruthy();
+            new_playlist = await getPlaylist(id, session.access_token);
+
+            expect(new_playlist.songs).toEqual([...playlist.songs, songs_to_add2[0], songs_to_add2[2]]);
+        });
+
+        test("Many user add at once", async () => {
+
+        })
     });
 });
 
@@ -668,4 +839,17 @@ async function getPlaylist(id: Number, access_token: string): Promise<ITunesPlay
     const body = await res.json();
     expect(isITunesPlaylist(body)).toBeTruthy();
     return body;
+}
+
+
+function createAddReq(id: Number, songs: ITunesSong[], access_token: string): Request {
+    const req = new Request("localhost:1234/api/playlist/add" + id, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${access_token}`,
+        },
+        body: JSON.stringify({songs: songs})
+    });
+    return req;
 }

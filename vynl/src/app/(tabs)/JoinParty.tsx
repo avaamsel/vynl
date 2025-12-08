@@ -1,13 +1,12 @@
 import { Image } from 'expo-image';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, TextInput, Alert } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, TextInput, Alert, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFonts } from 'expo-font';
-import { Poppins_400Regular } from '@expo-google-fonts/poppins';
 import { useRouter } from 'expo-router';
 import { useState, useRef } from 'react';
 import { useAuth } from '../../context/auth-context';
 import { ITunesPlaylist } from '@/src/types';
+import { useUser } from '@/src/hooks/use-user';
 
 // Image assets
 const imgBackground = require('@/assets/images/background.png');
@@ -15,11 +14,11 @@ const imgBackground = require('@/assets/images/background.png');
 export default function JoinPartyScreen() {
   const router = useRouter();
   const { authToken } = useAuth();
+  const { user, loading: authLoading } = useUser();
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const inputRefs = useRef<(TextInput | null)[]>([]);
-  const [fontsLoaded] = useFonts({
-    Poppins: Poppins_400Regular,
-  });
+  const { width: screenWidth } = useWindowDimensions();
+  const buttonWidth = Math.min(screenWidth - 40, 400); // 20px padding on each side, max 400
 
   const handleCodeChange = (text: string, index: number) => {
     // Only allow alphanumeric characters
@@ -45,8 +44,9 @@ export default function JoinPartyScreen() {
     const fullCode = code.join('');
     if (fullCode.length === 6) {
       console.log('Joining party with code:', fullCode);
+      console.log("Logged in as : ", user?.id);
       
-      const res = await fetch(`api/playlist/party/link/${encodeURIComponent(fullCode)}`, {
+      const res = await fetch(`/api/playlist/party/link/${encodeURIComponent(fullCode)}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -69,10 +69,6 @@ export default function JoinPartyScreen() {
       Alert.alert('Error', 'Code must be 6 characters');
     }
   };
-
-  if (!fontsLoaded) {
-    return null;
-  }
 
   return (
     <View style={styles.container}>
@@ -99,7 +95,7 @@ export default function JoinPartyScreen() {
             {code.map((digit, index) => (
               <TextInput
                 key={index}
-                ref={(ref) => (inputRefs.current[index] = ref)}
+                ref={(ref) => { inputRefs.current[index] = ref; }}
                 style={styles.codeInput}
                 value={digit}
                 onChangeText={(text) => handleCodeChange(text, index)}
@@ -124,12 +120,13 @@ export default function JoinPartyScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={handleJoinParty}
+              style={{ width: buttonWidth }}
             >
               <LinearGradient
                 colors={['#FF6B9D', '#FF8C42']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.gradientButton}
+                style={[styles.gradientButton, { width: buttonWidth }]}
               >
                 <Text style={styles.gradientButtonText}>JOIN PARTY</Text>
               </LinearGradient>
@@ -223,8 +220,6 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   gradientButton: {
-    width: '100%',
-    maxWidth: 400,
     height: 56,
     borderRadius: 28,
     justifyContent: 'center',

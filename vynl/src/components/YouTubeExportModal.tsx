@@ -14,16 +14,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppButton from './AppButton';
-import * as WebBrowser from 'expo-web-browser';
-import {
-  isSpotifyAuthenticated,
-  exportPlaylistToSpotify,
-  clearSpotifyTokens,
-} from '@/src/utils/spotify';
-import { initiateSpotifyAuth, handleSpotifyCallback, handleSpotifyCallbackFromQuery } from '@/src/utils/spotifyAuth';
 import * as Linking from 'expo-linking';
+import {
+  isYouTubeAuthenticated,
+  exportPlaylistToYouTube,
+  clearYouTubeTokens,
+  findExistingYouTubePlaylist,
+} from '@/src/utils/youtube';
+import {
+  initiateYouTubeAuth,
+  handleYouTubeCallback,
+  handleYouTubeCallbackFromQuery,
+} from '@/src/utils/youtubeAuth';
 
-interface SpotifyExportModalProps {
+interface YouTubeExportModalProps {
   visible: boolean;
   onClose: () => void;
   playlistName: string;
@@ -31,13 +35,13 @@ interface SpotifyExportModalProps {
   onSuccess?: (playlistUrl: string) => void;
 }
 
-export default function SpotifyExportModal({
+export default function YouTubeExportModal({
   visible,
   onClose,
   playlistName,
   songs,
   onSuccess,
-}: SpotifyExportModalProps) {
+}: YouTubeExportModalProps) {
   const insets = useSafeAreaInsets();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -53,40 +57,31 @@ export default function SpotifyExportModal({
     tracksTotal: number;
   } | null>(null);
 
-  // Reset state when modal closes
   useEffect(() => {
     if (!visible) {
-      setIsCheckingAuth(true);
       setIsAuthenticated(false);
+      setIsCheckingAuth(true);
       setIsExporting(false);
       setExportProgress(null);
       setExportResult(null);
     }
   }, [visible]);
 
-  // Check authentication status
   useEffect(() => {
     if (!visible) return;
+    let mounted = true;
 
-    let isMounted = true;
-    
     const checkAuth = async () => {
-      console.log('Modal visible, checking Spotify auth...');
-      if (isMounted) {
-        setIsCheckingAuth(true);
-        setIsAuthenticated(false);
-      }
-      
+      setIsCheckingAuth(true);
       try {
-        const authenticated = await isSpotifyAuthenticated();
-        console.log('Spotify auth check result:', authenticated);
-        if (isMounted) {
-          setIsAuthenticated(authenticated || false);
+        const authenticated = await isYouTubeAuthenticated();
+        if (mounted) {
+          setIsAuthenticated(authenticated);
           setIsCheckingAuth(false);
         }
-      } catch (error: any) {
-        console.error('Error checking Spotify auth:', error);
-        if (isMounted) {
+      } catch (error) {
+        console.error('Error checking YouTube auth:', error);
+        if (mounted) {
           setIsAuthenticated(false);
           setIsCheckingAuth(false);
         }
@@ -94,87 +89,72 @@ export default function SpotifyExportModal({
     };
 
     checkAuth();
-    
+
     return () => {
-      isMounted = false;
+      mounted = false;
     };
   }, [visible]);
 
-  // Handle OAuth callback on web (from query parameters)
   useEffect(() => {
     if (Platform.OS === 'web' && visible) {
-      const handleWebCallback = async () => {
-        try {
-          const success = await handleSpotifyCallbackFromQuery();
+      handleYouTubeCallbackFromQuery()
+        .then((success) => {
           if (success) {
             setIsAuthenticated(true);
             setIsCheckingAuth(false);
           }
-        } catch (error) {
-          console.error('Error handling web OAuth callback:', error);
-          // Don't show alert here as it might be called multiple times
-        }
-      };
-      
-      handleWebCallback();
+        })
+        .catch((error) => {
+          console.error('Error handling YouTube callback:', error);
+        });
     }
   }, [visible]);
 
-  // Handle deep linking for OAuth callback (mobile)
   useEffect(() => {
     if (Platform.OS !== 'web') {
-      const subscription = Linking.addEventListener('url', handleDeepLink);
+      const subscription = Linking.addEventListener('url', async (event) => {
+        try {
+          await handleYouTubeCallback(event.url);
+          setIsAuthenticated(true);
+        } catch (error) {
+          console.error('Error handling YouTube deep link:', error);
+          Alert.alert('Error', 'Failed to authenticate with YouTube Music');
+        }
+      });
       return () => subscription.remove();
     }
   }, []);
 
-  const handleDeepLink = async (event: { url: string }) => {
-    try {
-      await handleSpotifyCallback(event.url);
-      setIsAuthenticated(true);
-    } catch (error) {
-      console.error('Error handling OAuth callback:', error);
-      Alert.alert('Error', 'Failed to authenticate with Spotify');
-    }
-  };
-
   const handleAuthenticate = async () => {
     try {
       if (Platform.OS === 'web') {
-        // Web OAuth flow
-        const authUrl = await initiateSpotifyAuth();
-        if (authUrl && typeof authUrl === 'string') {
-          // Open in same window and handle callback
-          if (typeof window !== 'undefined') {
-            window.location.href = authUrl;
-          }
+        const authUrl = await initiateYouTubeAuth();
+        if (authUrl && typeof window !== 'undefined') {
+          window.location.href = authUrl;
         }
       } else {
-        // Mobile OAuth flow
-        await initiateSpotifyAuth();
+        await initiateYouTubeAuth();
         setTimeout(async () => {
           try {
-            const authenticated = await isSpotifyAuthenticated();
+            const authenticated = await isYouTubeAuthenticated();
             setIsAuthenticated(authenticated);
           } catch (error) {
-            console.error('Error checking auth status:', error);
+            console.error('Error verifying YouTube authentication:', error);
           }
-        }, 1000);
+        }, 1200);
       }
     } catch (error: any) {
-      console.error('Error authenticating with Spotify:', error);
-      // Don't show alert for user cancellation - it's expected behavior
-      if (error.message?.includes('cancelled') || error.message?.includes('cancel')) {
-        console.log('User cancelled Spotify authentication');
+      if (error.message?.includes('cancel')) {
+        console.log('User cancelled YouTube authentication');
         return;
       }
-      Alert.alert('Error', error.message || 'Failed to authenticate with Spotify');
+      Alert.alert('Error', error.message || 'Failed to authenticate with YouTube Music');
     }
   };
 
-  const handleExport = async () => {
+  const handleExport = async (useExisting: boolean = false, appendToExisting: boolean = false, existingPlaylistId?: string) => {
     if (songs.length === 0) {
-      Alert.alert('Error', 'Playlist is empty');
+      Alert.alert('Playlist is empty', 'Add a few songs before exporting.');
       return;
     }
 
@@ -183,53 +163,103 @@ export default function SpotifyExportModal({
     setExportResult(null);
 
     try {
-      const result = await exportPlaylistToSpotify(playlistName, songs, (progress) => {
-        setExportProgress(progress);
-      });
+      const result = await exportPlaylistToYouTube(
+        playlistName,
+        songs,
+        (progress) => setExportProgress(progress),
+        {
+          useExistingPlaylist: useExisting,
+          existingPlaylistId: existingPlaylistId,
+          appendToExisting: appendToExisting,
+        }
+      );
 
       setExportResult(result);
       setIsExporting(false);
 
-      if (onSuccess) {
-        onSuccess(result.playlistUrl);
-      }
+      onSuccess?.(result.playlistUrl);
 
       Alert.alert(
-        'Success!',
-        `Playlist exported to Spotify!\n\nFound ${result.tracksFound} out of ${result.tracksTotal} tracks.`,
+        'Exported to YouTube Music',
+        `Found ${result.tracksFound} of ${result.tracksTotal} tracks`,
         [
           {
-            text: 'Open in Spotify',
+            text: 'Open Playlist',
             onPress: () => {
               if (Platform.OS === 'web') {
-                window.open(result.playlistUrl, '_blank');
+                if (typeof window !== 'undefined') {
+                  window.open(result.playlistUrl, '_blank');
+                }
               } else {
                 Linking.openURL(result.playlistUrl);
               }
             },
           },
-          { text: 'OK', onPress: onClose },
+          { text: 'Close', onPress: onClose },
         ]
       );
     } catch (error: any) {
-      console.error('Error exporting playlist:', error);
+      console.error('Failed to export playlist to YouTube Music:', error);
       setIsExporting(false);
       setExportProgress(null);
-      Alert.alert('Error', error.message || 'Failed to export playlist to Spotify');
+      Alert.alert('Error', error.message || 'Export failed. Please try again.');
+    }
+  };
+
+  const handleExportWithCheck = async () => {
+    if (songs.length === 0) {
+      Alert.alert('Playlist is empty', 'Add a few songs before exporting.');
+      return;
+    }
+
+    // Check if a playlist with the same name already exists
+    try {
+      const existingPlaylist = await findExistingYouTubePlaylist(playlistName);
+      
+      if (existingPlaylist) {
+        // Show alert asking user what they want to do
+        Alert.alert(
+          'Playlist Already Exists',
+          `A playlist named "${playlistName}" already exists on YouTube Music. What would you like to do?`,
+          [
+            {
+              text: 'Add to Existing',
+              onPress: () => handleExport(true, true, existingPlaylist.id),
+            },
+            {
+              text: 'Replace Existing',
+              onPress: () => handleExport(true, false, existingPlaylist.id),
+            },
+            {
+              text: 'Create New',
+              style: 'cancel',
+              onPress: () => handleExport(false, false),
+            },
+          ],
+          { cancelable: true }
+        );
+      } else {
+        // No existing playlist, proceed with normal export
+        handleExport(false, false);
+      }
+    } catch (error: any) {
+      console.error('Error checking for existing playlist:', error);
+      // If check fails, proceed with normal export
+      handleExport(false, false);
     }
   };
 
   const handleDisconnect = async () => {
     Alert.alert(
-      'Disconnect Spotify',
-      'Are you sure you want to disconnect your Spotify account?',
+      'Disconnect YouTube Music',
+      'Disconnecting removes access to export playlists.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Disconnect',
           style: 'destructive',
           onPress: async () => {
-            await clearSpotifyTokens();
+            await clearYouTubeTokens();
             setIsAuthenticated(false);
             setExportResult(null);
           },
@@ -238,32 +268,26 @@ export default function SpotifyExportModal({
     );
   };
 
-  console.log('SpotifyExportModal render - visible:', visible, 'isCheckingAuth:', isCheckingAuth, 'isAuthenticated:', isAuthenticated, 'playlistName:', playlistName, 'songs:', songs.length);
-
   return (
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={true}
+      transparent
+      statusBarTranslucent
       onRequestClose={onClose}
-      statusBarTranslucent={true}
     >
       <View style={styles.modalOverlay}>
-        <TouchableOpacity 
-          style={StyleSheet.absoluteFill}
-          activeOpacity={1}
-          onPress={onClose}
-        />
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onClose} />
         <View style={[styles.modalContentWrapper, { marginBottom: insets.bottom }]}>
           <LinearGradient colors={['#F8F9FD', '#FFFFFF']} style={styles.modalContent}>
             <View style={styles.header}>
-              <Text style={styles.title}>Export to Spotify</Text>
+              <Text style={styles.title}>Export to YouTube Music</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                 <Ionicons name="close" size={24} color="#001133" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView 
+            <ScrollView
               style={styles.content}
               contentContainerStyle={styles.contentContainer}
               showsVerticalScrollIndicator={false}
@@ -271,21 +295,21 @@ export default function SpotifyExportModal({
             >
               {isCheckingAuth ? (
                 <View style={styles.centerContent}>
-                  <ActivityIndicator size="large" color="#F28695" />
-                  <Text style={styles.statusText}>Checking authentication...</Text>
+                  <ActivityIndicator size="large" color="#FF375F" />
+                  <Text style={styles.statusText}>Checking YouTube access...</Text>
                 </View>
               ) : !isAuthenticated ? (
                 <View style={styles.authSection}>
-                  <Ionicons name="musical-notes" size={64} color="#1DB954" style={styles.spotifyIcon} />
-                  <Text style={styles.authTitle}>Connect to Spotify</Text>
+                  <Ionicons name="logo-youtube" size={64} color="#FF0000" style={styles.youtubeIcon} />
+                  <Text style={styles.authTitle}>Connect YouTube Music</Text>
                   <Text style={styles.authDescription}>
-                    Connect your Spotify account to export playlists and start listening!
+                    Securely connect your YouTube Music account so we can create playlists for you.
                   </Text>
                   <View style={styles.buttonContainer}>
                     <AppButton
-                      title="Connect Spotify"
+                      title="Connect YouTube Music"
                       onPress={handleAuthenticate}
-                      backgroundColor="#1DB954"
+                      backgroundColor="#FF0000"
                       textColor="#FFFFFF"
                       width="100%"
                     />
@@ -293,16 +317,19 @@ export default function SpotifyExportModal({
                 </View>
               ) : isExporting ? (
                 <View style={styles.exportSection}>
-                  <ActivityIndicator size="large" color="#F28695" style={styles.loader} />
-                  <Text style={styles.exportStatus}>
-                    {exportProgress?.status || 'Exporting playlist...'}
-                  </Text>
+                  <ActivityIndicator size="large" color="#FF375F" style={styles.loader} />
+                  <Text style={styles.exportStatus}>{exportProgress?.status}</Text>
                   {exportProgress && (
                     <View style={styles.progressBar}>
                       <View
                         style={[
                           styles.progressFill,
-                          { width: `${(exportProgress.current / exportProgress.total) * 100}%` },
+                          {
+                            width: `${Math.min(
+                              100,
+                              (exportProgress.current / exportProgress.total) * 100
+                            )}%`,
+                          },
                         ]}
                       />
                     </View>
@@ -314,13 +341,13 @@ export default function SpotifyExportModal({
               ) : exportResult ? (
                 <View style={styles.successSection}>
                   <Ionicons name="checkmark-circle" size={64} color="#1DB954" style={styles.successIcon} />
-                  <Text style={styles.successTitle}>Export Complete!</Text>
+                  <Text style={styles.successTitle}>All set!</Text>
                   <Text style={styles.successText}>
-                    Found {exportResult.tracksFound} out of {exportResult.tracksTotal} tracks
+                    Found {exportResult.tracksFound} of {exportResult.tracksTotal} tracks.
                   </Text>
                   <View style={styles.buttonContainer}>
                     <AppButton
-                      title="Open in Spotify"
+                      title="Open in YouTube Music"
                       onPress={() => {
                         if (Platform.OS === 'web') {
                           if (typeof window !== 'undefined') {
@@ -330,7 +357,7 @@ export default function SpotifyExportModal({
                           Linking.openURL(exportResult.playlistUrl);
                         }
                       }}
-                      backgroundColor="#1DB954"
+                      backgroundColor="#FF0000"
                       textColor="#FFFFFF"
                       width="100%"
                     />
@@ -347,11 +374,11 @@ export default function SpotifyExportModal({
                 </View>
               ) : (
                 <View style={styles.readySection}>
-                  <Ionicons name="musical-notes" size={64} color="#1DB954" style={styles.spotifyIcon} />
+                  <Ionicons name="logo-youtube" size={64} color="#FF0000" style={styles.youtubeIcon} />
                   <Text style={styles.readyTitle}>Ready to Export</Text>
                   <Text style={styles.readyDescription}>
-                    Export "{playlistName}" with {songs.length} song{songs.length !== 1 ? 's' : ''} to
-                    Spotify?
+                    Export "{playlistName}" with {songs.length} song{songs.length !== 1 ? 's' : ''} to YouTube
+                    Music.
                   </Text>
                   <View style={styles.playlistInfo}>
                     <Text style={styles.playlistInfoText}>
@@ -363,15 +390,15 @@ export default function SpotifyExportModal({
                   </View>
                   <View style={styles.buttonContainer}>
                     <AppButton
-                      title="Export to Spotify"
-                      onPress={handleExport}
-                      backgroundColor="#1DB954"
+                      title="Export to YouTube Music"
+                      onPress={handleExportWithCheck}
+                      backgroundColor="#FF0000"
                       textColor="#FFFFFF"
                       width="100%"
                     />
                   </View>
                   <TouchableOpacity onPress={handleDisconnect} style={styles.disconnectButton}>
-                    <Text style={styles.disconnectText}>Disconnect Spotify</Text>
+                    <Text style={styles.disconnectText}>Disconnect YouTube Music</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -444,7 +471,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
   },
-  spotifyIcon: {
+  youtubeIcon: {
     marginBottom: 12,
   },
   authTitle: {
@@ -485,7 +512,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#1DB954',
+    backgroundColor: '#FF0000',
     borderRadius: 4,
   },
   progressText: {
@@ -560,4 +587,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
 

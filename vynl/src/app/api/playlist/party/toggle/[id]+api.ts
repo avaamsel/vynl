@@ -75,7 +75,7 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
             const party_user_to_add: party_user = {playlist_id: playlist_id, user_id: uid}
 
             const { data: pu_data, error: pu_err } = await supabase
-                .from('party_user')
+                .from('party_users')
                 .upsert(party_user_to_add)
 
             if (pu_err) {

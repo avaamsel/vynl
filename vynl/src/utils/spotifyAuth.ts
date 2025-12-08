@@ -67,7 +67,10 @@ const SPOTIFY_SCOPES = [
 ].join(' ');
 
 // Redirect URI - needs to match what's configured in Spotify app settings
-const getRedirectUri = () => {
+// Uses consistent format for all users:
+// - Mobile: vynl://spotify-callback
+// - Web: Uses web URL with callback endpoint
+const getRedirectUri = (): string => {
   let redirectUri: string;
   
   if (Platform.OS === 'web') {
@@ -77,14 +80,14 @@ const getRedirectUri = () => {
       redirectUri = 'http://localhost:8081/api/spotify/callback';
     }
   } else {
-    redirectUri = AuthSession.makeRedirectUri();
+    redirectUri = 'vynl://spotify-callback';
   }
   
   console.log(`[Spotify Auth] Generated redirect URI: ${redirectUri}`);
   console.log(`[Spotify Auth] Platform: ${Platform.OS}`);
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    console.log(`[Spotify Auth] Window location origin: ${window.location.origin}`);
-  }
+  
+  // Print URI to terminal
+  console.log(`\n REDIRECT URI: ${redirectUri}\n`);
   
   return redirectUri;
 };
@@ -132,6 +135,8 @@ export async function initiateSpotifyAuth(): Promise<string | void> {
         showInRecents: true,
       });
 
+      console.log(`[Spotify Auth] OAuth result type: ${result.type}`);
+      
       if (result.type === 'success') {
         const { code } = result.params;
         if (code) {
@@ -143,6 +148,7 @@ export async function initiateSpotifyAuth(): Promise<string | void> {
       } else if (result.type === 'error') {
         const errorMsg = result.error?.message || 'Authentication failed';
         console.error(`[Spotify Auth] OAuth error: ${errorMsg}`);
+        console.error(`[Spotify Auth] Error code: ${result.error?.code || 'unknown'}`);
         if (errorMsg.includes('redirect_uri') || errorMsg.includes('redirect URI')) {
           console.error(`[Spotify Auth] Redirect URI mismatch!`);
           console.error(`[Spotify Auth] The redirect URI being used is: ${redirectUri}`);
@@ -155,7 +161,10 @@ export async function initiateSpotifyAuth(): Promise<string | void> {
         }
         throw new Error(errorMsg);
       } else {
-        throw new Error('Authentication cancelled');
+        // Unknown result type
+        console.warn(`[Spotify Auth] Unknown result type: ${result.type}`);
+        console.warn(`[Spotify Auth] Result:`, result);
+        throw new Error(`Authentication cancelled (result type: ${result.type})`);
       }
     } catch (error: any) {
       console.error('[Spotify Auth] Error in Spotify auth:', error);
@@ -335,23 +344,113 @@ async function exchangeCodeForToken(code: string, redirectUri: string): Promise<
  */
 export async function handleSpotifyCallback(url: string): Promise<void> {
   try {
-    const parsedUrl = new URL(url);
-    const code = parsedUrl.searchParams.get('code');
-    const error = parsedUrl.searchParams.get('error');
-
+    console.log('[Spotify Auth] Handling callback with URL:', url);
+    
+    // Parse URL - handle both http/https and custom scheme (vynl://)
+    let parsedUrl: URL;
+    let searchParams: URLSearchParams;
+    
+    try {
+      // Try parsing as standard URL first
+      parsedUrl = new URL(url);
+      searchParams = parsedUrl.searchParams;
+    } catch {
+      // If that fails, it might be a custom scheme URL (vynl://)
+      // Parse manually: vynl://path?code=...&state=...
+      const match = url.match(/^[^:]+:\/\/([^?]+)\?(.+)$/);
+      if (match) {
+        const queryString = match[2];
+        searchParams = new URLSearchParams(queryString);
+        // Create a dummy URL for compatibility
+        parsedUrl = new URL(`http://dummy?${queryString}`);
+      } else {
+        throw new Error(`Invalid URL format: ${url}`);
+      }
+    }
+    
+    // Check for error first
+    const error = searchParams.get('error') || searchParams.get('spotify_error');
     if (error) {
       throw new Error(`Spotify authentication error: ${error}`);
     }
 
+    // Try to get code from either format
+    let code = searchParams.get('code');
     if (!code) {
+      code = searchParams.get('spotify_code');
+    }
+
+    if (!code) {
+      // Log all query parameters for debugging
+      const allParams: Record<string, string> = {};
+      searchParams.forEach((value, key) => {
+        allParams[key] = value;
+      });
+      console.error('[Spotify Auth] No authorization code found in URL');
+      console.error('[Spotify Auth] URL:', url);
+      console.error('[Spotify Auth] All query parameters:', allParams);
       throw new Error('No authorization code received');
     }
 
-    const redirectUri = getRedirectUri();
+    console.log('[Spotify Auth] Found authorization code, exchanging for token...');
+
+    // Get redirect URI - use the one from query params if available, otherwise generate it
+    let redirectUri = searchParams.get('redirect_uri');
+    if (!redirectUri) {
+      redirectUri = getRedirectUri();
+    }
+
     await exchangeCodeForToken(code, redirectUri);
+    console.log('[Spotify Auth] Token exchange successful');
   } catch (error) {
-    console.error('Error handling Spotify callback:', error);
+    console.error('[Spotify Auth] Error handling Spotify callback:', error);
     throw error;
+  }
+}
+
+/**
+ * Handle OAuth callback from query parameters (for web after redirect)
+ */
+export async function handleSpotifyCallbackFromQuery(): Promise<boolean> {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get('spotify_code');
+    const error = url.searchParams.get('spotify_error');
+
+    if (error) {
+      console.error('Spotify authentication error:', error);
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return false;
+    }
+
+    if (!code) {
+      return false;
+    }
+
+    // Get redirect URI from query params or generate it
+    let redirectUri = url.searchParams.get('redirect_uri');
+    if (!redirectUri) {
+      redirectUri = getRedirectUri();
+    }
+
+    await exchangeCodeForToken(code, redirectUri);
+    
+    // Clean up URL by removing query parameters
+    window.history.replaceState({}, document.title, window.location.pathname);
+    
+    return true;
+  } catch (error) {
+    console.error('Error handling Spotify callback from query:', error);
+    // Clean up URL even on error
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    return false;
   }
 }
 

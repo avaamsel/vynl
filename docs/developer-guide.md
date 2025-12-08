@@ -1,8 +1,8 @@
   
-**Version:** 1.0 (Beta Release)  
-**Contributors:** Vicky Liu, Louis Bernard, Aliyah Mcreae
+**Version:** 2.0 (Final Release)  
+**Contributors:** Vicky Liu, Louis Bernard, Aliyah Mcreae, Ava Nunes
 
-(Last Updated Tues, Nov 11, 2025\)
+(Last Updated Friday, December 5, 2025\)
 
 # 🎧 Vynl Developer Guide:
 This document provides full instructions for setting up the development environment, understanding repository organization, building the software, and contributing safely and effectively.
@@ -27,30 +27,58 @@ cd vynl
 
 The repository is organized as follows. Paths are relative to the repository root.
 
-
 ```
-vynl/                  # Project root
-├── .expo/             # Expo-managed metadata and caches (do not edit manually)
-├── node_modules/      # Installed dependencies managed by npm
-├── vynl/              # Primary application source    
-│   └── app/           # Screens and routing using Expo router
-│   └── assets/
-│       └──images/     # Application images and icons
-│       └──fonts/      # Application fonts
-│   └── components/    # Reusable UI components
-│   └── constants/     # Shared constants such as colors, spacing, route names
-│   └── hooks/         # Custom React hooks and client-side logic
-│   └── scripts/       # Local automation scripts and developer utilities
-└── App.js             # Root entry that forwards to the app under ./vynl
+vynl/                                  # Project root
+├── .expo/                             # Expo-managed metadata and caches (do not edit manually)
+├── .github/                           # GitHub-specific configurations
+│   └── workflows/                     # Vynl's CI/CD workflows
+│
+├── docs/                              # Documentation files
+├── node_modules/                      # Installed dependencies managed by npm
+├── vynl/                              # Primary application source    
+│   ├── __tests__/                     # Unit and integration tests, organized by feature
+│   │   └── utils/                     # Shared test utilities
+│   │
+│   ├── assets/
+│   │   ├── images/                    # Application images and icons
+│   │   └── fonts/                     # Application fonts
+│   │
+│   ├── scripts/                       # Local automation scripts and developer utilities
+│   ├── src/               
+│   │   ├── app/                       # Screens and routing using Expo router
+│   │   │   └──  (tabs)/               # Tab-based navigation screens
+│   │   │ 
+│   │   ├── components/    
+│   │   │   └── ui/                    # Reusable UI components
+│   │   │ 
+│   │   ├── constants/                 # Shared constants such as colors, spacing, route names
+│   │   ├── hooks/                     # Custom React hooks and client-side logic
+│   │   ├── server/                    # Backend related utilities
+│   │   │   └── song-recommendation/   # Song recommendation logic
+│   │   │ 
+│   │   ├── services                   
+│   │   │   └── music-providers/       # External integration of music providers
+│   │   │ 
+│   │   ├── types/                    
+│   │   │   └── database/              # Database type definitions and interfaces
+│   │   │
+│   │   └── utils/                     # Helper funtions and utilities 
+│   │
+│   └── supabase/                      # Supabase configuration and backend setup
+│
+└── App.js                             # Root entry that forwards to the app under ./vynl
 ```
 
-2.1 Source Files
+### **2.1 Source Files**
 
-* Core application code resides in `vynl/`  
-* Screens and navigation reside in `vynl/app/`  
-* Shared UI components reside in `vynl/components/`  
-* Reusable logic resides in `vynl/hooks/`  
-* Global configuration values reside in `vynl/constants/`
+* Core application code resides in `vynl/`
+* Tests are located in `vynl/__tests__`
+* Screens and navigation reside in `vynl/src/app/`  
+* Shared UI components reside in `vynl/src/components/`  
+* Reusable logic resides in `vynl/src/hooks/`  
+* Global configuration values reside in `vynl/src/constants/`
+* Backend configuration and logic reside in `vynl/src/server/` and `vynl/src/types/`
+
 
 
 ## 3\. 🚀Building the Software
@@ -65,6 +93,7 @@ Vynl uses Expo and npm for development builds
 | **npm** | 9+ | Package manager |
 | **Expo CLI** | 6+ | Cross-platform framework for React Native |
 | **Git** | 2.40+ | Version control |
+| **Jest** | — | For mobile testing |
 | **Supabase Account** | — | Backend database & authentication (logging in and signing up) |
 | **iTunes API** | — | API access for searching songs and sound previews |
 | **Last.fm** | — | API access for music data and export |
@@ -104,11 +133,31 @@ This installs dependencies for the project and the app
 > Note: To obtain the ``.env`` file, send an email to Zack (Backend engineer) requesting access: zcrouse@uw.edu
 
 Once you have it, insert the file in same subfolder as the ``.env.example`` located in the inner ``./vynl`` folder.
+Your ``.env`` should have a structure like this:
+```
+EXPO_PUBLIC_SUPABASE_URL=''
+EXPO_PUBLIC_SUPABASE_KEY=''
+EXPO_PRIVATE_SUPABASE_KEY=''
 
+EXPO_PUBLIC_SPOTIFY_CLIENT_ID=''
+EXPO_PUBLIC_SPOTIFY_CLIENT_SECRET=''
+EXPO_PUBLIC_API_URL=''
+
+LASTFM_API_KEY=''
+
+EXPO_PUBLIC_YOUTUBE_CLIENT_ID=''
+
+EXPO_PUBLIC_OWNER=''
+```
 
 ### **3.4 Development build and run**
 
-Start the development server from the repository root
+Navigate to the vynl folder:
+```
+cd vynl
+```
+
+Now, run the project's development server:
 
 ```
 npx expo start
@@ -116,7 +165,7 @@ npx expo start
 
 **Platform-Specific Testing:**
 * **Mobile (iOS/Android):** Use the ``Expo Go`` app on your physical device or emulator
-* **Web:** Web preview is currently **not supported** due to localStorage compatibility issues. Testing should be done on mobile platform only. 
+* **Web:** Web preview is currently **not supported** due to localStorage compatibility issues. **_Testing should be done on mobile platform only._**
 
 If you encounter connection problems or can’t be on the same wifi, run 
 
@@ -125,21 +174,33 @@ npx expo start --tunnel
 ```
 
 ## 4\. 🧑‍💻 How to test the software:
+### 4.1 Installing Jest:
 
-1. Make sure you have the required dev dependencies for Jest:  
-   1. If not, run: ``npx expo install jest-expo jest @types/jest \--dev``
-   2. Also make sure to run: ``npx expo install @testing-library/react-native \--dev`` 
-2. Run ``npx run test`` to see the test results within the terminal – make sure this is done within the Vynl directory and not the root\!
+Make sure you have the required dev dependencies for Jest. To check Jest's dev dependencies run: ``npm list jest-expo jest @types/jest @testing-library/react-native``
+    
+If your dependencies are not:
+```
+jest: ^29.7.0
+jest-expo: ^54.0.13
+@types/jest: ^29.5.14
+@testing-library/react-native: ^13.3.3
+@testing-library/jest-native: ^5.4.3
+```
+    
+run: ``npx expo install jest-expo jest @types/jest \--dev``
 
-To see code coverage reports, run ``npx run test`` within the code’s root directory and a table displaying coverage percentages should appear in the terminal that can be filtered by failed tests, etc 
+Also make sure to run: ``npx expo install @testing-library/react-native \--dev`` 
+
+### 4.2 Running Tests:
+  Run ``npx run test`` to see the test results within the terminal – make sure this is done within the Vynl directory and not the root\!
+
+To see code coverage reports, run ``npx run test`` within the code’s root directory and a table displaying coverage percentages should appear in the terminal that can be filtered by failed tests, etc.
 
 For more examples for testing, especially regarding APIs, check out: [https://callstack.github.io/react-native-testing-library/docs/api/queries](https://callstack.github.io/react-native-testing-library/docs/api/queries) 
 
 ## 5\. ✍️ How to add new tests:
 
-1. Make sure you have the required dev dependencies for Jest:  
-   1. If not, run: ``npx expo install jest-expo jest @types/jest \--dev``  
-   2. Also make sure to run: ``npx expo install @testing-library/react-native \--dev``  
+1. Make sure you have the required dev dependencies for Jest, if not, reference step 4.1 for installation!
 2. Most of the unit tests created will fall under the “\_\_tests\_\_” folder in the project root directory, within that folder names for tests will follow this naming convention: ``FileBeingTested-test.tsx``  
    1. Within testing files, include: ``import { render } from '@testing-library/react-native';`` as well as the import for the file being imported: ``import HomeScreen from '@/app/index';``  
 3. \_\_tests\_\_ files can be added to test directories other than just the root, ex. within ``utils``
@@ -210,7 +271,7 @@ From the vynl/ directory:
 * ``npx eas build --platform [android|ios]`` - Build release for specified platform
 
 ## **8. 🤝 Contributing**
-When contributing to Vynl:
+**When contributing to Vynl:**
 1. Ensure your Node.js version is 24 or newer
 2. Write tests for new features (see Section 5)
 3. Run the test suite before submitting changes

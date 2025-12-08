@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Feather, FontAwesome } from '@expo/vector-icons';
-import { SafeAreaView, View, Text, StyleSheet, Dimensions, Animated, PanResponder, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, Dimensions, Animated, PanResponder, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
@@ -162,11 +162,21 @@ export default function Swiping() {
   const numberOfRecommendedSongs = 6;
 
   const fetchRecommendations = useCallback(async () => {
+    if (!newPlaylist?.id) {
+      console.warn('Cannot fetch recommendations: playlist ID is missing');
+      return;
+    }
+
     try {
       setGettingSimilar(true);
       console.log("Fetching similar for seed songs:", newPlaylist.songs);
+      console.log("Playlist ID:", newPlaylist.id);
+      console.log("Number of recommended songs:", numberOfRecommendedSongs);
 
-      const res = await fetch(`/api/playlist/recommendation/${encodeURIComponent(newPlaylist.id)}?amount=${numberOfRecommendedSongs}`, {
+      const url = `/api/playlist/recommendation/${encodeURIComponent(newPlaylist.id)}?amount=${numberOfRecommendedSongs}`;
+      console.log("Fetching from URL:", url);
+
+      const res = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -175,19 +185,29 @@ export default function Swiping() {
       });
 
       if (!res.ok) {
-        const text = await res.text();
-        console.error(text || 'Failed to fetch similar songs');
+        Alert.alert(
+          "No recommendations found",
+          "Please try with other songs"
+        );
+        await clearSession();
+        setActive(false);
+        await stopAll();
+        resetState();
+        router.push('/');
+        //TODO : delete the playlist
         return;
       }
 
       const result = await res.json();
+      console.log("Received recommendations:", result?.length || 0, "songs");
       setRecommendations(result);
     } catch (err: any) {
-      console.error('Error updating playlist:', err.message || err);
+      console.error('Error fetching recommendations:', err.message || err);
+      console.error('Full error:', err);
     } finally {
       setGettingSimilar(false);
     }
-  }, [newPlaylist?.id, authToken, newPlaylist?.songs]);
+  }, [newPlaylist?.id, authToken, newPlaylist?.songs, numberOfRecommendedSongs]);
 
   useFocusEffect(
     useCallback(() => {
@@ -457,10 +477,14 @@ export default function Swiping() {
     
     setIsSaving(true);
     try {
-      const allSongs = [...seedSongs, ...addedSongs];
-      const finalPlaylistName = isPartyMode && playlistName ? playlistName : (isAddingMode ? newPlaylist.name : playlistName);
-      console.log("Updating playlist ", newPlaylist.id, ", new name : '", finalPlaylistName,"' , added songs : ", allSongs);
-      await updatePlaylist(newPlaylist.id, allSongs, finalPlaylistName);
+      const filteredAddedSongs = addedSongs.filter(
+        (s) => !seedSongs.some((seed) => seed.song_id === s.song_id)
+      );
+
+      const allSongs = [...seedSongs, ...filteredAddedSongs];
+      console.log("Updating playlist ", newPlaylist.id, ", new name : '", playlistName,"' , added songs : ", allSongs);
+      if (isAddingMode) await updatePlaylist(newPlaylist.id, allSongs, newPlaylist.name);
+      else await updatePlaylist(newPlaylist.id, allSongs, playlistName);
 
       setPlaylistSaved(true);
       
