@@ -100,6 +100,7 @@ export async function POST(req: Request) {
         if (p_err || !isPlaylistData(p_data)) {
             console.log('error: ');
             console.log(p_err);
+            console.log(body);
             console.log('data:');
             console.log(p_data);
             return new Response('Failed to insert into database', {

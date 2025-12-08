@@ -20,7 +20,6 @@ export async function PUT(req: Request, { code }: Record<string, string>) {
             });
         }
 
-        console.log("Code : ", code);
         const { data: playlist_id, error: p_err } = await supabase
             .rpc('get_party_id', {
                 code: code
@@ -40,8 +39,6 @@ export async function PUT(req: Request, { code }: Record<string, string>) {
         //         headers: { 'Content-Type': 'text/html' }
         //     });
         // }
-
-        console.log("Playlist id : ", playlist_id)
 
         const { data: link_data, error: link_err } = await supabase
             .from('party_users')
