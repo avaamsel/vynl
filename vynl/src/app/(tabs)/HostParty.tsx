@@ -18,22 +18,13 @@ const PARTY_CODE_STORAGE_KEY = '@vynl:partyCode';
 // Image assets
 const imgBackground = require('@/assets/images/background.png');
 
-// Generate a random 6-digit alphanumeric code
-const generatePartyCode = (): string => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-};
-
 export default function HostPartyScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const playlistId = params.playlistId as string | undefined;
   const [partyCode, setPartyCode] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);
+  const [isFetchingCode, setIsFetchingCode] = useState(false);
   const { createPlaylist } = useCreatePlaylist();
   const { authToken, loading: authLoading } = useAuth();
   const { playlist, loading: playlistLoading } = usePlaylistWithID(playlistId || null);
@@ -41,16 +32,121 @@ export default function HostPartyScreen() {
     Poppins: Poppins_400Regular,
   });
 
+  // Load party code from AsyncStorage when component mounts (for quick display)
+  // The fresh code will be fetched when user clicks "START PARTY"
   useEffect(() => {
-    // Generate code when component mounts
-    setPartyCode(generatePartyCode());
-  }, []);
+    const loadStoredPartyCode = async () => {
+      if (!playlistId || !playlist) return;
+
+      try {
+        const storedParties = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
+        if (storedParties) {
+          const parties = JSON.parse(storedParties);
+          // Handle migration from old format (single object) to new format (array)
+          const partiesArray = Array.isArray(parties) 
+            ? parties 
+            : (parties.playlistId ? [parties] : []);
+          
+          const activeParty = partiesArray.find((p: any) => p.playlistId === playlist.id.toString());
+          if (activeParty && activeParty.partyCode) {
+            // Show stored code initially, but it will be updated when "START PARTY" is clicked
+            setPartyCode(activeParty.partyCode);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading party code from storage:', error);
+      }
+    };
+
+    loadStoredPartyCode();
+  }, [playlistId, playlist]);
+
+  const fetchPartyCode = async (playlistId: number): Promise<string | null> => {
+    if (!authToken) {
+      console.error('No auth token available');
+      return null;
+    }
+
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.error('Error getting user:', userError);
+        return null;
+      }
+
+      const url = `/api/playlist/party/toggle/${playlistId}`;
+      console.log('Fetching party code from:', url);
+      console.log('User ID:', user.id);
+      console.log('Playlist ID:', playlistId);
+
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          uid: user.id,
+          enable: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to enable party mode:', response.status, errorText);
+        return null;
+      }
+
+      const responseText = await response.text();
+      console.log('Response text:', responseText);
+      
+      // The API returns JSON.stringify(partyCode), so we need to parse it
+      let code: string;
+      try {
+        code = JSON.parse(responseText);
+      } catch (parseError) {
+        // If parsing fails, maybe it's already a string?
+        code = responseText;
+      }
+      
+      if (!code || typeof code !== 'string') {
+        console.error('Invalid party code format:', code);
+        return null;
+      }
+
+      console.log('Party code received:', code);
+      return code;
+    } catch (error) {
+      console.error('Error fetching party code:', error);
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      return null;
+    }
+  };
 
   const handleCreateParty = async () => {
-    if (isCreating || authLoading || !authToken) return;
+    if (isCreating || authLoading || !authToken || isFetchingCode) return;
 
     // If we have a playlist ID, use the existing playlist
     if (playlistId && playlist) {
+      setIsFetchingCode(true);
+      // Clear the old code immediately so user sees we're fetching a fresh one
+      setPartyCode('');
+      
+      // Fetch party code from API
+      const fetchedCode = await fetchPartyCode(playlist.id);
+      
+      if (!fetchedCode) {
+        console.error('Failed to get party code from API');
+        setIsFetchingCode(false);
+        return;
+      }
+
+      // Set the new code
+      setPartyCode(fetchedCode);
+      
       // Save party code to storage (support multiple active parties)
       try {
         const existingParties = await AsyncStorage.getItem(PARTY_CODE_STORAGE_KEY);
@@ -61,12 +157,12 @@ export default function HostPartyScreen() {
         
         if (existingIndex >= 0) {
           // Update existing party code
-          parties[existingIndex].partyCode = partyCode;
+          parties[existingIndex].partyCode = fetchedCode;
         } else {
           // Add new party
           parties.push({
             playlistId: playlist.id.toString(),
-            partyCode: partyCode
+            partyCode: fetchedCode
           });
         }
         
@@ -75,14 +171,16 @@ export default function HostPartyScreen() {
         console.error('Error saving party code:', error);
       }
       
-      // Navigate back to playlist detail with party code
+      setIsFetchingCode(false);
+      
+      /* // Navigate back to playlist detail with party code
       router.push({
         pathname: '/(tabs)/playlist-detail',
         params: {
           id: playlist.id.toString(),
-          partyCode: partyCode,
+          partyCode: fetchedCode,
         },
-      });
+      }); */
       return;
     }
 
@@ -109,12 +207,23 @@ export default function HostPartyScreen() {
         return;
       }
 
+      // Fetch party code from API
+      setIsFetchingCode(true);
+      const fetchedCode = await fetchPartyCode(playlist.id);
+      setIsFetchingCode(false);
+
+      if (!fetchedCode) {
+        console.error('Failed to get party code from API');
+        setIsCreating(false);
+        return;
+      }
+
       // Navigate to UploadSongs with party mode params
       router.push({
         pathname: '/(tabs)/UploadSongs',
         params: {
           partyMode: 'true',
-          partyCode: partyCode,
+          partyCode: fetchedCode,
           playlistId: playlist.id.toString(),
           playlistName: playlist.name,
           playlist: JSON.stringify(playlist),
@@ -123,6 +232,7 @@ export default function HostPartyScreen() {
     } catch (error) {
       console.error('Error creating party:', error);
       setIsCreating(false);
+      setIsFetchingCode(false);
     }
   };
 
@@ -198,57 +308,90 @@ export default function HostPartyScreen() {
 
           {/* Party Code Display */}
           <View style={styles.codeSection}>
-            <Text style={styles.codeLabel}>Your Party Code</Text>
-            <View style={styles.codeDisplayContainer}>
-              {partyCode.split('').map((char, index) => (
-                <View key={index} style={styles.codeCharBox}>
-                  <Text style={styles.codeCharText}>{char}</Text>
+            {partyCode ? (
+              <>
+                <Text style={styles.codeLabel}>Your Party Code</Text>
+                <View style={styles.codeDisplayContainer}>
+                  {partyCode.split('').map((char, index) => (
+                    <View key={index} style={styles.codeCharBox}>
+                      <Text style={styles.codeCharText}>{char}</Text>
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
-            <Text style={styles.codeInstruction}>
-              Share this code with friends to join your party
-            </Text>
+                <Text style={styles.codeInstruction}>
+                  Share this code with friends to join your party
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.codeInstruction}>
+                Click "START PARTY" to generate your party code
+              </Text>
+            )}
           </View>
 
-          {/* Buttons Section */}
-          <View style={styles.buttonContainer}>
-            {/* Create Party Button */}
+          {!partyCode ? (
+            <View style={styles.buttonContainer}>
+              {/* Create Party Button */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleCreateParty}
+                disabled={isCreating || authLoading || isFetchingCode || (playlistId ? !playlist : false)}
+              >
+                <LinearGradient
+                  colors={!isCreating && !authLoading && !isFetchingCode && (!playlistId || playlist) ? ['#FF6B9D', '#FF8C42'] : ['#CCCCCC', '#CCCCCC']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.gradientButton}
+                >
+                  <Text style={styles.gradientButtonText}>
+                    {isCreating ? 'CREATING...' : isFetchingCode ? 'GETTING CODE...' : 'START PARTY'}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Cancel Button */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  if (playlistId) {
+                    router.push({
+                      pathname: '/(tabs)/playlist-detail',
+                      params: { id: playlistId }
+                    });
+                  } else {
+                    router.push('/(tabs)/PartyMode');
+                  }
+                }}
+                style={styles.cancelButton}
+              >
+                <Text style={styles.cancelButtonText}>CANCEL</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={handleCreateParty}
-              disabled={isCreating || authLoading || (playlistId ? !playlist : false)}
+              onPress={() =>{
+                router.push({
+                  pathname: '/(tabs)/playlist-detail',
+                  params: {
+                    id: playlistId,
+                    partyCode: partyCode,
+                  },
+                });
+              }}
             >
               <LinearGradient
-                colors={!isCreating && !authLoading && (!playlistId || playlist) ? ['#FF6B9D', '#FF8C42'] : ['#CCCCCC', '#CCCCCC']}
+                colors={!isCreating && !authLoading && !isFetchingCode && (!playlistId || playlist) ? ['#FF6B9D', '#FF8C42'] : ['#CCCCCC', '#CCCCCC']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.gradientButton}
               >
-                <Text style={styles.gradientButtonText}>
-                  {isCreating ? 'CREATING...' : 'START PARTY'}
+                <Text style={styles.gradientButtonText}>Back to Playlist
                 </Text>
               </LinearGradient>
             </TouchableOpacity>
-
-            {/* Cancel Button */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => {
-                if (playlistId) {
-                  router.push({
-                    pathname: '/(tabs)/playlist-detail',
-                    params: { id: playlistId }
-                  });
-                } else {
-                  router.push('/(tabs)/PartyMode');
-                }
-              }}
-              style={styles.cancelButton}
-            >
-              <Text style={styles.cancelButtonText}>CANCEL</Text>
-            </TouchableOpacity>
-          </View>
+          )
+          }
         </ScrollView>
       </SafeAreaView>
     </View>

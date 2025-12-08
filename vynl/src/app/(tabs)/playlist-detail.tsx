@@ -11,6 +11,9 @@ import SpotifyExportModal from '@/src/components/SpotifyExportModal';
 import YouTubeExportModal from '@/src/components/YouTubeExportModal';
 import { ITunesPlaylist } from '@/src/types';
 import { usePlaylistWithID } from '@/src/hooks/use-playlist-with-id';
+import { supabase } from '@/src/utils/supabase';
+import { useAuth } from '@/src/context/auth-context';
+import { useUser } from '@/src/hooks/use-user';
 
 const PARTY_CODE_STORAGE_KEY = '@vynl:partyCode';
 
@@ -19,11 +22,13 @@ export default function PlaylistDetailScreen() {
   const router = useRouter();
   const playlistId = params.id as string;
   const partyCodeFromParams = params.partyCode as string | undefined;
+  const { authToken, loading: authLoading } = useAuth();
   
   const [showExportModal, setShowExportModal] = useState(false);
   const [partyCode, setPartyCode] = useState<string | undefined>(partyCodeFromParams);
   const [showYouTubeModal, setShowYouTubeModal] = useState(false);
   const { playlist, loading, error, refetch } = usePlaylistWithID(playlistId);
+  const { user, loading: userLoading } = useUser();
 
   // Load party code from storage when component mounts or playlist changes
   useEffect(() => {
@@ -176,6 +181,33 @@ export default function PlaylistDetailScreen() {
     );
   };
 
+  const disableParty = async () => {
+    if (!partyCode) {
+      return;
+    }
+
+    if (!user) {
+      console.log("Unable to get user");
+      return
+    }
+
+    const url = `/api/playlist/party/toggle/${playlistId}`;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({
+        uid: user.id,
+        enable: false,
+      }),
+    });
+
+    setPartyCode(undefined);
+    return;
+  }
+
   if (loading) {
     return (
       <LinearGradient colors={['#F8F9FD', '#FFFFFF']} style={{ flex: 1 }}>
@@ -225,7 +257,7 @@ export default function PlaylistDetailScreen() {
             </Text>
           </View>
           <View style={styles.headerActions}>
-            {!partyCode && (
+            {(playlist.user_id === user?.id) && (!partyCode ? (
               <TouchableOpacity 
                 onPress={() => router.push({
                   pathname: '../HostParty',
@@ -235,7 +267,14 @@ export default function PlaylistDetailScreen() {
               >
                 <Text style={styles.hostPartyButtonText}>HOST PARTY</Text>
               </TouchableOpacity>
-            )}
+            ) : (
+              <TouchableOpacity 
+                onPress={disableParty} 
+                style={styles.hostPartyButton}
+              >
+                <Text style={styles.hostPartyButtonText}>STOP PARTY</Text>
+              </TouchableOpacity>      
+            ))}
             <TouchableOpacity onPress={handleDeletePlaylist} style={styles.deleteButton}>
               <Ionicons name="trash-outline" size={24} color="#F28695" />
             </TouchableOpacity>
@@ -243,6 +282,14 @@ export default function PlaylistDetailScreen() {
         </View>
 
         {partyCode && (
+          <View style={styles.partyCodeContent}>
+            {partyCode.split('').map((char, index) => (
+                <View key={index} style={styles.partyCodeCharBox}>
+                  <Text style={styles.partyCodeCharText}>{char}</Text>
+                </View>
+            ))}
+          </View>
+/* 
           <View style={styles.partyCodeSection}>
             <View style={styles.partyCodeHeader}>
               <Text style={styles.partyCodeLabel}>Party Code</Text>
@@ -329,7 +376,7 @@ export default function PlaylistDetailScreen() {
             >
               <Text style={styles.endPartyTextButtonText}>End Party</Text>
             </TouchableOpacity>
-          </View>
+          </View> */
         )}
 
         <ScrollView 
@@ -629,6 +676,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#F28695',
     textAlign: 'center',
+  },
+  partyCodeContent: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
   },
 });
 

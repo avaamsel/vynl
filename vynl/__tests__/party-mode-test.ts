@@ -195,6 +195,7 @@ describe('Party Playlist Test', () => {
                 console.log(await res.text());
             }
 
+            console.log(await res.text());
             expect(res.ok).toBeTruthy();
 
             const { data: e_data, error: e_err } = await adminClient

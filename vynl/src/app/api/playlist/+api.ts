@@ -33,8 +33,8 @@ export async function GET(req: Request) {
                     .from('party_users')
                     .select(`
                         playlist_id,
-                        playlists (*)`
-                    )
+                        playlists (*)
+                    `)
                     .eq('user_id', uid));
                 data = data?.map(d =>
                     d.playlists

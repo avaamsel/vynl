@@ -58,10 +58,15 @@ export default function JoinPartyScreen() {
         Alert.alert('Error', 'Failed to find playlist with your code');
         setCode(['', '', '', '', '', '']);
       } else {
-        const playlist: ITunesPlaylist = await res.json();
+        const playlist_id = await res.json();
+        const int_id = parseInt(playlist_id);
+        if (Number.isNaN(int_id)) {
+          console.log("Expected a number, instead got id : ", playlist_id);
+        }
+
         router.push({
           pathname: '/(tabs)/playlist-detail',
-          params: { id: playlist.id }
+          params: { id: int_id }
         });
       }
 

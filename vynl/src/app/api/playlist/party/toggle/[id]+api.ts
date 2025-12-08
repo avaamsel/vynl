@@ -27,10 +27,8 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
         }
 
         const body = await req.json();
-        // const uid = body.uid;
         const enable = body.enable;
-        
-        // if (uid === undefined || uid === null) return new Response("Missing user ID", { status: 400 });
+
         if (enable === undefined || enable === null) return new Response("Missing enable", { status: 400 });
 
         const supabase = await createSupabaseClient(req);
@@ -40,13 +38,21 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
         }
 
         if (enable) {
+            // Get the authenticated user from Supabase
+            const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+            if (authError || !authUser) {
+                return new Response('Unauthorized', {
+                    status: 401
+                });
+            }
+
             // 1. Create secret party code if it doesn't exist
             const { data: c_data, error: c_err } = await supabase
                 .from('playlists')
                 .select('party_code,  uid')
                 .eq('playlist_id', playlist_id)
                 .single();
-
+                
             if (c_err || !c_data) {
                 console.log(c_err);
                 console.log(c_data);
@@ -71,16 +77,18 @@ export async function PUT(req: Request, { id }: Record<string, string>) {
                 .eq("playlist_id", playlist_id);
 
             if (p_err) {
+                console.error('Error updating playlist:', p_err);
                 return new Response('Failed to update playlist', {
                     status: 400
                 });
             }
+            
             // 3. Add owner to party_user
-            const party_user_to_add: party_user = {playlist_id: playlist_id, user_id: uid}
-
+            // RLS will automatically set user_id based on the authenticated user
+            // Only insert playlist_id, just like the link endpoint does
             const { data: pu_data, error: pu_err } = await supabase
                 .from('party_users')
-                .upsert(party_user_to_add)
+                .upsert({ playlist_id: playlist_id });
 
             if (pu_err) {
                 console.log(pu_err)

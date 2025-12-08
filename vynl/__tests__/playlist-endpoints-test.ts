@@ -197,8 +197,6 @@ describe('Playlist Test', () => {
                 .from('songs')
                 .select();
 
-            console.log(songs_data);
-
             expect(songs_data).toBeDefined();
             expect(songs_error).toBeNull();
             for (let i = 0; i < filled_playlist.songs.length; i++) {
